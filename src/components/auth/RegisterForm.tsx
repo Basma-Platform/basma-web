@@ -383,15 +383,15 @@ const RegisterForm = () => {
                 رقم واتساب <span className="register-form__required">*</span>
               </Form.Label>
               <div className="register-form__phone">
-                {/* قائمة منسدلة مخصصة تدعم الصور */}
                 <Dropdown
                   className="register-form__prefix-dropdown"
-                  onSelect={(eventKey) =>
-                    eventKey && handlePrefixChange(eventKey as PhonePrefix)
-                  }
+                  onSelect={(eventKey) => {
+                    if (eventKey) {
+                      handlePrefixChange(eventKey as PhonePrefix);
+                    }
+                  }}
                 >
                   <Dropdown.Toggle
-                    variant="outline-secondary"
                     id="dropdown-phone-prefix"
                     className="register-form__prefix-toggle"
                   >
@@ -406,11 +406,9 @@ const RegisterForm = () => {
                           (country) => country.value === phonePrefix,
                         )?.alt
                       }
-                      width="22"
-                      height="16"
                     />
 
-                    <span dir="ltr">{phonePrefix}</span>
+                    <span>{phonePrefix}</span>
                   </Dropdown.Toggle>
 
                   <Dropdown.Menu className="register-form__prefix-menu">
@@ -418,16 +416,12 @@ const RegisterForm = () => {
                       <Dropdown.Item
                         key={country.value}
                         eventKey={country.value}
+                        active={country.value === phonePrefix}
                         className="register-form__prefix-item"
                       >
-                        <img
-                          src={country.flag}
-                          alt={country.alt}
-                          width="22"
-                          height="16"
-                        />
+                        <img src={country.flag} alt={country.alt} />
 
-                        <span dir="ltr">{country.label}</span>
+                        <span>{country.label}</span>
                       </Dropdown.Item>
                     ))}
                   </Dropdown.Menu>

@@ -73,7 +73,6 @@
   grid-template-columns: 125px 1fr;
   gap: 0.65rem;
   direction: ltr;
-  align-items: start;
 }
 
 .register-form__phone .form-control,
@@ -112,6 +111,123 @@
   color: var(--primary-orange);
 }
 
+.register-form__prefix-dropdown {
+  width: 125px;
+  direction: ltr !important;
+}
+
+.register-form__prefix-toggle.btn,
+.register-form__prefix-toggle.btn:hover,
+.register-form__prefix-toggle.btn:focus,
+.register-form__prefix-toggle.btn:active,
+.register-form__prefix-toggle.btn.show {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 12px;
+  direction: ltr !important;
+  border: 1px solid var(--input-border) !important;
+  border-radius: 12px !important;
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+}
+
+.register-form__prefix-toggle.btn:focus,
+.register-form__prefix-toggle.btn.show {
+  border-color: var(--primary-orange) !important;
+  box-shadow: 0 0 0 0.2rem rgba(232, 122, 32, 0.14) !important;
+}
+
+.register-form__prefix-toggle.btn::after {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+  color: var(--text-muted);
+}
+
+.register-form__prefix-toggle img,
+.register-form__prefix-item img {
+  display: block;
+  width: 22px;
+  height: 15px;
+  flex-shrink: 0;
+  border-radius: 2px;
+  object-fit: cover;
+}
+
+.register-form__prefix-toggle span,
+.register-form__prefix-item span {
+  direction: ltr !important;
+  unicode-bidi: isolate;
+}
+
+.register-form__prefix-menu.dropdown-menu {
+  --bs-dropdown-bg: var(--bg-card);
+  --bs-dropdown-color: var(--text-primary);
+  --bs-dropdown-link-color: var(--text-primary);
+  --bs-dropdown-link-hover-color: var(--primary-orange);
+  --bs-dropdown-link-hover-bg: rgba(232, 122, 32, 0.15);
+  --bs-dropdown-link-active-color: #fff;
+  --bs-dropdown-link-active-bg: var(--primary-orange);
+
+  width: 125px;
+  min-width: 125px !important;
+  padding: 6px;
+  direction: ltr !important;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background-color: var(--bg-card) !important;
+  box-shadow: 0 12px 30px var(--shadow-md);
+}
+
+.register-form__prefix-item.dropdown-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px;
+  padding: 9px 10px !important;
+  direction: ltr !important;
+  border-radius: 8px;
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.register-form__prefix-item.dropdown-item:hover,
+.register-form__prefix-item.dropdown-item:focus {
+  background-color: rgba(232, 122, 32, 0.15) !important;
+  color: var(--primary-orange) !important;
+}
+
+.register-form__prefix-item.dropdown-item.active {
+  background-color: var(--primary-orange) !important;
+  color: #fff !important;
+}
+
+[data-theme="dark"] .register-form__prefix-menu.dropdown-menu {
+  --bs-dropdown-bg: #16213e;
+  --bs-dropdown-color: #fdf5e6;
+  --bs-dropdown-link-color: #fdf5e6;
+
+  border-color: rgba(255, 255, 255, 0.12);
+  background-color: #16213e !important;
+}
+
+[data-theme="dark"] .register-form__prefix-item.dropdown-item {
+  color: #fdf5e6 !important;
+}
+
+[data-theme="dark"]
+  .register-form__prefix-item.dropdown-item:hover,
+[data-theme="dark"]
+  .register-form__prefix-item.dropdown-item:focus {
+  background-color: rgba(232, 122, 32, 0.2) !important;
+  color: #fff !important;
+}
+
 .register-form__terms {
   padding: 1rem;
   border: 1px solid var(--border-color);
@@ -127,22 +243,14 @@
   min-height: 52px;
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(
-    135deg,
-    var(--primary-orange),
-    var(--primary-orange-dark)
-  );
+  background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-dark));
   box-shadow: 0 10px 24px rgba(232, 122, 32, 0.25);
   font-size: 1.05rem;
   font-weight: 800;
 }
 
 .register-form__submit:hover:not(:disabled) {
-  background: linear-gradient(
-    135deg,
-    var(--primary-orange-dark),
-    var(--primary-orange)
-  );
+  background: linear-gradient(135deg, var(--primary-orange-dark), var(--primary-orange));
   transform: translateY(-1px);
 }
 
@@ -150,86 +258,6 @@
   margin: 1.25rem 0 0;
   color: var(--text-muted);
   text-align: center;
-}
-
-.register-form__prefix-dropdown {
-  width: 125px;
-  direction: ltr;
-}
-
-.register-form__prefix-toggle {
-  display: flex !important;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  min-height: 50px;
-  padding: 0 12px;
-  border-color: var(--input-border) !important;
-  border-radius: 12px !important;
-  background-color: var(--bg-input) !important;
-  color: var(--text-primary) !important;
-  direction: ltr;
-}
-
-.register-form__prefix-toggle:hover,
-.register-form__prefix-toggle:focus,
-.register-form__prefix-toggle:active,
-.register-form__prefix-toggle.show {
-  border-color: var(--primary-orange) !important;
-  background-color: var(--bg-input) !important;
-  color: var(--text-primary) !important;
-  box-shadow: 0 0 0 0.2rem rgba(232, 122, 32, 0.14) !important;
-}
-
-.register-form__prefix-toggle::after {
-  margin-right: auto;
-  margin-left: 0;
-}
-
-.register-form__prefix-toggle img,
-.register-form__prefix-item img {
-  display: block;
-  flex-shrink: 0;
-  object-fit: cover;
-  border-radius: 2px;
-}
-
-.register-form__prefix-menu {
-  width: 100%;
-  min-width: 125px !important;
-  padding: 6px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background-color: var(--bg-card);
-  box-shadow: 0 12px 30px var(--shadow-md);
-  direction: ltr;
-}
-
-.register-form__prefix-item {
-  display: flex !important;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 10px !important;
-  border-radius: 8px;
-  color: var(--text-primary) !important;
-}
-
-.register-form__prefix-item:hover,
-.register-form__prefix-item:focus,
-.register-form__prefix-item.active {
-  background-color: rgba(232, 122, 32, 0.12) !important;
-  color: var(--primary-orange) !important;
-}
-
-@media (max-width: 575.98px) {
-  .register-form__prefix-dropdown {
-    width: 105px;
-  }
-
-  .register-form__prefix-menu {
-    min-width: 105px !important;
-  }
 }
 
 @media (max-width: 575.98px) {
@@ -240,5 +268,10 @@
   .register-form__phone {
     grid-template-columns: 105px 1fr;
   }
-}
 
+  .register-form__prefix-dropdown,
+  .register-form__prefix-menu.dropdown-menu {
+    width: 105px;
+    min-width: 105px !important;
+  }
+}
