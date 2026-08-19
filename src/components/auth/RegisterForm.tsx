@@ -117,13 +117,34 @@ const RegisterForm = () => {
     }));
   };
 
+  const validateField = (field: FieldName) => {
+    const payload: RegisterPayload = {
+      ...form,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      whatsapp: `${phonePrefix}${localPhone}`,
+    };
+
+    const fieldError = validateForm(payload, phonePrefix)[field];
+
+    setErrors((current) => ({
+      ...current,
+      [field]: fieldError,
+    }));
+  };
+
   const handleTextChange = (event: ChangeEvent<HTMLInputElement>) => {
     const field = event.target.name as
       | "name"
       | "email"
       | "password"
       | "password_confirmation";
-    setForm((current) => ({ ...current, [field]: event.target.value }));
+
+    setForm((current) => ({
+      ...current,
+      [field]: event.target.value,
+    }));
+
     clearFieldError(field);
   };
 
@@ -243,6 +264,7 @@ const RegisterForm = () => {
                 name="name"
                 value={form.name}
                 onChange={handleTextChange}
+                onBlur={() => validateField("name")}
                 isInvalid={Boolean(errors.name)}
                 maxLength={100}
                 autoComplete="name"
@@ -265,6 +287,7 @@ const RegisterForm = () => {
                 name="email"
                 value={form.email}
                 onChange={handleTextChange}
+                onBlur={() => validateField("email")}
                 isInvalid={Boolean(errors.email)}
                 autoComplete="email"
                 dir="ltr"
@@ -287,6 +310,7 @@ const RegisterForm = () => {
                   name="password"
                   value={form.password}
                   onChange={handleTextChange}
+                  onBlur={() => validateField("password")}
                   isInvalid={Boolean(errors.password)}
                   autoComplete="new-password"
                   placeholder="8 أحرف على الأقل"
@@ -320,6 +344,7 @@ const RegisterForm = () => {
                   name="password_confirmation"
                   value={form.password_confirmation}
                   onChange={handleTextChange}
+                  onBlur={() => validateField("password_confirmation")}
                   isInvalid={Boolean(errors.password_confirmation)}
                   autoComplete="new-password"
                   placeholder="أعد إدخال كلمة المرور"
@@ -356,12 +381,13 @@ const RegisterForm = () => {
                   }
                   aria-label="مقدمة رقم واتساب"
                 >
-                  <option value="+970">+970</option>
+                  <option value="+970">+970 🇵🇸</option>
                   <option value="+972">+972</option>
                 </Form.Select>
                 <Form.Control
                   value={localPhone}
                   onChange={(event) => handlePhoneChange(event.target.value)}
+                  onBlur={() => validateField("whatsapp")}
                   isInvalid={Boolean(errors.whatsapp)}
                   inputMode="numeric"
                   autoComplete="tel"
