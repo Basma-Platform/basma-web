@@ -44,6 +44,7 @@ const AboutCTA = () => {
             </p>
 
             <Button
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               as={Link as any}
               to="/register"
               className="rounded-pill fw-bold"

@@ -72,6 +72,7 @@ const CTASection = () => {
 
             <div className="d-flex flex-wrap justify-content-center gap-3">
               <Button
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 as={Link as any}
                 to="/register"
                 className="rounded-pill fw-bold"
@@ -104,6 +105,7 @@ const CTASection = () => {
               </Button>
 
               <Button
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 as={Link as any}
                 to="/announcements"
                 className="rounded-pill fw-bold"

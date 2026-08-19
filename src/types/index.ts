@@ -67,3 +67,19 @@ export interface FAQ {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  whatsapp: string;
+  governorate_id: number;
+  city_id: number;
+  terms_accepted: boolean;
+}
+
+export interface RegisterResponse {
+  message: string;
+  user: User;
+}
