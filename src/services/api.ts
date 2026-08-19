@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL for Laravel API
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'https://basma-backend.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
