@@ -73,6 +73,7 @@
   grid-template-columns: 125px 1fr;
   gap: 0.65rem;
   direction: ltr;
+  align-items: start;
 }
 
 .register-form__phone .form-control,
@@ -151,6 +152,86 @@
   text-align: center;
 }
 
+.register-form__prefix-dropdown {
+  width: 125px;
+  direction: ltr;
+}
+
+.register-form__prefix-toggle {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 12px;
+  border-color: var(--input-border) !important;
+  border-radius: 12px !important;
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  direction: ltr;
+}
+
+.register-form__prefix-toggle:hover,
+.register-form__prefix-toggle:focus,
+.register-form__prefix-toggle:active,
+.register-form__prefix-toggle.show {
+  border-color: var(--primary-orange) !important;
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(232, 122, 32, 0.14) !important;
+}
+
+.register-form__prefix-toggle::after {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.register-form__prefix-toggle img,
+.register-form__prefix-item img {
+  display: block;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.register-form__prefix-menu {
+  width: 100%;
+  min-width: 125px !important;
+  padding: 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background-color: var(--bg-card);
+  box-shadow: 0 12px 30px var(--shadow-md);
+  direction: ltr;
+}
+
+.register-form__prefix-item {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px !important;
+  border-radius: 8px;
+  color: var(--text-primary) !important;
+}
+
+.register-form__prefix-item:hover,
+.register-form__prefix-item:focus,
+.register-form__prefix-item.active {
+  background-color: rgba(232, 122, 32, 0.12) !important;
+  color: var(--primary-orange) !important;
+}
+
+@media (max-width: 575.98px) {
+  .register-form__prefix-dropdown {
+    width: 105px;
+  }
+
+  .register-form__prefix-menu {
+    min-width: 105px !important;
+  }
+}
+
 @media (max-width: 575.98px) {
   .register-card {
     border-radius: 18px;
@@ -160,3 +241,4 @@
     grid-template-columns: 105px 1fr;
   }
 }
+

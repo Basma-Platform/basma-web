@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
-import { Alert, Button, Col, Form, Row, Spinner } from "react-bootstrap";
+import { Alert, Button, Col, Form, Row, Spinner, Dropdown } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
 import { FaEye, FaEyeSlash, FaShieldAlt, FaUserPlus } from "react-icons/fa";
@@ -19,6 +19,15 @@ type FieldName =
   | "terms_accepted";
 
 type FormErrors = Partial<Record<FieldName | "general", string>>;
+
+type PhonePrefix = "+970" | "+972";
+
+const countryOptions = [
+  { value: "+970", label: "+970", flag: "https://flagcdn.com/w40/ps.png", alt: "ps" },
+  { value: "+972", label: "+972", flag: "https://flagcdn.com/w40/il.png", alt: "il" },
+];
+
+// const [phonePrefix, setPhonePrefix] = useState<PhonePrefix>("+970");
 
 interface LaravelValidationError {
   message?: string;
@@ -374,16 +383,55 @@ const RegisterForm = () => {
                 رقم واتساب <span className="register-form__required">*</span>
               </Form.Label>
               <div className="register-form__phone">
-                <Form.Select
-                  value={phonePrefix}
-                  onChange={(event) =>
-                    handlePrefixChange(event.target.value as "+970" | "+972")
+                {/* قائمة منسدلة مخصصة تدعم الصور */}
+                <Dropdown
+                  className="register-form__prefix-dropdown"
+                  onSelect={(eventKey) =>
+                    eventKey && handlePrefixChange(eventKey as PhonePrefix)
                   }
-                  aria-label="مقدمة رقم واتساب"
                 >
-                  <option value="+970">+970 🇵🇸</option>
-                  <option value="+972">+972</option>
-                </Form.Select>
+                  <Dropdown.Toggle
+                    variant="outline-secondary"
+                    id="dropdown-phone-prefix"
+                    className="register-form__prefix-toggle"
+                  >
+                    <img
+                      src={
+                        countryOptions.find(
+                          (country) => country.value === phonePrefix,
+                        )?.flag
+                      }
+                      alt={
+                        countryOptions.find(
+                          (country) => country.value === phonePrefix,
+                        )?.alt
+                      }
+                      width="22"
+                      height="16"
+                    />
+
+                    <span dir="ltr">{phonePrefix}</span>
+                  </Dropdown.Toggle>
+
+                  <Dropdown.Menu className="register-form__prefix-menu">
+                    {countryOptions.map((country) => (
+                      <Dropdown.Item
+                        key={country.value}
+                        eventKey={country.value}
+                        className="register-form__prefix-item"
+                      >
+                        <img
+                          src={country.flag}
+                          alt={country.alt}
+                          width="22"
+                          height="16"
+                        />
+
+                        <span dir="ltr">{country.label}</span>
+                      </Dropdown.Item>
+                    ))}
+                  </Dropdown.Menu>
+                </Dropdown>
                 <Form.Control
                   value={localPhone}
                   onChange={(event) => handlePhoneChange(event.target.value)}
