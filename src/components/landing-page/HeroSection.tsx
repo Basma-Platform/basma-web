@@ -113,6 +113,7 @@ const HeroSection = () => {
                 style={{ justifyContent: 'flex-start' }}
               >
                 <Button
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   as={Link as any}
                   to="/register"
                   className="rounded-pill fw-bold"
@@ -141,6 +142,7 @@ const HeroSection = () => {
                 </Button>
 
                 <Button
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   as={Link as any}
                   to="/announcements"
                   className="rounded-pill fw-bold"
