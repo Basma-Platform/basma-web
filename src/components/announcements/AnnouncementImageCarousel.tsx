@@ -22,7 +22,7 @@ const AnnouncementImageCarousel = ({
   const imageList = hasImages
     ? images.map((img) => ({
         id: img.id,
-        src: `http://localhost:8000/storage/${img.image_path}`,
+        src: `https://basma-backend.onrender.com/storage/${img.image_path}`,
         alt: `صورة`,
       }))
     : [
