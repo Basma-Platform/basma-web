@@ -161,9 +161,20 @@
 }
 
 .register-form__prefix-toggle.btn::after {
-  margin-right: auto !important;
-  margin-left: 0 !important;
+  display: none;
+}
+
+.register-form__prefix-chevron {
+  width: 11px;
+  height: 11px;
+  margin-left: auto;
   color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.register-form__prefix-toggle.show
+  .register-form__prefix-chevron {
+  transform: rotate(180deg);
 }
 
 .register-form__prefix-toggle img,

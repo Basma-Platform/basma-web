@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Alert, Button, Col, Form, Row, Spinner, Dropdown } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
-import { FaEye, FaEyeSlash, FaShieldAlt, FaUserPlus } from "react-icons/fa";
+import { FaChevronDown, FaEye, FaEyeSlash, FaShieldAlt, FaUserPlus } from "react-icons/fa";
 import { authService } from "../../services/authService";
 import { regionService } from "../../services/regionService";
 import type { City, Governorate, RegisterPayload } from "../../types";
@@ -425,6 +425,7 @@ const RegisterForm = () => {
                   <Dropdown.Toggle
                     id="dropdown-phone-prefix"
                     className="register-form__prefix-toggle"
+                    aria-label="اختيار مقدمة رقم واتساب"
                   >
                     <img
                       src={
@@ -440,6 +441,11 @@ const RegisterForm = () => {
                     />
 
                     <span>{phonePrefix}</span>
+
+                    <FaChevronDown
+                      className="register-form__prefix-chevron"
+                      aria-hidden="true"
+                    />
                   </Dropdown.Toggle>
 
                   <Dropdown.Menu className="register-form__prefix-menu">
