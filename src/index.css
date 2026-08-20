@@ -158,6 +158,19 @@ a:hover {
   margin-left: 0 !important;
 }
 
+/* Hide dropdown arrows (RTL fix) */
+.dropdown-toggle::after {
+  display: none !important;
+}
+
+select.form-select,
+.form-select {
+  background-image: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
 /* ----- 7. Scrollbar ----- */
 ::-webkit-scrollbar {
   width: 6px;
