@@ -83,3 +83,22 @@ export interface RegisterResponse {
   message: string;
   user: User;
 }
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+  remember_me: boolean;
+}
+
+export interface LoginResponse {
+  message: string;
+  token: string;
+  user: User;
+  expires_in?: number;
+}
+
+export interface AuthSession {
+  token: string;
+  user: User;
+  expiresAt: number;
+}
