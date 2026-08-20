@@ -50,7 +50,7 @@ const AnnouncementCard = ({ announcement, isLoggedIn = false }: AnnouncementCard
 
   const coverImage =
     announcement.images && announcement.images.length > 0
-      ? `http://localhost:8000/storage/${announcement.images[0].image_path}`
+      ? `https://basma-backend.onrender.com/storage/${announcement.images[0].image_path}`
       : '/placeholder-image.png';
 
   return (
