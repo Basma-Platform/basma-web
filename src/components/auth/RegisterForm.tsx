@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Alert, Button, Col, Form, Row, Spinner, Dropdown } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
-import { FaEye, FaEyeSlash, FaShieldAlt, FaUserPlus } from "react-icons/fa";
+import { FaChevronDown, FaEye, FaEyeSlash, FaShieldAlt, FaUserPlus } from "react-icons/fa";
 import { authService } from "../../services/authService";
 import { regionService } from "../../services/regionService";
 import type { City, Governorate, RegisterPayload } from "../../types";
@@ -94,6 +94,7 @@ const RegisterForm = () => {
   const [governorates, setGovernorates] = useState<Governorate[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [duplicateEmail, setDuplicateEmail] = useState(false);
   const [loadingRegions, setLoadingRegions] = useState(true);
   const [loadingCities, setLoadingCities] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -155,6 +156,10 @@ const RegisterForm = () => {
     }));
 
     clearFieldError(field);
+
+    if (field === "email") {
+      setDuplicateEmail(false);
+    }
   };
 
   const handlePhoneChange = (value: string) => {
@@ -232,6 +237,7 @@ const RegisterForm = () => {
       return;
     }
 
+    setDuplicateEmail(false);
     setSubmitting(true);
     setErrors({});
     try {
@@ -241,8 +247,19 @@ const RegisterForm = () => {
         state: { email: payload.email },
       });
     } catch (error) {
-      if (error instanceof AxiosError) setErrors(mapServerErrors(error));
-      else setErrors({ general: "حدث خطأ غير متوقع. حاول مرة أخرى." });
+      if (error instanceof AxiosError) {
+        const serverErrors = mapServerErrors(error);
+
+        setErrors(serverErrors);
+
+        const emailErrors = error.response?.data.errors?.email;
+
+        setDuplicateEmail(Array.isArray(emailErrors) && emailErrors.length > 0);
+      } else {
+        setErrors({
+          general: "حدث خطأ غير متوقع. حاول مرة أخرى.",
+        });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -291,6 +308,7 @@ const RegisterForm = () => {
                 البريد الإلكتروني{" "}
                 <span className="register-form__required">*</span>
               </Form.Label>
+
               <Form.Control
                 type="email"
                 name="email"
@@ -302,9 +320,22 @@ const RegisterForm = () => {
                 dir="ltr"
                 placeholder="name@example.com"
               />
+
               <Form.Control.Feedback type="invalid">
                 {errors.email}
               </Form.Control.Feedback>
+
+              {duplicateEmail && (
+                <div className="register-form__email-suggestions">
+                  <span>هل لديك حساب؟</span>
+
+                  <Link to="/login">تسجيل الدخول</Link>
+
+                  <span>أو</span>
+
+                  <Link to="/forgot-password">استعادة كلمة المرور</Link>
+                </div>
+              )}
             </Form.Group>
           </Col>
 
@@ -394,6 +425,7 @@ const RegisterForm = () => {
                   <Dropdown.Toggle
                     id="dropdown-phone-prefix"
                     className="register-form__prefix-toggle"
+                    aria-label="اختيار مقدمة رقم واتساب"
                   >
                     <img
                       src={
@@ -409,6 +441,11 @@ const RegisterForm = () => {
                     />
 
                     <span>{phonePrefix}</span>
+
+                    <FaChevronDown
+                      className="register-form__prefix-chevron"
+                      aria-hidden="true"
+                    />
                   </Dropdown.Toggle>
 
                   <Dropdown.Menu className="register-form__prefix-menu">

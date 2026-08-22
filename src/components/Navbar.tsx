@@ -1,16 +1,17 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { FaBars, FaTimes, FaSun, FaMoon } from 'react-icons/fa';
-import { useTheme } from '../context/ThemeContext';
-import logo from '../assets/logo.png';
+import { useState, useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { FaBars, FaTimes, FaSun, FaMoon } from "react-icons/fa";
+import { useTheme } from "../context/ThemeContext";
+import logo from "../assets/logo.png";
+import { useAuth } from "../context/AuthContext";
 
 const NAV_LINKS = [
-  { path: '/', label: 'الرئيسية' },
-  { path: '/announcements', label: 'الإعلانات' },
-  { path: '/about', label: 'من نحن' },
-  { path: '/faq', label: 'الأسئلة الشائعة' },
-  { path: '/contact', label: 'اتصل بنا' },
+  { path: "/", label: "الرئيسية" },
+  { path: "/announcements", label: "الإعلانات" },
+  { path: "/about", label: "من نحن" },
+  { path: "/faq", label: "الأسئلة الشائعة" },
+  { path: "/contact", label: "اتصل بنا" },
 ];
 
 const Navbar = () => {
@@ -18,15 +19,22 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const { isDark: darkMode, toggleDarkMode } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const drawerRef = useRef<HTMLDivElement>(null);
-  const isLoggedIn = false;
+  const { isAuthenticated: isLoggedIn, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    setOpen(false);
+    navigate("/login", { replace: true });
+  };
 
   // Scroll shadow/opacity effect
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Close drawer on route change
@@ -38,16 +46,16 @@ const Navbar = () => {
   useEffect(() => {
     if (open) {
       const prevOverflow = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
 
       const onKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setOpen(false);
+        if (e.key === "Escape") setOpen(false);
       };
-      document.addEventListener('keydown', onKeyDown);
+      document.addEventListener("keydown", onKeyDown);
 
       return () => {
         document.body.style.overflow = prevOverflow;
-        document.removeEventListener('keydown', onKeyDown);
+        document.removeEventListener("keydown", onKeyDown);
       };
     }
   }, [open]);
@@ -56,10 +64,16 @@ const Navbar = () => {
 
   return (
     <>
-      <header className={`site-navbar ${scrolled ? 'is-scrolled' : ''} ${darkMode ? 'is-dark' : ''}`}>
+      <header
+        className={`site-navbar ${scrolled ? "is-scrolled" : ""} ${darkMode ? "is-dark" : ""}`}
+      >
         <div className="site-navbar__inner">
           {/* Brand */}
-          <Link to="/" className="site-navbar__brand" aria-label="بصمة - الصفحة الرئيسية">
+          <Link
+            to="/"
+            className="site-navbar__brand"
+            aria-label="بصمة - الصفحة الرئيسية"
+          >
             <img src={logo} alt="بصمة" className="site-navbar__logo" />
             <span className="site-navbar__wordmark">بصمة</span>
           </Link>
@@ -70,7 +84,7 @@ const Navbar = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`site-navbar__link ${isActive(link.path) ? 'is-active' : ''}`}
+                className={`site-navbar__link ${isActive(link.path) ? "is-active" : ""}`}
               >
                 {link.label}
               </Link>
@@ -82,7 +96,9 @@ const Navbar = () => {
             <button
               onClick={toggleDarkMode}
               className="site-navbar__icon-btn"
-              aria-label={darkMode ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'}
+              aria-label={
+                darkMode ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"
+              }
               type="button"
             >
               {darkMode ? <FaSun /> : <FaMoon />}
@@ -90,19 +106,32 @@ const Navbar = () => {
 
             {isLoggedIn ? (
               <>
-                <Link to="/dashboard" className="site-navbar__btn site-navbar__btn--ghost">
+                <Link
+                  to="/dashboard"
+                  className="site-navbar__btn site-navbar__btn--ghost"
+                >
                   لوحة التحكم
                 </Link>
-                <button className="site-navbar__btn site-navbar__btn--danger" type="button">
+                <button
+                  className="site-navbar__btn site-navbar__btn--danger"
+                  type="button"
+                  onClick={handleLogout}
+                >
                   تسجيل الخروج
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" className="site-navbar__btn site-navbar__btn--outline">
+                <Link
+                  to="/login"
+                  className="site-navbar__btn site-navbar__btn--outline"
+                >
                   تسجيل الدخول
                 </Link>
-                <Link to="/register" className="site-navbar__btn site-navbar__btn--solid">
+                <Link
+                  to="/register"
+                  className="site-navbar__btn site-navbar__btn--solid"
+                >
                   ابدأ الآن
                 </Link>
               </>
@@ -113,7 +142,7 @@ const Navbar = () => {
           <button
             className="site-navbar__toggle"
             onClick={() => setOpen((v) => !v)}
-            aria-label={open ? 'إغلاق القائمة' : 'فتح القائمة'}
+            aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
             aria-expanded={open}
             aria-controls="mobile-drawer"
             type="button"
@@ -128,7 +157,7 @@ const Navbar = () => {
 
       {/* Mobile backdrop */}
       <div
-        className={`site-navbar__backdrop ${open ? 'is-visible' : ''}`}
+        className={`site-navbar__backdrop ${open ? "is-visible" : ""}`}
         onClick={() => setOpen(false)}
         aria-hidden="true"
       />
@@ -137,13 +166,17 @@ const Navbar = () => {
       <div
         id="mobile-drawer"
         ref={drawerRef}
-        className={`site-navbar__drawer ${open ? 'is-open' : ''} ${darkMode ? 'is-dark' : ''}`}
+        className={`site-navbar__drawer ${open ? "is-open" : ""} ${darkMode ? "is-dark" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label="القائمة"
       >
         <div className="site-navbar__drawer-header">
-          <Link to="/" className="site-navbar__brand" onClick={() => setOpen(false)}>
+          <Link
+            to="/"
+            className="site-navbar__brand"
+            onClick={() => setOpen(false)}
+          >
             <img src={logo} alt="" className="site-navbar__logo" />
             <span className="site-navbar__wordmark">بصمة</span>
           </Link>
@@ -157,13 +190,16 @@ const Navbar = () => {
           </button>
         </div>
 
-        <nav className="site-navbar__drawer-links" aria-label="القائمة الرئيسية - جوال">
+        <nav
+          className="site-navbar__drawer-links"
+          aria-label="القائمة الرئيسية - جوال"
+        >
           {NAV_LINKS.map((link, i) => (
             <Link
               key={link.path}
               to={link.path}
-              className={`site-navbar__drawer-link ${isActive(link.path) ? 'is-active' : ''}`}
-              style={{ transitionDelay: open ? `${i * 40}ms` : '0ms' }}
+              className={`site-navbar__drawer-link ${isActive(link.path) ? "is-active" : ""}`}
+              style={{ transitionDelay: open ? `${i * 40}ms` : "0ms" }}
             >
               {link.label}
             </Link>
@@ -176,25 +212,38 @@ const Navbar = () => {
             className="site-navbar__theme-row"
             type="button"
           >
-            <span>{darkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}</span>
+            <span>{darkMode ? "الوضع الفاتح" : "الوضع الداكن"}</span>
             {darkMode ? <FaSun /> : <FaMoon />}
           </button>
 
           {isLoggedIn ? (
             <>
-              <Link to="/dashboard" className="site-navbar__btn site-navbar__btn--ghost site-navbar__btn--block">
+              <Link
+                to="/dashboard"
+                className="site-navbar__btn site-navbar__btn--ghost site-navbar__btn--block"
+              >
                 لوحة التحكم
               </Link>
-              <button className="site-navbar__btn site-navbar__btn--danger site-navbar__btn--block" type="button">
+              <button
+                className="site-navbar__btn site-navbar__btn--danger site-navbar__btn--block"
+                type="button"
+                onClick={handleLogout}
+              >
                 تسجيل الخروج
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="site-navbar__btn site-navbar__btn--outline site-navbar__btn--block">
+              <Link
+                to="/login"
+                className="site-navbar__btn site-navbar__btn--outline site-navbar__btn--block"
+              >
                 تسجيل الدخول
               </Link>
-              <Link to="/register" className="site-navbar__btn site-navbar__btn--solid site-navbar__btn--block">
+              <Link
+                to="/register"
+                className="site-navbar__btn site-navbar__btn--solid site-navbar__btn--block"
+              >
                 ابدأ الآن
               </Link>
             </>
