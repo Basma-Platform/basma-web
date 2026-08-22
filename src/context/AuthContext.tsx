@@ -5,15 +5,22 @@ import {
   useState,
   type ReactNode,
 } from "react";
+
+import { AxiosError } from "axios";
 import { authService } from "../services/authService";
 import { authStorage } from "../services/authStorage";
+
 import type { LoginPayload, User } from "../types";
+
+type LogoutResult = "success" | "expired" | "local";
 
 interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
+
   login: (payload: LoginPayload) => Promise<void>;
-  logout: () => void;
+
+  logout: () => Promise<LogoutResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -31,16 +38,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const session = authStorage.save(response, payload.remember_me);
+
     setUser(session.user);
   };
 
-  const logout = () => {
-    authStorage.clear();
-    setUser(null);
+  const logout = async (): Promise<LogoutResult> => {
+    let result: LogoutResult = "success";
+
+    try {
+      await authService.logout();
+    } catch (error) {
+      result =
+        error instanceof AxiosError && error.response?.status === 401
+          ? "expired"
+          : "local";
+    } finally {
+      /*
+       * نحذف الجلسة محليًا في جميع الحالات:
+       * نجاح Logout، انتهاء التوكن أو فشل الاتصال.
+       */
+      authStorage.clear();
+      setUser(null);
+    }
+
+    return result;
   };
 
   const value = useMemo(
-    () => ({ user, isAuthenticated: Boolean(user), login, logout }),
+    () => ({
+      user,
+      isAuthenticated: Boolean(user),
+      login,
+      logout,
+    }),
     [user],
   );
 

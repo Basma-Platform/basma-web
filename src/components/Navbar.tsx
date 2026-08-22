@@ -2,9 +2,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaBars, FaTimes, FaSun, FaMoon } from "react-icons/fa";
+import { toast } from "react-toastify";
 import { useTheme } from "../context/ThemeContext";
-import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthContext";
+import logo from "../assets/logo.png";
 
 const NAV_LINKS = [
   { path: "/", label: "الرئيسية" },
@@ -22,11 +23,38 @@ const Navbar = () => {
   const navigate = useNavigate();
   const drawerRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated: isLoggedIn, logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
+    const result = await logout();
+
     setOpen(false);
-    navigate("/login", { replace: true });
+
+    if (result === "success") {
+      toast.success("تم تسجيل الخروج بنجاح", {
+        containerId: "global",
+      });
+
+      navigate("/", { replace: true });
+    } else if (result === "expired") {
+      toast.info("انتهت جلستك. يرجى تسجيل الدخول مجدداً", {
+        containerId: "global",
+      });
+
+      navigate("/login", { replace: true });
+    } else {
+      toast.info("تم إنهاء الجلسة على هذا الجهاز", {
+        containerId: "global",
+      });
+
+      navigate("/login", { replace: true });
+    }
+
+    setLoggingOut(false);
   };
 
   // Scroll shadow/opacity effect
@@ -115,9 +143,10 @@ const Navbar = () => {
                 <button
                   className="site-navbar__btn site-navbar__btn--danger"
                   type="button"
-                  onClick={handleLogout}
+                  onClick={() => void handleLogout()}
+                  disabled={loggingOut}
                 >
-                  تسجيل الخروج
+                  {loggingOut ? "جاري الخروج..." : "تسجيل الخروج"}
                 </button>
               </>
             ) : (
@@ -227,9 +256,10 @@ const Navbar = () => {
               <button
                 className="site-navbar__btn site-navbar__btn--danger site-navbar__btn--block"
                 type="button"
-                onClick={handleLogout}
+                onClick={() => void handleLogout()}
+                disabled={loggingOut}
               >
-                تسجيل الخروج
+                {loggingOut ? "جاري الخروج..." : "تسجيل الخروج"}
               </button>
             </>
           ) : (
@@ -416,6 +446,11 @@ const Navbar = () => {
         .site-navbar__btn--danger:hover {
           background: #DC3545;
           color: #fff;
+        }
+        .site-navbar__btn:disabled {
+          cursor: not-allowed;
+          opacity: 0.65;
+          pointer-events: none;
         }
         .site-navbar__btn--block {
           width: 100%;

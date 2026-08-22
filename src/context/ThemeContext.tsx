@@ -14,6 +14,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsDark(true);
       document.documentElement.setAttribute('data-theme', 'dark');
     }

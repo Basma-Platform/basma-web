@@ -15,12 +15,14 @@ import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsOfServicePage from "./pages/TermsOfServicePage";
 import RegisterPage from "./pages/RegisterPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
+import GlobalToast from "./components/GlobalToast";
 
 function App() {
   return (
     <div className="d-flex flex-column min-vh-100">
       {/* Navbar - always visible */}
       <Navbar />
+      <GlobalToast />
 
       {/* Main content - grows to fill space */}
       <main className="flex-grow-1">
