@@ -1,9 +1,8 @@
 import axios from 'axios';
 
-// ✅ Root Laravel app URL (no /api suffix) — needed for the CSRF cookie
-// endpoint, which lives outside the /api prefix.
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+// ✅ استخدام رابط الـ Backend على Render.com
+const API_ROOT = 'https://basma-backend.onrender.com';
+const API_BASE_URL = `${API_ROOT}/api`;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -39,7 +38,7 @@ const ensureCsrfCookie = async (): Promise<void> => {
   
   csrfPromise = (async () => {
     try {
-      await axios.get(`${BACKEND_URL}/sanctum/csrf-cookie`, { 
+      await axios.get(`${API_ROOT}/sanctum/csrf-cookie`, { 
         withCredentials: true,
         headers: {
           'X-Requested-With': 'XMLHttpRequest',
@@ -67,9 +66,6 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // No response-side cleanup needed anymore on 401 — there's no client-side
-    // token/user snapshot to clear. AuthContext re-checks /auth/user and reacts
-    // to the 401 itself.
     if (error.response?.status === 401) {
       localStorage.removeItem('user');
     }
