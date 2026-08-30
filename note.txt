@@ -1,0 +1,23 @@
+/* Dark Theme */
+[data-theme="dark"] {
+  /* Dark Theme Colors */
+  --bg-body: #1a1a2e;
+  --bg-white: #16213e;
+  --bg-card: #1e2a4a;
+  --bg-card-hover: #2a3a5a;
+  --bg-input: #1e2a4a;
+  --bg-navbar: rgba(26, 26, 46, 0.95);
+  --bg-footer: #0d0d1a;
+  
+  --text-primary: #e8e8e8;
+  --text-secondary: #FDF5E6;
+  --text-muted: #C49A6C;
+  --text-light: #FFFFFF;
+  --text-footer: #C49A6C;
+  
+  --border-color: rgba(255, 255, 255, 0.08);
+  --shadow-sm: rgba(0, 0, 0, 0.3);
+  --shadow-md: rgba(0, 0, 0, 0.5);
+  
+  --input-border: #4a5a7a;
+}

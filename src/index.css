@@ -1,0 +1,341 @@
+/* ============================================
+   BASMA PLATFORM - Global Styles
+   Brand: Orange (#E87A20) / Brown (#8B5A2B)
+   RTL Support | Dark Theme Ready
+   ============================================ */
+
+/* ----- 1. Google Font (Cairo) ----- */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
+
+/* ----- 2. CSS Variables (Light & Dark) ----- */
+:root {
+  /* Brand Colors */
+  --primary-orange: #E87A20;
+  --primary-orange-dark: #D46A1A;
+  --primary-orange-light: #F5A623;
+  --primary-brown: #8B5A2B;
+  --primary-brown-dark: #6B4226;
+  --primary-brown-light: #C49A6C;
+
+  /* Light Theme (Default) */
+  --bg-body: #FDF5E6;
+  --bg-white: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F5F0E8;
+  --bg-input: #FFFFFF;
+  --bg-navbar: rgba(255, 255, 255, 0.95);
+  --bg-footer: #6B4226;
+  
+  --text-primary: #333333;
+  --text-secondary: #6B4226;
+  --text-muted: #8B5A2B;
+  --text-light: #FFFFFF;
+  --text-footer: #FDF5E6;
+  
+  --border-color: rgba(139, 90, 43, 0.1);
+  --shadow-sm: rgba(0, 0, 0, 0.06);
+  --shadow-md: rgba(0, 0, 0, 0.12);
+  
+  --input-border: #C49A6C;
+  
+  /* Semantic */
+  --success: #28A745;
+  --error: #DC3545;
+  --warning: #FFC107;
+  --info: #17A2B8;
+  
+  /* Sizes */
+  --navbar-height: 70px;
+}
+
+/* Dark Theme - Warm & Light (Brown/Cream variant) */
+[data-theme="dark"] {
+  /* Backgrounds - Warmer and lighter */
+  --bg-body: #2c1f14;        /* Dark brown base */
+  --bg-white: #3d2c1e;       /* Lighter brown */
+  --bg-card: #4a3626;        /* Warm brown card */
+  --bg-card-hover: #5a4432;  /* Slightly lighter for hover */
+  --bg-input: #3d2c1e;       /* Match card backgrounds */
+  --bg-navbar: rgba(44, 31, 20, 0.95);
+  --bg-footer: #1f140e;      /* Darkest brown */
+  
+  /* Text - Cream/Beige for readability */
+  --text-primary: #f0e6d8;   /* Creamy white */
+  --text-secondary: #f5ebe0; /* Soft cream */
+  --text-muted: #c4a88a;     /* Warm beige */
+  --text-light: #ffffff;
+  --text-footer: #c4a88a;
+  
+  /* Borders & Shadows */
+  --border-color: rgba(196, 168, 138, 0.15);
+  --shadow-sm: rgba(0, 0, 0, 0.25);
+  --shadow-md: rgba(0, 0, 0, 0.4);
+  
+  --input-border: #6a4f38;
+}
+
+/* ----- 3. Reset & Base ----- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  direction: rtl;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  overflow-x: hidden; /* the real top-level scroll box is <html>, not <body> — this is what
+                          actually clips wide fixed/transformed elements like the navbar drawer */
+  width: 100%;
+}
+
+body {
+  font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+  direction: rtl;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ----- 4. Typography ----- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cairo', sans-serif;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+p, span, div, li, a, button, input, textarea {
+  font-family: 'Cairo', sans-serif;
+}
+
+a {
+  color: var(--primary-orange);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--primary-orange-dark);
+}
+
+/* ----- 5. Container ----- */
+.container,
+.container-fluid {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+@media (min-width: 576px) {
+  .container {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .container {
+    padding-left: 32px !important;
+    padding-right: 32px !important;
+  }
+}
+
+/* ----- 6. Bootstrap RTL Fixes ----- */
+.dropdown-menu {
+  text-align: right !important;
+}
+
+.form-check {
+  padding-right: 1.5rem !important;
+  padding-left: 0 !important;
+}
+
+.form-check .form-check-input {
+  float: right !important;
+  margin-right: -1.5rem !important;
+  margin-left: 0 !important;
+}
+
+/* Hide dropdown arrows (RTL fix) */
+.dropdown-toggle::after {
+  display: none !important;
+}
+
+select.form-select,
+.form-select {
+  background-image: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+/* ----- 7. Scrollbar ----- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-body);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-brown-light);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-brown);
+}
+
+/* ----- 8. Utility Classes ----- */
+.text-orange {
+  color: var(--primary-orange) !important;
+}
+
+.text-brown {
+  color: var(--primary-brown) !important;
+}
+
+.bg-body-custom {
+  background-color: var(--bg-body) !important;
+}
+
+.bg-white-custom {
+  background-color: var(--bg-white) !important;
+}
+
+.bg-card-custom {
+  background-color: var(--bg-card) !important;
+}
+
+.shadow-custom {
+  box-shadow: 0 4px 16px var(--shadow-sm) !important;
+}
+
+.shadow-custom-hover {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.shadow-custom-hover:hover {
+  box-shadow: 0 8px 32px var(--shadow-md) !important;
+  transform: translateY(-4px);
+}
+
+/* ----- 9. Buttons ----- */
+.btn-orange {
+  background-color: var(--primary-orange) !important;
+  border-color: var(--primary-orange) !important;
+  color: #FFFFFF !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-orange:hover {
+  background-color: var(--primary-orange-dark) !important;
+  border-color: var(--primary-orange-dark) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(232, 122, 32, 0.4);
+}
+
+.btn-outline-orange {
+  border-color: var(--primary-orange) !important;
+  color: var(--primary-orange) !important;
+  border-width: 2px !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-outline-orange:hover {
+  background-color: var(--primary-orange) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-2px);
+}
+
+/* ----- 10. Cards ----- */
+.card-custom {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.card-custom:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px var(--shadow-md);
+}
+
+/* ----- 11. Theme Toggle ----- */
+.theme-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.theme-toggle-btn:hover {
+  background-color: rgba(232, 122, 32, 0.12);
+  transform: rotate(20deg);
+}
+
+/* ----- 12. Responsive ----- */
+@media (max-width: 576px) {
+  html {
+    font-size: 14px;
+  }
+  
+  .container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .navbar-collapse {
+    background-color: var(--bg-white) !important;
+  }
+}
+
+/* ----- 13. Animations ----- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease forwards;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+/* ----- 14. Selection ----- */
+::selection {
+  background-color: var(--primary-orange);
+  color: #FFFFFF;
+}
