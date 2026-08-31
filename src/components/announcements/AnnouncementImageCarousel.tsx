@@ -9,6 +9,9 @@ interface AnnouncementImageCarouselProps {
 
 const FALLBACK_IMAGE = '/placeholder-image.png';
 
+// ✅ استخدام متغير البيئة لتخزين الصور
+const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+
 const AnnouncementImageCarousel = ({
   images,
   title,
@@ -20,7 +23,7 @@ const AnnouncementImageCarousel = ({
   const imageList = hasImages
     ? images.map((img) => ({
         id: img.id,
-        src: `http://localhost:8000/storage/${img.image_path}`,
+        src: `${STORAGE_URL}/${img.image_path}`,
         alt: `صورة`,
       }))
     : [
