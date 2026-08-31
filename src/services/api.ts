@@ -38,12 +38,8 @@ const ensureCsrfCookie = async (): Promise<void> => {
   
   csrfPromise = (async () => {
     try {
-      await axios.get(`${API_ROOT}/sanctum/csrf-cookie`, { 
-        withCredentials: true,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-      });
+      // ✅ استخدام api بدلاً من axios العادي
+      await api.get('/sanctum/csrf-cookie');
     } catch (error) {
       console.error('Failed to fetch CSRF cookie:', error);
     } finally {
