@@ -25,6 +25,9 @@ const AnnouncementPost = ({
   
   const isEmailVerified = user?.email_verified_at !== null && user?.email_verified_at !== undefined;
 
+  // ✅ استخدام متغير البيئة لتخزين الصور
+  const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+
   const getPriceLabel = () => {
     switch (announcement.price_type) {
       case 'free': return 'مجاني';
@@ -51,8 +54,9 @@ const AnnouncementPost = ({
     return type === 'offer' ? '#28A745' : '#DC3545';
   };
 
+  // ✅ استخدام STORAGE_URL بدلاً من localhost
   const coverImage = announcement.images && announcement.images.length > 0
-    ? `http://localhost:8000/storage/${announcement.images[0].image_path}`
+    ? `${STORAGE_URL}/${announcement.images[0].image_path}`
     : '/placeholder-image.png';
 
   const formatDate = (date: string) => {
