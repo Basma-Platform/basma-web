@@ -25,8 +25,8 @@ const AnnouncementPost = ({
   
   const isEmailVerified = user?.email_verified_at !== null && user?.email_verified_at !== undefined;
 
-  // ✅ استخدام متغير البيئة لتخزين الصور
-  const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+  // ✅ Hardcode Storage URL مباشرة
+  const STORAGE_URL = 'https://basma-backend.onrender.com/storage';
 
   const getPriceLabel = () => {
     switch (announcement.price_type) {
@@ -54,7 +54,7 @@ const AnnouncementPost = ({
     return type === 'offer' ? '#28A745' : '#DC3545';
   };
 
-  // ✅ استخدام STORAGE_URL بدلاً من localhost
+  // ✅ Hardcode Storage URL
   const coverImage = announcement.images && announcement.images.length > 0
     ? `${STORAGE_URL}/${announcement.images[0].image_path}`
     : '/placeholder-image.png';
