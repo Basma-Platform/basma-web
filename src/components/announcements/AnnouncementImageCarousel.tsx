@@ -9,8 +9,8 @@ interface AnnouncementImageCarouselProps {
 
 const FALLBACK_IMAGE = '/placeholder-image.png';
 
-// ✅ استخدام متغير البيئة لتخزين الصور
-const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+// ✅ Hardcode Storage URL مباشرة
+const STORAGE_URL = 'https://basma-backend.onrender.com/storage';
 
 const AnnouncementImageCarousel = ({
   images,
