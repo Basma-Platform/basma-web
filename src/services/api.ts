@@ -52,33 +52,31 @@ api.interceptors.response.use(
 );
 
 /**
- * FIX (security): no more Bearer token stored in localStorage/sessionStorage
- * for an attacker's script to read. Authentication now rides entirely on an
- * httpOnly session cookie the browser sends automatically — there is
- * nothing here for JavaScript to attach manually.
- *
- * The only thing we still need to manage ourselves is Sanctum's CSRF
- * protection: before any state-changing request (POST/PUT/PATCH/DELETE),
- * the browser needs an XSRF-TOKEN cookie to exist so axios can echo it back
- * as the X-XSRF-TOKEN header. This fetches that cookie lazily, exactly once
- * per browser session — GET requests don't need it at all.
+ * FIX: CSRF cookie management — using an in-memory flag instead of 
+ * document.cookie (which can't read cross-origin cookies anyway).
+ * 
+ * The old code checked document.cookie.includes('XSRF-TOKEN'), which
+ * will ALWAYS be empty for cross-origin requests (browser security).
+ * This was never a valid check. Now we use a simple in-memory flag.
  */
+let csrfFetched = false;
 let csrfFetchAttempts = 0;
 const MAX_CSRF_ATTEMPTS = 3;
 
 const ensureCsrfCookie = async (): Promise<void> => {
-  csrfFetchAttempts++;
-  console.log(`🔄 [CSRF] Attempt ${csrfFetchAttempts} - Checking for XSRF-TOKEN cookie...`);
-  console.log(`🔄 [CSRF] Current cookies: ${document.cookie}`);
-  
-  if (document.cookie.includes('XSRF-TOKEN')) {
-    console.log('✅ [CSRF] XSRF-TOKEN cookie already exists');
+  // ✅ Use in-memory flag instead of document.cookie
+  if (csrfFetched) {
+    console.log('✅ [CSRF] Already fetched this session');
     return;
   }
   
+  csrfFetchAttempts++;
+  console.log(`🔄 [CSRF] Attempt ${csrfFetchAttempts} - Fetching CSRF cookie...`);
+  
   if (csrfFetchAttempts > MAX_CSRF_ATTEMPTS) {
-    console.error(`❌ [CSRF] Failed ${MAX_CSRF_ATTEMPTS} attempts`);
+    console.error(`❌ [CSRF] Failed ${MAX_CSRF_ATTEMPTS} attempts, resetting`);
     csrfFetchAttempts = 0;
+    csrfFetched = false;
     return;
   }
   
@@ -93,8 +91,16 @@ const ensureCsrfCookie = async (): Promise<void> => {
     });
     console.log('✅ [CSRF] Cookie fetched successfully');
     console.log(`✅ [CSRF] Response status: ${response.status}`);
-    console.log(`✅ [CSRF] Response headers:`, response.headers);
-    console.log(`✅ [CSRF] New cookies: ${document.cookie}`);
+    
+    // ✅ IMPORTANT: Check Set-Cookie header in Network tab, NOT document.cookie
+    // document.cookie will ALWAYS be empty for cross-origin cookies
+    if (response.headers['set-cookie']) {
+      console.log('✅ [CSRF] Set-Cookie header present:', response.headers['set-cookie']);
+    } else {
+      console.log('⚠️ [CSRF] No Set-Cookie header (check Network tab)');
+    }
+    
+    csrfFetched = true;
     csrfFetchAttempts = 0;
   } catch (error: any) {
     console.error(`❌ [CSRF] Failed to fetch cookie:`, error);
@@ -102,6 +108,7 @@ const ensureCsrfCookie = async (): Promise<void> => {
       console.error(`❌ [CSRF] Status: ${error.response.status}`);
       console.error(`❌ [CSRF] Data:`, error.response.data);
     }
+    csrfFetched = false;
     throw error;
   }
 };
@@ -126,9 +133,7 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// No response-side cleanup needed anymore on 401 — there's no client-side
-// token/user snapshot to clear. AuthContext re-checks /auth/user and reacts
-// to the 401 itself.
+// ✅ Response interceptor - reset CSRF flag on 419
 api.interceptors.response.use(
   (response) => {
     console.log(`✅ [Response] ${response.status} ${response.config.url}`);
@@ -138,6 +143,12 @@ api.interceptors.response.use(
     if (error.response) {
       console.error(`❌ [Response Error] ${error.response.status} ${error.response.config.url}`);
       console.error(`❌ [Response Error] Data:`, error.response.data);
+      
+      // ✅ Reset CSRF flag on 419 so next request retries
+      if (error.response.status === 419) {
+        console.log('🔄 [CSRF] 419 received, resetting CSRF flag...');
+        csrfFetched = false;
+      }
     }
     return Promise.reject(error);
   }
