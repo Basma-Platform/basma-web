@@ -2,30 +2,54 @@ import { Row, Col, Card } from 'react-bootstrap';
 import { 
   FaUsers, FaBullhorn, FaComment, FaStar, 
   FaFlag, FaShieldAlt, FaEye,
-  FaArrowUp, FaArrowDown
+  FaArrowUp, FaArrowDown, FaUserCheck,
+  FaPlusCircle
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
 interface DashboardStatsProps {
   isAdmin?: boolean;
+  isVerified?: boolean;
 }
 
-const DashboardStats = ({ isAdmin = false }: DashboardStatsProps) => {
-  const stats = isAdmin ? [
+const DashboardStats = ({ isAdmin = false, isVerified = false }: DashboardStatsProps) => {
+  // ✅ إحصائيات الأدمن
+  const adminStats = [
     { icon: <FaUsers />, label: 'المستخدمين', value: '1,284', change: '+12%', color: '#E87A20', trend: 'up', subtext: '+156 هذا الشهر' },
     { icon: <FaBullhorn />, label: 'الإعلانات', value: '3,847', change: '+8%', color: '#28A745', trend: 'up', subtext: '+234 هذا الشهر' },
     { icon: <FaFlag />, label: 'البلاغات المعلقة', value: '23', change: '-5%', color: '#DC3545', trend: 'down', subtext: '6 جديدة اليوم' },
     { icon: <FaShieldAlt />, label: 'طلبات التحقق', value: '47', change: '+15%', color: '#17A2B8', trend: 'up', subtext: '12 جديدة اليوم' },
     { icon: <FaComment />, label: 'التعليقات', value: '12,456', change: '+22%', color: '#8B5A2B', trend: 'up', subtext: '+1,234 هذا الشهر' },
     { icon: <FaStar />, label: 'متوسط التقييم', value: '4.8', change: '+0.2', color: '#F5A623', trend: 'up', subtext: 'من 5.0' },
-  ] : [
+  ];
+
+  // ✅ إحصائيات المستخدم العادي
+  const userStats = [
     { icon: <FaBullhorn />, label: 'إعلاناتي', value: '12', change: '+2', color: '#E87A20', trend: 'up', subtext: '3 نشطة حالياً' },
     { icon: <FaEye />, label: 'مشاهدات الإعلانات', value: '1,847', change: '+156', color: '#28A745', trend: 'up', subtext: '+45 اليوم' },
     { icon: <FaComment />, label: 'تعليقاتي', value: '34', change: '+8', color: '#17A2B8', trend: 'up', subtext: '3 جديدة اليوم' },
     { icon: <FaStar />, label: 'تقييماتي', value: '4.9', change: '+0.3', color: '#F5A623', trend: 'up', subtext: 'ممتاز' },
-    { icon: <FaUsers />, label: 'المتابعون', value: '56', change: '+12', color: '#8B5A2B', trend: 'up', subtext: '+5 هذا الأسبوع' },
-    { icon: <FaShieldAlt />, label: 'حالة التحقق', value: 'موثق', change: '✓', color: '#28A745', trend: 'up', subtext: 'هوية موثقة' },
   ];
+
+  // ✅ إحصائيات المستخدم الموثق (يضاف له ميزات إضافية)
+  const verifiedStats = [
+    { icon: <FaBullhorn />, label: 'إعلاناتي', value: '12', change: '+2', color: '#E87A20', trend: 'up', subtext: '3 نشطة حالياً' },
+    { icon: <FaEye />, label: 'مشاهدات الإعلانات', value: '1,847', change: '+156', color: '#28A745', trend: 'up', subtext: '+45 اليوم' },
+    { icon: <FaComment />, label: 'تعليقاتي', value: '34', change: '+8', color: '#17A2B8', trend: 'up', subtext: '3 جديدة اليوم' },
+    { icon: <FaStar />, label: 'تقييماتي', value: '4.9', change: '+0.3', color: '#F5A623', trend: 'up', subtext: 'ممتاز' },
+    { icon: <FaUserCheck />, label: 'حالة التحقق', value: 'موثق', change: '✓', color: '#28A745', trend: 'up', subtext: 'هوية موثقة' },
+    { icon: <FaPlusCircle />, label: 'إعلانات غير محدودة', value: '∞', change: 'مفعل', color: '#28A745', trend: 'up', subtext: 'لا يوجد حد شهري' },
+  ];
+
+  // ✅ اختيار الإحصائيات المناسبة
+  let stats;
+  if (isAdmin) {
+    stats = adminStats;
+  } else if (isVerified) {
+    stats = verifiedStats;
+  } else {
+    stats = userStats;
+  }
 
   const containerVariants = {
     hidden: { opacity: 0 },

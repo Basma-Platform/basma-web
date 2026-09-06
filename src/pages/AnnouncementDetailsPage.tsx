@@ -6,9 +6,10 @@ import { announcementService } from '../services/announcementService';
 import { useAuth } from '../hooks/useAuth';
 import { 
   FaWhatsapp, FaEye, FaMapMarkerAlt, FaTag, 
-  FaLock, FaThumbtack, FaCalendarAlt, FaArrowRight, FaShareAlt,
-  FaFlag, FaPrint, FaChevronRight, FaUser, FaStar,
-  FaEnvelope
+  FaLock, FaThumbtack, FaArrowRight, FaShareAlt,
+  FaFlag, FaPrint, FaChevronRight, FaStar,
+  FaEnvelope, FaUserCheck, FaExclamationTriangle, FaShieldAlt,
+  FaClock
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import SEO from '../components/SEO';
@@ -26,6 +27,88 @@ const AnnouncementDetailsPage = () => {
   const [showShareTooltip, setShowShareTooltip] = useState(false);
 
   const isEmailVerified = user?.email_verified_at !== null && user?.email_verified_at !== undefined;
+  const isVerifiedUser = user?.is_verified === true;
+
+  // ✅ التحقق من صلاحية مشاهدة رقم واتساب
+  const canViewWhatsApp = (): boolean => {
+    if (!announcement) return false;
+    if (!isAuthenticated) return false;
+    if (!isEmailVerified) return false;
+    
+    switch (announcement.privacy_type) {
+      case 'public': return true;
+      case 'region_only': return user?.city_id === announcement.city_id;
+      case 'verified_only': return isVerifiedUser && announcement.user?.is_verified === true;
+      case 'verified_region': return isVerifiedUser && 
+             user?.city_id === announcement.city_id && 
+             announcement.user?.is_verified === true;
+      default: return false;
+    }
+  };
+
+  // ✅ تكوين زر الاتصال
+  const getContactButtonConfig = () => {
+    if (!announcement) return null;
+
+    const canView = canViewWhatsApp();
+
+    if (!isAuthenticated) {
+      return {
+        label: 'سجل الدخول للتواصل',
+        icon: <FaLock size={20} />,
+        variant: 'outline',
+        to: '/login',
+        disabled: false,
+        tooltip: 'يجب تسجيل الدخول للتواصل مع المعلن',
+      };
+    }
+
+    if (!isEmailVerified) {
+      return {
+        label: 'فعّل بريدك للتواصل',
+        icon: <FaEnvelope size={20} />,
+        variant: 'warning',
+        to: '/verify-email',
+        disabled: false,
+        tooltip: 'يجب تفعيل البريد الإلكتروني للتواصل',
+      };
+    }
+
+    if (!canView) {
+      let reason = '';
+      switch (announcement.privacy_type) {
+        case 'region_only':
+          reason = 'هذا الإعلان مخصص للمنطقة فقط';
+          break;
+        case 'verified_only':
+          reason = 'هذا الإعلان مخصص للمتحققين فقط';
+          break;
+        case 'verified_region':
+          reason = 'هذا الإعلان مخصص للمتحققين في المنطقة فقط';
+          break;
+        default:
+          reason = 'لا يمكنك التواصل مع هذا المعلن';
+      }
+      return {
+        label: 'غير متاح',
+        icon: <FaShieldAlt size={20} />,
+        variant: 'disabled',
+        to: '#',
+        disabled: true,
+        tooltip: reason,
+      };
+    }
+
+    return {
+      label: 'التواصل عبر واتساب',
+      icon: <FaWhatsapp size={24} />,
+      variant: 'whatsapp',
+      to: `https://wa.me/${announcement.whatsapp}`,
+      disabled: false,
+      tooltip: 'تواصل مع المعلن عبر واتساب',
+      href: true,
+    };
+  };
 
   useEffect(() => {
     const fetchAnnouncement = async () => {
@@ -45,11 +128,31 @@ const AnnouncementDetailsPage = () => {
     fetchAnnouncement();
   }, [id]);
 
+  // دوال مساعدة
+  const getPrivacyLabel = (privacyType: string) => {
+    const map: Record<string, string> = {
+      'public': 'عام - للجميع',
+      'region_only': 'نفس المنطقة فقط',
+      'verified_only': 'للموثقين الهوية فقط',
+      'verified_region': 'موثق الهوية + نفس المنطقة',
+    };
+    return map[privacyType] || privacyType;
+  };
+
+  const getPrivacyColor = (privacyType: string) => {
+    const map: Record<string, string> = {
+      'public': '#28A745',
+      'region_only': '#17A2B8',
+      'verified_only': '#E87A20',
+      'verified_region': '#FFC107',
+    };
+    return map[privacyType] || 'var(--text-muted)';
+  };
+
   const getCategoryLabel = (category: string) => {
     const map: Record<string, string> = {
-      goods: 'بضائع',
-      service: 'خدمة',
-      barter: 'مقايضة',
+      goods: 'سلع',
+      services: 'خدمات',
     };
     return map[category] || category;
   };
@@ -80,6 +183,17 @@ const AnnouncementDetailsPage = () => {
     });
   };
 
+  // ✅ صورة المستخدم
+  const getUserAvatar = (): string | null => {
+    const profileImage = announcement?.user?.profile_image;
+    if (!profileImage) return null;
+    if (profileImage.startsWith('http')) return profileImage;
+    return `http://localhost:8000/storage/${profileImage}`;
+  };
+
+  const userAvatar = getUserAvatar();
+  const userInitials = (announcement?.user?.name || 'مستخدم').charAt(0).toUpperCase();
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -99,6 +213,8 @@ const AnnouncementDetailsPage = () => {
       }
     }
   };
+
+  const contactConfig = getContactButtonConfig();
 
   if (loading) {
     return (
@@ -180,52 +296,241 @@ const AnnouncementDetailsPage = () => {
                   <h1 style={{ color: 'var(--text-secondary)', fontSize: 'clamp(1.3rem, 2vw, 1.8rem)', fontWeight: 900, fontFamily: 'Cairo, sans-serif', marginBottom: '0.75rem', lineHeight: 1.3 }}>{announcement.title}</h1>
                   
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1rem' }}>
-                    <span style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F0EBE5', color: isDark ? '#C49A6C' : '#6B4226', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}><FaTag size={10} /> {getCategoryLabel(announcement.category)}</span>
-                    <span style={{ backgroundColor: getTypeColor(announcement.type) + '15', color: getTypeColor(announcement.type), padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{getTypeLabel(announcement.type)}</span>
-                    <span style={{ backgroundColor: announcement.price_type === 'free' ? '#28A74515' : announcement.price_type === 'paid' ? 'rgba(232,122,32,0.15)' : '#9C27B015', color: announcement.price_type === 'free' ? '#28A745' : announcement.price_type === 'paid' ? 'var(--primary-orange)' : '#9C27B0', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{getPriceLabel()}</span>
-                    {announcement.pinned_at && <span style={{ backgroundColor: 'var(--primary-orange)', color: '#FFFFFF', padding: '4px 12px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}><FaThumbtack size={10} /> مميز</span>}
-                    {announcement.privacy_type !== 'public' && <span style={{ backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.06)', color: isDark ? '#C49A6C' : '#6B4226', padding: '4px 12px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}><FaLock size={9} /> {announcement.privacy_type === 'verified_only' ? 'موثقين فقط' : announcement.privacy_type === 'region_only' ? 'نفس المنطقة' : 'موثق + المنطقة'}</span>}
+                    <span style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F0EBE5', color: isDark ? '#C49A6C' : '#6B4226', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <FaTag size={10} /> {getCategoryLabel(announcement.category)}
+                    </span>
+                    
+                    {announcement.sub_category && (
+                      <span style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(139,90,43,0.06)', color: isDark ? '#C49A6C' : '#8B5A2B', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        {announcement.sub_category.name}
+                      </span>
+                    )}
+                    
+                    <span style={{ backgroundColor: getTypeColor(announcement.type) + '15', color: getTypeColor(announcement.type), padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {getTypeLabel(announcement.type)}
+                    </span>
+                    
+                    <span style={{ backgroundColor: announcement.price_type === 'free' ? '#28A74515' : announcement.price_type === 'paid' ? 'rgba(232,122,32,0.15)' : '#9C27B015', color: announcement.price_type === 'free' ? '#28A745' : announcement.price_type === 'paid' ? 'var(--primary-orange)' : '#9C27B0', padding: '4px 12px', borderRadius: '10px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {getPriceLabel()}
+                    </span>
+                    
+                    {announcement.pinned_at && (
+                      <span style={{ backgroundColor: 'var(--primary-orange)', color: '#FFFFFF', padding: '4px 12px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <FaThumbtack size={10} /> مميز
+                      </span>
+                    )}
+                    
+                    <span style={{ backgroundColor: getPrivacyColor(announcement.privacy_type) + '25', color: getPrivacyColor(announcement.privacy_type), padding: '4px 12px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', border: `1px solid ${getPrivacyColor(announcement.privacy_type)}40` }}>
+                      <FaLock size={9} /> {getPrivacyLabel(announcement.privacy_type)}
+                    </span>
+                    
+                    {announcement.sub_category?.is_high_risk && (
+                      <span style={{ backgroundColor: 'rgba(255,193,7,0.15)', color: '#856404', padding: '4px 12px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid rgba(255,193,7,0.3)' }}>
+                        <FaExclamationTriangle size={9} /> يتطلب توثيق الهوية
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border-color)', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: isDark ? '#2a3a5a' : '#e8e0d8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: isDark ? '#C49A6C' : '#8B5A2B', fontSize: '18px', flexShrink: 0 }}><FaUser /></div>
+                      <div
+                        style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          backgroundColor: isDark ? '#2a3a5a' : '#e8e0d8',
+                          border: '2px solid var(--border-color)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {userAvatar ? (
+                          <img
+                            src={userAvatar}
+                            alt={announcement.user?.name || 'مستخدم'}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                const fallback = document.createElement('span');
+                                fallback.style.cssText = `
+                                  color: var(--text-muted);
+                                  font-size: 16px;
+                                  font-weight: 700;
+                                  font-family: 'Cairo', sans-serif;
+                                `;
+                                fallback.textContent = userInitials;
+                                parent.appendChild(fallback);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <span
+                            style={{
+                              color: isDark ? '#C49A6C' : '#8B5A2B',
+                              fontSize: '16px',
+                              fontWeight: 700,
+                              fontFamily: 'Cairo, sans-serif',
+                            }}
+                          >
+                            {userInitials}
+                          </span>
+                        )}
+                      </div>
                       <div>
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>{announcement.user?.name || 'مستخدم'} {announcement.user?.is_verified && <Badge style={{ backgroundColor: '#28A745', color: '#FFFFFF', fontSize: '0.5rem', padding: '2px 8px', borderRadius: '8px' }}>موثق</Badge>}</div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'Cairo, sans-serif', display: 'flex', alignItems: 'center', gap: '4px' }}><FaCalendarAlt size={12} /> {formatDate(announcement.created_at)} <span style={{ margin: '0 4px' }}>•</span> <FaEye size={12} /> {announcement.views}</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          {announcement.user?.name || 'مستخدم'}
+                          {announcement.user?.is_verified && (
+                            <Badge style={{ backgroundColor: '#28A745', color: '#FFFFFF', fontSize: '0.5rem', padding: '2px 10px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <FaUserCheck size={10} /> موثق
+                            </Badge>
+                          )}
+                        </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'Cairo, sans-serif', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <FaClock size={12} /> {formatDate(announcement.created_at)} <span style={{ margin: '0 4px' }}>•</span> <FaEye size={12} /> {announcement.views}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(139,90,43,0.05)', padding: '4px 12px', borderRadius: '8px' }}><FaStar size={14} color="#F5A623" /> <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif' }}>4.8</span> <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'Cairo, sans-serif' }}>(12 تقييم)</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(139,90,43,0.05)', padding: '4px 12px', borderRadius: '8px' }}>
+                      <FaStar size={14} color="#F5A623" /> 
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif' }}>4.8</span> 
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'Cairo, sans-serif' }}>(12 تقييم)</span>
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(139,90,43,0.03)', borderRadius: '8px', marginBottom: '1rem' }}>
                     <FaMapMarkerAlt size={14} color="var(--primary-orange)" />
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontFamily: 'Cairo, sans-serif', fontWeight: 500 }}>{announcement.governorate?.name || 'غير محدد'}{announcement.city?.name && ` - ${announcement.city.name}`}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontFamily: 'Cairo, sans-serif', fontWeight: 500 }}>
+                      {announcement.governorate?.name || 'غير محدد'}{announcement.city?.name && ` - ${announcement.city.name}`}
+                    </span>
                   </div>
 
                   <div style={{ marginBottom: '1.25rem' }}>
                     <div style={{ color: 'var(--text-primary)', fontSize: '0.95rem', lineHeight: 1.8, fontFamily: 'Cairo, sans-serif', whiteSpace: 'pre-wrap' }}>{announcement.description}</div>
                   </div>
 
+                  {/* ============================================ */}
+                  {/* CONTACT BUTTON - حسب نوع المستخدم */}
+                  {/* ============================================ */}
                   <div style={{ marginTop: '1rem' }}>
-                    {isAuthenticated ? (
-                      isEmailVerified ? (
-                        <Button href={`https://wa.me/${announcement.whatsapp}`} target="_blank" rel="noopener noreferrer" style={{ backgroundColor: '#25D366', borderColor: '#25D366', color: '#FFFFFF', width: '100%', borderRadius: '12px', padding: '14px', fontWeight: 700, fontSize: '1.05rem', fontFamily: 'Cairo, sans-serif', transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', boxShadow: '0 4px 16px rgba(37,211,102,0.3)' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1DA851'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(37,211,102,0.4)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#25D366'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,211,102,0.3)'; }}
-                        ><FaWhatsapp size={24} /> التواصل عبر واتساب</Button>
+                    {contactConfig ? (
+                      contactConfig.disabled ? (
+                        <Button
+                          disabled
+                          style={{
+                            backgroundColor: 'var(--bg-input)',
+                            borderColor: 'var(--border-color)',
+                            color: 'var(--text-muted)',
+                            width: '100%',
+                            borderRadius: '12px',
+                            padding: '14px',
+                            fontWeight: 700,
+                            fontSize: '1.05rem',
+                            fontFamily: 'Cairo, sans-serif',
+                            cursor: 'not-allowed',
+                            opacity: 0.6,
+                          }}
+                          title={contactConfig.tooltip}
+                        >
+                          {contactConfig.icon}
+                          <span style={{ marginRight: '10px' }}>{contactConfig.label}</span>
+                        </Button>
+                      ) : contactConfig.variant === 'whatsapp' ? (
+                        <a
+                          href={contactConfig.to}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            backgroundColor: '#25D366',
+                            borderColor: '#25D366',
+                            color: '#FFFFFF',
+                            width: '100%',
+                            borderRadius: '12px',
+                            padding: '14px',
+                            fontWeight: 700,
+                            fontSize: '1.05rem',
+                            fontFamily: 'Cairo, sans-serif',
+                            transition: 'all 0.3s ease',
+                            textDecoration: 'none',
+                            boxShadow: '0 4px 16px rgba(37,211,102,0.3)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#1DA851';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 8px 30px rgba(37,211,102,0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#25D366';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,211,102,0.3)';
+                          }}
+                        >
+                          {contactConfig.icon}
+                          {contactConfig.label}
+                        </a>
                       ) : (
-                        <Button as={Link as any} to="/verify-email" style={{ backgroundColor: '#FFC107', borderColor: '#FFC107', color: '#212529', width: '100%', borderRadius: '12px', padding: '14px', fontWeight: 700, fontSize: '1.05rem', fontFamily: 'Cairo, sans-serif', transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', boxShadow: '0 4px 16px rgba(255,193,7,0.3)' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#E0A800'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 30px rgba(255,193,7,0.4)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#FFC107'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,193,7,0.3)'; }}
-                        ><FaEnvelope size={20} /> فعّل بريدك الإلكتروني للتواصل</Button>
+                        <Button
+                          as={Link as any}
+                          to={contactConfig.to}
+                          style={{
+                            backgroundColor: contactConfig.variant === 'warning' ? '#FFC107' : 'transparent',
+                            borderColor: contactConfig.variant === 'warning' ? '#FFC107' : 'var(--primary-orange)',
+                            color: contactConfig.variant === 'warning' ? '#212529' : 'var(--primary-orange)',
+                            width: '100%',
+                            borderRadius: '12px',
+                            padding: '14px',
+                            fontWeight: 700,
+                            fontSize: '1.05rem',
+                            fontFamily: 'Cairo, sans-serif',
+                            transition: 'all 0.3s ease',
+                            borderWidth: contactConfig.variant === 'warning' ? '0px' : '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            boxShadow: contactConfig.variant === 'warning' ? '0 4px 16px rgba(255,193,7,0.3)' : 'none',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (contactConfig.variant === 'warning') {
+                              e.currentTarget.style.backgroundColor = '#E0A800';
+                              e.currentTarget.style.boxShadow = '0 8px 30px rgba(255,193,7,0.4)';
+                            } else {
+                              e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
+                              e.currentTarget.style.color = '#FFFFFF';
+                              e.currentTarget.style.boxShadow = '0 4px 16px rgba(232,122,32,0.3)';
+                            }
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            if (contactConfig.variant === 'warning') {
+                              e.currentTarget.style.backgroundColor = '#FFC107';
+                              e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,193,7,0.3)';
+                            } else {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.color = 'var(--primary-orange)';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }
+                            e.currentTarget.style.transform = 'translateY(0)';
+                          }}
+                          title={contactConfig.tooltip}
+                        >
+                          {contactConfig.icon}
+                          {contactConfig.label}
+                        </Button>
                       )
-                    ) : (
-                      <Button as={Link as any} to="/login" style={{ backgroundColor: 'transparent', borderColor: 'var(--primary-orange)', color: 'var(--primary-orange)', width: '100%', borderRadius: '12px', padding: '14px', fontWeight: 700, fontSize: '1.05rem', fontFamily: 'Cairo, sans-serif', transition: 'all 0.3s ease', borderWidth: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--primary-orange)'; e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(232,122,32,0.3)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--primary-orange)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-                      ><FaLock size={16} /> سجل الدخول للتواصل</Button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </motion.div>
@@ -243,11 +548,20 @@ const AnnouncementDetailsPage = () => {
                     <h4 style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 700, fontFamily: 'Cairo, sans-serif', margin: 0 }}>إرشادات الأمان</h4>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {[{ icon: '📍', text: 'اختر مكاناً عاماً للقاء' }, { icon: '👤', text: 'أخبر أحداً عن موعد اجتماعك' }, { icon: '⭐', text: 'تحقق من التقييمات قبل التعامل' }, { icon: '🚫', text: 'ألغِ الاجتماع إذا شعرت بعدم الأمان' }, { icon: '🚨', text: 'أبلغ عن أي سلوك مشبوه' }].map((item, index) => (
+                    {[
+                      { icon: '📍', text: 'اختر مكاناً عاماً للقاء' },
+                      { icon: '👤', text: 'أخبر أحداً عن موعد اجتماعك' },
+                      { icon: '⭐', text: 'تحقق من التقييمات قبل التعامل' },
+                      { icon: '🚫', text: 'ألغِ الاجتماع إذا شعرت بعدم الأمان' },
+                      { icon: '🚨', text: 'أبلغ عن أي سلوك مشبوه' }
+                    ].map((item, index) => (
                       <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(139,90,43,0.03)', borderRadius: '10px', border: '1px solid var(--border-color)', transition: 'all 0.2s ease' }}
                         onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateX(-4px)'; e.currentTarget.style.borderColor = 'var(--primary-orange)'; e.currentTarget.style.backgroundColor = isDark ? 'rgba(232,122,32,0.05)' : 'rgba(232,122,32,0.04)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.backgroundColor = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(139,90,43,0.03)'; }}
-                      ><span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span> <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontFamily: 'Cairo, sans-serif', lineHeight: 1.4 }}>{item.text}</span></div>
+                      >
+                        <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>{item.icon}</span> 
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontFamily: 'Cairo, sans-serif', lineHeight: 1.4 }}>{item.text}</span>
+                      </div>
                     ))}
                   </div>
                 </div>

@@ -1,9 +1,13 @@
 import { Outlet } from 'react-router-dom';
 import { Container } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { FaSun, FaMoon } from 'react-icons/fa';
+import { useTheme } from '../../context/ThemeContext';
 import logo from '../../assets/logo.png';
 
 const AuthLayout = () => {
+  const { isDark, toggleDarkMode } = useTheme();
+
   return (
     <div
       style={{
@@ -24,6 +28,7 @@ const AuthLayout = () => {
           top: 0,
           zIndex: 100,
           backdropFilter: 'blur(10px)',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
         }}
       >
         <Container>
@@ -34,7 +39,7 @@ const AuthLayout = () => {
               justifyContent: 'space-between',
             }}
           >
-            {/* Logo */}
+            {/* Logo - مع لون مناسب للوضع الفاتح/الداكن */}
             <Link
               to="/"
               style={{
@@ -50,6 +55,9 @@ const AuthLayout = () => {
                 style={{
                   height: '36px',
                   width: 'auto',
+                  // ✅ في الوضع الداكن: يصبح أبيض، في الوضع الفاتح: لونه الطبيعي
+                  filter: isDark ? 'brightness(0) invert(1)' : 'none',
+                  transition: 'filter 0.3s ease',
                 }}
               />
               <span
@@ -58,13 +66,14 @@ const AuthLayout = () => {
                   fontSize: '1.2rem',
                   fontWeight: 900,
                   fontFamily: 'Cairo, sans-serif',
+                  transition: 'color 0.3s ease',
                 }}
               >
                 بصمة
               </span>
             </Link>
 
-            {/* روابط بسيطة */}
+            {/* روابط بسيطة + Dark Mode Toggle */}
             <div
               style={{
                 display: 'flex',
@@ -108,6 +117,35 @@ const AuthLayout = () => {
               >
                 الإعلانات
               </Link>
+
+              {/* ✅ Dark Mode Toggle Button */}
+              <button
+                onClick={toggleDarkMode}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '1.1rem',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
+                  e.currentTarget.style.color = 'var(--primary-orange)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                }}
+                aria-label={isDark ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'}
+              >
+                {isDark ? <FaSun size={18} /> : <FaMoon size={18} />}
+              </button>
             </div>
           </div>
         </Container>
@@ -124,14 +162,6 @@ const AuthLayout = () => {
         }}
       >
         <Container>
-          {/*
-            FIX: this used to hardcode maxWidth: '480px' here, which capped
-            EVERY auth page (login, register, forgot/reset password, verify
-            email) to the same narrow width. Login/Forgot/Reset already set
-            their own maxWidth on their own wrapper, so removing this doesn't
-            change them at all — it only frees Register to use a wider
-            two-panel layout instead of being squeezed into 480px.
-          */}
           <Outlet />
         </Container>
       </main>
@@ -143,6 +173,7 @@ const AuthLayout = () => {
           backgroundColor: 'var(--bg-card)',
           borderTop: '1px solid var(--border-color)',
           textAlign: 'center',
+          transition: 'background-color 0.3s ease, border-color 0.3s ease',
         }}
       >
         <Container>

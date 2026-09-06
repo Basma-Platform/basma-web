@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaBars, FaTimes, FaSun, FaMoon, FaCog, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
+import { getDashboardPath } from '../utils/authRedirect';
 import logo from '../assets/logo.png';
 
 const NAV_LINKS = [
@@ -21,6 +22,10 @@ const Navbar = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // استخدام useRef لمنع إغلاق الـ Dropdown عند التحرك بين الزر والقائمة
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Scroll effect
   useEffect(() => {
@@ -35,6 +40,9 @@ const Navbar = () => {
     setOpen(false);
     setDropdownOpen(false);
   }, [location]);
+
+  // ✅ الحصول على مسار لوحة التحكم الصحيح حسب الدور
+  const dashboardPath = getDashboardPath(user?.role);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -63,6 +71,21 @@ const Navbar = () => {
 
   const userAvatar = getUserAvatar();
   const userInitials = getUserInitials();
+
+  // ✅ منع إغلاق الـ Dropdown عند التحرك بين الزر والقائمة
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setDropdownOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setDropdownOpen(false);
+    }, 200);
+  };
 
   return (
     <>
@@ -102,8 +125,9 @@ const Navbar = () => {
             {isAuthenticated ? (
               <div
                 className="site-navbar__dropdown"
-                onMouseEnter={() => setDropdownOpen(true)}
-                onMouseLeave={() => setDropdownOpen(false)}
+                ref={dropdownRef}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
               >
                 <button
                   className={`site-navbar__dropdown-toggle ${dropdownOpen ? 'is-active' : ''}`}
@@ -172,8 +196,9 @@ const Navbar = () => {
 
                     <div className="site-navbar__dropdown-divider" />
 
+                    {/* ✅ استخدام المسار الصحيح حسب الدور */}
                     <Link
-                      to="/dashboard"
+                      to={dashboardPath}
                       className="site-navbar__dropdown-item"
                       onClick={() => setDropdownOpen(false)}
                     >
@@ -312,7 +337,8 @@ const Navbar = () => {
                 </div>
               </div>
 
-              <Link to="/dashboard" className="site-navbar__btn site-navbar__btn--ghost site-navbar__btn--block">
+              {/* ✅ استخدام المسار الصحيح حسب الدور في الموبايل أيضاً */}
+              <Link to={dashboardPath} className="site-navbar__btn site-navbar__btn--ghost site-navbar__btn--block">
                 لوحة التحكم
               </Link>
               <button
@@ -444,6 +470,9 @@ const Navbar = () => {
 
         .site-navbar__dropdown {
           position: relative;
+          /* ✅ إضافة مسافة صغيرة بين الزر والقائمة لمنع الإغلاق المفاجئ */
+          padding-bottom: 4px;
+          margin-bottom: -4px;
         }
 
         .site-navbar__dropdown-toggle {
@@ -533,9 +562,10 @@ const Navbar = () => {
           transform: rotate(180deg);
         }
 
+        /* ✅ تحسين الـ Dropdown Menu */
         .site-navbar__dropdown-menu {
           position: absolute;
-          top: calc(100% + 8px);
+          top: calc(100% + 4px);
           left: 0;
           min-width: 240px;
           background: var(--bg-white);

@@ -46,6 +46,16 @@
   
   /* Sizes */
   --navbar-height: 70px;
+
+  /* ===== Brand Panel Variables - Light Mode ===== */
+  --brand-gradient: linear-gradient(155deg, #E87A20, #8B5A2B);
+  --brand-text: #FFFFFF;
+  --brand-text-secondary: rgba(255, 255, 255, 0.9);
+  --brand-glow: rgba(255, 255, 255, 0.15);
+  --brand-core-bg: rgba(255, 255, 255, 0.15);
+  --brand-icon: #FFFFFF;
+  --brand-content-bg: rgba(255, 255, 255, 0.08);
+  --brand-border: rgba(255, 255, 255, 0.1);
 }
 
 /* Dark Theme - Warm & Light (Brown/Cream variant) */
@@ -72,6 +82,16 @@
   --shadow-md: rgba(0, 0, 0, 0.4);
   
   --input-border: #6a4f38;
+
+  /* ===== Brand Panel Variables - Dark Mode (أكثر وضوحاً) ===== */
+  --brand-gradient: linear-gradient(155deg, #8B3A10, #2A1A0E);
+  --brand-text: #FDF5E6;
+  --brand-text-secondary: rgba(253, 245, 230, 0.7);
+  --brand-glow: rgba(255, 255, 255, 0.05);
+  --brand-core-bg: rgba(0, 0, 0, 0.3);
+  --brand-icon: #FDF5E6;
+  --brand-content-bg: rgba(0, 0, 0, 0.2);
+  --brand-border: rgba(255, 255, 255, 0.05);
 }
 
 /* ----- 3. Reset & Base ----- */
@@ -283,6 +303,38 @@ select.form-select,
 .theme-toggle-btn:hover {
   background-color: rgba(232, 122, 32, 0.12);
   transform: rotate(20deg);
+}
+
+/* ============================================ */
+/* PLACEHOLDER STYLES - For both light & dark */
+/* ============================================ */
+
+::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.7 !important;
+  font-family: 'Cairo', sans-serif;
+}
+
+/* Dark mode placeholder */
+[data-theme="dark"] ::placeholder {
+  color: #a08070 !important;
+  opacity: 0.8 !important;
+}
+
+/* Input focus placeholder */
+input:focus::placeholder,
+textarea:focus::placeholder {
+  opacity: 0.4 !important;
+}
+
+/* Select placeholder */
+select option:first-child {
+  color: var(--text-muted);
+}
+
+/* Dark mode select placeholder */
+[data-theme="dark"] select option:first-child {
+  color: #a08070;
 }
 
 /* ----- 12. Responsive ----- */
