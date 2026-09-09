@@ -152,6 +152,7 @@ export interface UserContext {
   city_name: string | null;
   governorate_id: number | null;
   role: 'guest' | 'user' | 'admin';
+  liked_announcement_ids: number[];
   available_filters: {
     governorate_id: boolean;
     city_id: boolean;
@@ -186,15 +187,14 @@ export interface FiltersResponse {
 // SPRINT 03 - Updated Announcement Interface
 // ============================================
 
-// ✅ Public user data - ما يظهر للضيوف والمستخدمين العاديين
 export interface AnnouncementUser {
   id: number;
   name: string;
   is_verified: boolean;
   profile_image: string | null;
+  created_at?: string;
 }
 
-// ✅ Admin user data - ما يظهر للأدمن فقط
 export interface AnnouncementUserAdmin extends AnnouncementUser {
   email: string;
   whatsapp: string;
@@ -202,6 +202,12 @@ export interface AnnouncementUserAdmin extends AnnouncementUser {
   email_verified_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface LikeResponse {
+  message: string;
+  liked: boolean;
+  likes_count: number;
 }
 
 export interface Announcement {
@@ -223,6 +229,8 @@ export interface Announcement {
   disabled_at: string | null;
   disable_reason: string | null;
   views: number;
+  likes_count: number;
+  is_liked_by_user: boolean;
   status: 'active' | 'disabled' | 'deleted';
   pinned_at: string | null;
   created_at: string;
@@ -234,7 +242,6 @@ export interface Announcement {
   images: AnnouncementImage[];
   governorate?: Governorate;
   city?: City;
-  // ✅ المستخدم - قد يكون بيانات عامة أو كاملة حسب نوع المستخدم
   user?: AnnouncementUser | AnnouncementUserAdmin;
 }
 
@@ -310,4 +317,90 @@ export interface MyAnnouncementsResponse {
     monthly_used: number;
     monthly_remaining: number;
   };
+}
+
+// ============================================
+// DASHBOARD TYPES
+// ============================================
+
+export interface LocationItem {
+  id: number;
+  name: string;
+}
+
+export interface DashboardUser {
+  id: number;
+  name: string;
+  email: string;
+  whatsapp?: string | null;
+  governorate?: LocationItem | null;
+  city?: LocationItem | null;
+  is_verified: boolean;
+  profile_image?: string | null;
+  created_at: string;
+  email_verified_at?: string | null;
+}
+
+export interface DashboardStats {
+  announcements_count: number;
+  total_views: number;
+  total_likes_received: number;
+  average_rating: number;
+  monthly_limit: number;
+  monthly_used: number;
+  monthly_remaining: number;
+  can_create_more: boolean;
+}
+
+export interface DashboardVerification {
+  is_verified: boolean;
+  status: 'pending' | 'approved' | 'rejected' | null;
+  request_date: string | null;
+  rejection_reason: string | null;
+}
+
+export interface DashboardCharts {
+  weekly_announcements: {
+    labels: string[];
+    data: number[];
+  };
+  weekly_views: {
+    labels: string[];
+    data: number[];
+  };
+}
+
+export interface DashboardRecentAnnouncement {
+  id: number;
+  title: string;
+  price_type: 'free' | 'paid' | 'barter';
+  price: number | null;
+  status: 'active' | 'disabled' | 'deleted';
+  is_disabled: boolean;
+  views: number;
+  likes_count: number;
+  created_at: string;
+  cover_image: string | null;
+  sub_category: {
+    id: number;
+    name: string;
+  } | null;
+}
+
+export interface DashboardQuickActions {
+  can_create: boolean;
+  can_verify: boolean;
+  profile_path: string;
+  create_path: string;
+  my_announcements_path: string;
+  verify_path: string;
+}
+
+export interface DashboardResponse {
+  user: DashboardUser;
+  stats: DashboardStats;
+  verification: DashboardVerification;
+  charts: DashboardCharts;
+  recent_announcements: DashboardRecentAnnouncement[];
+  quick_actions: DashboardQuickActions;
 }

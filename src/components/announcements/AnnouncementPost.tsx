@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import type { Announcement } from '../../types';
 import { motion } from 'framer-motion';
+import LikeButton from './LikeButton';
 
 interface AnnouncementPostProps {
   announcement: Announcement;
@@ -27,7 +28,6 @@ const AnnouncementPost = ({
   const isVerifiedUser = user?.is_verified === true;
   const isGrid = viewMode === 'grid';
 
-  // ✅ التحقق من أن المستخدم لديه الصلاحية لمشاهدة رقم واتساب
   const canViewWhatsApp = (): boolean => {
     if (!isLoggedIn) return false;
     if (!isEmailVerified) return false;
@@ -43,7 +43,6 @@ const AnnouncementPost = ({
     }
   };
 
-  // ✅ تكوين زر الاتصال حسب حالة المستخدم
   const getContactButtonConfig = () => {
     const canView = canViewWhatsApp();
 
@@ -86,10 +85,6 @@ const AnnouncementPost = ({
       href: true,
     };
   };
-
-  // ============================================
-  // HELPERS
-  // ============================================
 
   const getPriceLabel = () => {
     switch (announcement.price_type) {
@@ -144,26 +139,18 @@ const AnnouncementPost = ({
     ? `http://localhost:8000/storage/${announcement.images[0].image_path}`
     : '/placeholder-image.png';
 
-  // ============================================
-  // USER AVATAR - استخدام profile_image من user
-  // ============================================
   const getUserAvatar = (): string | null => {
     const profileImage = announcement.user?.profile_image;
-    
     if (!profileImage) return null;
-    
     if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
       return profileImage;
     }
-    
     if (profileImage.startsWith('storage/')) {
       return `http://localhost:8000/${profileImage}`;
     }
-    
     if (profileImage.startsWith('profile/')) {
       return `http://localhost:8000/storage/${profileImage}`;
     }
-    
     return `http://localhost:8000/storage/${profileImage}`;
   };
 
@@ -230,11 +217,7 @@ const AnnouncementPost = ({
               }}
             />
 
-            {/* ============================================ */}
             {/* BADGES */}
-            {/* ============================================ */}
-            
-            {/* Top-Right: Privacy Badge */}
             <div
               style={{
                 position: 'absolute',
@@ -263,7 +246,6 @@ const AnnouncementPost = ({
               </span>
             </div>
 
-            {/* Top-Left: Pinned Badge */}
             {announcement.pinned_at && (
               <div
                 style={{
@@ -294,7 +276,6 @@ const AnnouncementPost = ({
               </div>
             )}
 
-            {/* Bottom-Right: Type, Price, High-Risk */}
             <div
               style={{
                 position: 'absolute',
@@ -361,7 +342,6 @@ const AnnouncementPost = ({
               )}
             </div>
 
-            {/* Bottom-Left: Views */}
             <div
               style={{
                 position: 'absolute',
@@ -394,9 +374,7 @@ const AnnouncementPost = ({
             flex: 1,
             minWidth: 0,
           }}>
-            {/* ============================================ */}
-            {/* User Info - Box with background + Avatar */}
-            {/* ============================================ */}
+            {/* User Info */}
             <div
               style={{
                 display: 'flex',
@@ -509,7 +487,6 @@ const AnnouncementPost = ({
                 </div>
               </div>
 
-              {/* Rating */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
                 <FaStar size={12} color="#F5A623" />
                 <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700 }}>4.8</span>
@@ -623,7 +600,7 @@ const AnnouncementPost = ({
             </div>
 
             {/* ============================================ */}
-            {/* ACTIONS */}
+            {/* ACTIONS - مع LikeButton */}
             {/* ============================================ */}
             <div style={{ 
               display: 'flex', 
@@ -633,7 +610,17 @@ const AnnouncementPost = ({
               paddingTop: '0.5rem',
               borderTop: '1px solid var(--border-color)',
               width: '100%',
+              flexWrap: 'wrap',
             }}>
+              {/* Like Button */}
+              <LikeButton
+                announcementId={announcement.id}
+                initialLiked={announcement.is_liked_by_user || false}
+                initialCount={announcement.likes_count || 0}
+                size="md"
+                showCount={true}
+              />
+
               <Button
                 as={Link as any}
                 to={`/announcements/${announcement.id}`}
@@ -841,7 +828,6 @@ const AnnouncementPost = ({
             }}
           />
 
-          {/* Badges */}
           <div
             style={{
               position: 'absolute',
@@ -869,7 +855,6 @@ const AnnouncementPost = ({
               {getPrivacyLabel(announcement.privacy_type)}
             </span>
           </div>
-          
 
           {announcement.pinned_at && (
             <div
@@ -998,7 +983,7 @@ const AnnouncementPost = ({
           flexDirection: 'column',
           flex: 1,
         }}>
-          {/* User Info - Box with background + Avatar */}
+          {/* User Info */}
           <div
             style={{
               display: 'flex',
@@ -1202,14 +1187,26 @@ const AnnouncementPost = ({
             </span>
           </div>
 
-          {/* Actions */}
+          {/* ============================================ */}
+          {/* ACTIONS - مع LikeButton */}
+          {/* ============================================ */}
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '4px', 
             paddingTop: '0.4rem',
             borderTop: '1px solid var(--border-color)',
+            flexWrap: 'wrap',
           }}>
+            {/* Like Button */}
+            <LikeButton
+              announcementId={announcement.id}
+              initialLiked={announcement.is_liked_by_user || false}
+              initialCount={announcement.likes_count || 0}
+              size="sm"
+              showCount={true}
+            />
+
             <Button
               as={Link as any}
               to={`/announcements/${announcement.id}`}

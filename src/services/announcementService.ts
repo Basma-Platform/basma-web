@@ -1,10 +1,13 @@
 import api from './api';
-import type { Announcement, AnnouncementsResponse, FiltersResponse, SubCategory } from '../types';
+import type { 
+  Announcement, 
+  AnnouncementsResponse, 
+  FiltersResponse, 
+  SubCategory,
+  LikeResponse 
+} from '../types';
 
 export const announcementService = {
-  // ============================================
-  // Get Public Announcements
-  // ============================================
   getPublicAnnouncements: async (params?: {
     page?: number;
     per_page?: number;
@@ -21,29 +24,21 @@ export const announcementService = {
   }) => {
     console.log('📤 Sending params:', params);
 
-    // Create a new params object
     const requestParams: any = {};
-
-    // Copy all params except sub_category_id
     Object.keys(params || {}).forEach(key => {
       if (key !== 'sub_category_id') {
         requestParams[key] = (params as any)[key];
       }
     });
 
-    // ✅ Handle sub_category_id as array - FIXED
     if (params?.sub_category_id) {
       const ids = Array.isArray(params.sub_category_id) 
         ? params.sub_category_id 
         : [params.sub_category_id];
-      
-      // ✅ Send as array - backend expects sub_category_id[] for multiple
       ids.forEach((id, index) => {
         requestParams[`sub_category_id[${index}]`] = id;
       });
     }
-
-    console.log('📤 Final request params:', requestParams);
 
     const response = await api.get<AnnouncementsResponse>('/v1/announcements', {
       params: requestParams,
@@ -51,27 +46,26 @@ export const announcementService = {
     return response.data;
   },
 
-  // ============================================
-  // Get Single Announcement
-  // ============================================
-  getAnnouncement: async (id: number) => {
-    const response = await api.get<Announcement>(`/v1/announcements/${id}`);
+  // ✅ استخدام CancelToken بدلاً من signal
+  getAnnouncement: async (id: number, cancelToken?: any) => {
+    const response = await api.get<Announcement>(`/v1/announcements/${id}`, {
+      cancelToken: cancelToken,
+    });
     return response.data;
   },
 
-  // ============================================
-  // Get Filter Options
-  // ============================================
   getFilters: async () => {
     const response = await api.get<FiltersResponse>('/v1/announcements/filters');
     return response.data;
   },
 
-  // ============================================
-  // Get Sub-Categories Only
-  // ============================================
   getSubCategories: async () => {
     const response = await api.get<{ data: SubCategory[] }>('/v1/sub-categories');
+    return response.data;
+  },
+
+  toggleLike: async (id: number): Promise<LikeResponse> => {
+    const response = await api.post<LikeResponse>(`/v1/announcements/${id}/like`);
     return response.data;
   },
 };

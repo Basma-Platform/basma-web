@@ -4,7 +4,6 @@ import { Container } from 'react-bootstrap';
 import { useAuth } from '../../hooks/useAuth';
 import DashboardSidebar from './Main_Layout_Components/DashboardSidebar';
 import DashboardHeader from './Main_Layout_Components/DashboardHeader';
-import DashboardStats from './Main_Layout_Components/DashboardStats';
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -100,12 +99,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           onToggleSidebar={toggleSidebar}
         />
 
-        {/* ✅ Page Content */}
+        {/* ✅ Page Content - إزالة DashboardStats من هنا */}
         <Container fluid style={{ padding: '24px', flex: 1 }}>
-          {/* Stats */}
-          <DashboardStats isAdmin={isAdmin} isVerified={isVerified} />
-
-          {/* Page Content */}
           {children || <Outlet />}
         </Container>
       </main>

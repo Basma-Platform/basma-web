@@ -19,11 +19,10 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { isDark: darkMode, toggleDarkMode } = useTheme();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   
-  // استخدام useRef لمنع إغلاق الـ Dropdown عند التحرك بين الزر والقائمة
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -41,7 +40,6 @@ const Navbar = () => {
     setDropdownOpen(false);
   }, [location]);
 
-  // ✅ الحصول على مسار لوحة التحكم الصحيح حسب الدور
   const dashboardPath = getDashboardPath(user?.role);
 
   const isActive = (path: string) => location.pathname === path;
@@ -72,7 +70,6 @@ const Navbar = () => {
   const userAvatar = getUserAvatar();
   const userInitials = getUserInitials();
 
-  // ✅ منع إغلاق الـ Dropdown عند التحرك بين الزر والقائمة
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -85,6 +82,134 @@ const Navbar = () => {
     timeoutRef.current = setTimeout(() => {
       setDropdownOpen(false);
     }, 200);
+  };
+
+  // ✅ عرض مكان شاغر أثناء تحميل حالة المستخدم
+  const renderAuthSection = () => {
+    // ✅ أثناء التحميل: عرض مكان شاغر مع تأثير نبض
+    if (isLoading) {
+      return (
+        <div className="site-navbar__auth-loading">
+          <div className="site-navbar__avatar-skeleton" />
+        </div>
+      );
+    }
+
+    // ✅ المستخدم مسجل دخول: عرض الـ Dropdown
+    if (isAuthenticated) {
+      return (
+        <div
+          className="site-navbar__dropdown"
+          ref={dropdownRef}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <button
+            className={`site-navbar__dropdown-toggle ${dropdownOpen ? 'is-active' : ''}`}
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            type="button"
+          >
+            <div className="site-navbar__avatar">
+              {userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt={user?.name || 'مستخدم'}
+                  className="site-navbar__avatar-img"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      const fallback = document.createElement('span');
+                      fallback.className = 'site-navbar__avatar-fallback';
+                      fallback.textContent = userInitials;
+                      parent.appendChild(fallback);
+                    }
+                  }}
+                />
+              ) : (
+                <span className="site-navbar__avatar-fallback">{userInitials}</span>
+              )}
+            </div>
+            <span className="site-navbar__username">
+              {user?.name?.split(' ')[0] || 'حسابي'}
+            </span>
+            <FaChevronDown
+              size={12}
+              className={`site-navbar__dropdown-arrow ${dropdownOpen ? 'is-rotated' : ''}`}
+            />
+          </button>
+
+          {dropdownOpen && (
+            <div className="site-navbar__dropdown-menu">
+              <div className="site-navbar__dropdown-header">
+                <div className="site-navbar__dropdown-avatar">
+                  {userAvatar ? (
+                    <img
+                      src={userAvatar}
+                      alt={user?.name || 'مستخدم'}
+                      className="site-navbar__dropdown-avatar-img"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          const fallback = document.createElement('span');
+                          fallback.className = 'site-navbar__dropdown-avatar-fallback';
+                          fallback.textContent = userInitials;
+                          parent.appendChild(fallback);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="site-navbar__dropdown-avatar-fallback">{userInitials}</span>
+                  )}
+                </div>
+                <div className="site-navbar__dropdown-userinfo">
+                  <div className="site-navbar__dropdown-name">{user?.name || 'مستخدم'}</div>
+                  <div className="site-navbar__dropdown-email">{user?.email}</div>
+                </div>
+              </div>
+
+              <div className="site-navbar__dropdown-divider" />
+
+              <Link
+                to={dashboardPath}
+                className="site-navbar__dropdown-item"
+                onClick={() => setDropdownOpen(false)}
+              >
+                <FaCog size={16} />
+                <span>لوحة التحكم</span>
+              </Link>
+
+              <button
+                onClick={handleLogout}
+                className="site-navbar__dropdown-item site-navbar__dropdown-item--danger"
+              >
+                <FaSignOutAlt size={16} />
+                <span>تسجيل الخروج</span>
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ✅ مستخدم غير مسجل: عرض أزرار تسجيل الدخول
+    return (
+      <>
+        <Link
+          to="/login"
+          className="site-navbar__btn site-navbar__btn--outline"
+        >
+          تسجيل الدخول
+        </Link>
+        <Link
+          to="/register"
+          className="site-navbar__btn site-navbar__btn--solid"
+        >
+          ابدأ الآن
+        </Link>
+      </>
+    );
   };
 
   return (
@@ -114,124 +239,13 @@ const Navbar = () => {
             <button
               onClick={toggleDarkMode}
               className="site-navbar__icon-btn"
-              aria-label={
-                darkMode ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"
-              }
+              aria-label={darkMode ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"}
               type="button"
             >
               {darkMode ? <FaSun /> : <FaMoon />}
             </button>
 
-            {isAuthenticated ? (
-              <div
-                className="site-navbar__dropdown"
-                ref={dropdownRef}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                <button
-                  className={`site-navbar__dropdown-toggle ${dropdownOpen ? 'is-active' : ''}`}
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  type="button"
-                >
-                  <div className="site-navbar__avatar">
-                    {userAvatar ? (
-                      <img
-                        src={userAvatar}
-                        alt={user?.name || 'مستخدم'}
-                        className="site-navbar__avatar-img"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            const fallback = document.createElement('span');
-                            fallback.className = 'site-navbar__avatar-fallback';
-                            fallback.textContent = userInitials;
-                            parent.appendChild(fallback);
-                          }
-                        }}
-                      />
-                    ) : (
-                      <span className="site-navbar__avatar-fallback">{userInitials}</span>
-                    )}
-                  </div>
-                  <span className="site-navbar__username">
-                    {user?.name?.split(' ')[0] || 'حسابي'}
-                  </span>
-                  <FaChevronDown
-                    size={12}
-                    className={`site-navbar__dropdown-arrow ${dropdownOpen ? 'is-rotated' : ''}`}
-                  />
-                </button>
-
-                {dropdownOpen && (
-                  <div className="site-navbar__dropdown-menu">
-                    <div className="site-navbar__dropdown-header">
-                      <div className="site-navbar__dropdown-avatar">
-                        {userAvatar ? (
-                          <img
-                            src={userAvatar}
-                            alt={user?.name || 'مستخدم'}
-                            className="site-navbar__dropdown-avatar-img"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const parent = e.currentTarget.parentElement;
-                              if (parent) {
-                                const fallback = document.createElement('span');
-                                fallback.className = 'site-navbar__dropdown-avatar-fallback';
-                                fallback.textContent = userInitials;
-                                parent.appendChild(fallback);
-                              }
-                            }}
-                          />
-                        ) : (
-                          <span className="site-navbar__dropdown-avatar-fallback">{userInitials}</span>
-                        )}
-                      </div>
-                      <div className="site-navbar__dropdown-userinfo">
-                        <div className="site-navbar__dropdown-name">{user?.name || 'مستخدم'}</div>
-                        <div className="site-navbar__dropdown-email">{user?.email}</div>
-                      </div>
-                    </div>
-
-                    <div className="site-navbar__dropdown-divider" />
-
-                    {/* ✅ استخدام المسار الصحيح حسب الدور */}
-                    <Link
-                      to={dashboardPath}
-                      className="site-navbar__dropdown-item"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <FaCog size={16} />
-                      <span>لوحة التحكم</span>
-                    </Link>
-
-                    <button
-                      onClick={handleLogout}
-                      className="site-navbar__dropdown-item site-navbar__dropdown-item--danger"
-                    >
-                      <FaSignOutAlt size={16} />
-                      <span>تسجيل الخروج</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="site-navbar__btn site-navbar__btn--outline"
-                >
-                  تسجيل الدخول
-                </Link>
-                <Link
-                  to="/register"
-                  className="site-navbar__btn site-navbar__btn--solid"
-                >
-                  ابدأ الآن
-                </Link>
-              </>
-            )}
+            {renderAuthSection()}
           </div>
 
           <button
@@ -307,7 +321,14 @@ const Navbar = () => {
             {darkMode ? <FaSun /> : <FaMoon />}
           </button>
 
-          {isAuthenticated ? (
+          {isLoading ? (
+            // ✅ عرض مكان شاغر أثناء التحميل في الموبايل
+            <div className="site-navbar__drawer-loading">
+              <div className="site-navbar__avatar-skeleton" />
+              <div className="site-navbar__text-skeleton" />
+              <div className="site-navbar__text-skeleton" />
+            </div>
+          ) : isAuthenticated ? (
             <>
               <div className="site-navbar__drawer-user">
                 <div className="site-navbar__drawer-avatar">
@@ -337,7 +358,6 @@ const Navbar = () => {
                 </div>
               </div>
 
-              {/* ✅ استخدام المسار الصحيح حسب الدور في الموبايل أيضاً */}
               <Link to={dashboardPath} className="site-navbar__btn site-navbar__btn--ghost site-navbar__btn--block">
                 لوحة التحكم
               </Link>
@@ -374,6 +394,9 @@ const Navbar = () => {
       <style>{`
         :root { --nav-h: 70px; }
 
+        /* ============================================ */
+        /* NAVBAR BASE */
+        /* ============================================ */
         .site-navbar {
           position: fixed;
           top: 0;
@@ -400,6 +423,9 @@ const Navbar = () => {
         }
         .site-navbar__spacer { height: var(--nav-h); }
 
+        /* ============================================ */
+        /* INNER */
+        /* ============================================ */
         .site-navbar__inner {
           height: 100%;
           max-width: 1320px;
@@ -411,6 +437,9 @@ const Navbar = () => {
           gap: 16px;
         }
 
+        /* ============================================ */
+        /* BRAND */
+        /* ============================================ */
         .site-navbar__brand {
           display: flex;
           align-items: center;
@@ -434,6 +463,9 @@ const Navbar = () => {
           color: var(--text-light);
         }
 
+        /* ============================================ */
+        /* LINKS */
+        /* ============================================ */
         .site-navbar__links { display: none; }
         .site-navbar__link {
           position: relative;
@@ -468,9 +500,11 @@ const Navbar = () => {
         }
         .site-navbar__link.is-active::after { transform: scaleX(1); }
 
+        /* ============================================ */
+        /* DROPDOWN */
+        /* ============================================ */
         .site-navbar__dropdown {
           position: relative;
-          /* ✅ إضافة مسافة صغيرة بين الزر والقائمة لمنع الإغلاق المفاجئ */
           padding-bottom: 4px;
           margin-bottom: -4px;
         }
@@ -490,16 +524,13 @@ const Navbar = () => {
           font-weight: 600;
           transition: all 0.25s ease;
         }
-
         .site-navbar.is-dark .site-navbar__dropdown-toggle {
           color: var(--text-light);
         }
-
         .site-navbar__dropdown-toggle:hover {
           background: rgba(232, 122, 32, 0.06);
           border-color: rgba(232, 122, 32, 0.15);
         }
-
         .site-navbar__dropdown-toggle.is-active {
           background: rgba(232, 122, 32, 0.08);
           border-color: rgba(232, 122, 32, 0.2);
@@ -515,13 +546,11 @@ const Navbar = () => {
           align-items: center;
           justify-content: center;
         }
-
         .site-navbar__avatar-img {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
-
         .site-navbar__avatar-fallback {
           width: 100%;
           height: 100%;
@@ -535,7 +564,6 @@ const Navbar = () => {
           border-radius: 50%;
           text-transform: uppercase;
         }
-
         .site-navbar.is-dark .site-navbar__avatar-fallback {
           background: linear-gradient(135deg, var(--primary-orange-light), var(--primary-orange));
         }
@@ -547,7 +575,6 @@ const Navbar = () => {
           white-space: nowrap;
           transition: color 0.3s ease;
         }
-
         .site-navbar.is-dark .site-navbar__username {
           color: var(--text-light);
         }
@@ -557,12 +584,10 @@ const Navbar = () => {
           opacity: 0.4;
           color: inherit;
         }
-
         .site-navbar__dropdown-arrow.is-rotated {
           transform: rotate(180deg);
         }
 
-        /* ✅ تحسين الـ Dropdown Menu */
         .site-navbar__dropdown-menu {
           position: absolute;
           top: calc(100% + 4px);
@@ -578,7 +603,6 @@ const Navbar = () => {
           animation: dropdownFade 0.2s ease;
           transform-origin: top center;
         }
-
         @keyframes dropdownFade {
           from { opacity: 0; transform: translateY(-8px) scale(0.97); }
           to { opacity: 1; transform: translateY(0) scale(1); }
@@ -592,7 +616,6 @@ const Navbar = () => {
           border-radius: 12px;
           background: var(--bg-card);
         }
-
         .site-navbar__dropdown-avatar {
           width: 40px;
           height: 40px;
@@ -603,13 +626,11 @@ const Navbar = () => {
           align-items: center;
           justify-content: center;
         }
-
         .site-navbar__dropdown-avatar-img {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
-
         .site-navbar__dropdown-avatar-fallback {
           width: 100%;
           height: 100%;
@@ -623,16 +644,13 @@ const Navbar = () => {
           border-radius: 50%;
           text-transform: uppercase;
         }
-
         .site-navbar.is-dark .site-navbar__dropdown-avatar-fallback {
           background: linear-gradient(135deg, var(--primary-orange-light), var(--primary-orange));
         }
-
         .site-navbar__dropdown-userinfo {
           flex: 1;
           min-width: 0;
         }
-
         .site-navbar__dropdown-name {
           font-size: 0.9rem;
           font-weight: 700;
@@ -642,7 +660,6 @@ const Navbar = () => {
           overflow: hidden;
           text-overflow: ellipsis;
         }
-
         .site-navbar__dropdown-email {
           font-size: 0.7rem;
           color: var(--text-muted);
@@ -653,13 +670,11 @@ const Navbar = () => {
           direction: ltr;
           text-align: left;
         }
-
         .site-navbar__dropdown-divider {
           height: 1px;
           margin: 6px 10px;
           background: var(--border-color);
         }
-
         .site-navbar__dropdown-item {
           display: flex;
           align-items: center;
@@ -677,22 +692,22 @@ const Navbar = () => {
           cursor: pointer;
           transition: all 0.2s ease;
         }
-
         .site-navbar__dropdown-item:hover {
           background: rgba(232, 122, 32, 0.06);
           color: var(--primary-orange);
           transform: translateX(-4px);
         }
-
         .site-navbar__dropdown-item--danger {
           color: #DC3545;
         }
-
         .site-navbar__dropdown-item--danger:hover {
           background: rgba(220, 53, 69, 0.08);
           color: #DC3545;
         }
 
+        /* ============================================ */
+        /* BUTTONS */
+        /* ============================================ */
         .site-navbar__btn {
           display: inline-flex;
           align-items: center;
@@ -743,6 +758,9 @@ const Navbar = () => {
         }
         .site-navbar__btn--block { width: 100%; }
 
+        /* ============================================ */
+        /* ICON BUTTONS */
+        /* ============================================ */
         .site-navbar__icon-btn {
           display: inline-flex;
           align-items: center;
@@ -765,8 +783,53 @@ const Navbar = () => {
           transform: rotate(15deg);
         }
 
+        /* ============================================ */
+        /* LOADING STATES - ✅ NEW */
+        /* ============================================ */
+        .site-navbar__auth-loading {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 80px;
+          justify-content: flex-end;
+        }
+
+        .site-navbar__avatar-skeleton {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: var(--bg-input);
+          animation: navbarPulse 1.5s ease-in-out infinite;
+        }
+
+        .site-navbar__drawer-loading {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 8px 0;
+        }
+
+        .site-navbar__text-skeleton {
+          width: 100%;
+          height: 14px;
+          border-radius: 6px;
+          background: var(--bg-input);
+          animation: navbarPulse 1.5s ease-in-out infinite;
+        }
+        .site-navbar__text-skeleton:last-child {
+          width: 60%;
+        }
+
+        @keyframes navbarPulse {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 0.2; }
+        }
+
         .site-navbar__actions { display: none; align-items: center; gap: 10px; }
 
+        /* ============================================ */
+        /* TOGGLE & BACKDROP */
+        /* ============================================ */
         .site-navbar__toggle {
           display: inline-flex;
           align-items: center;
@@ -793,6 +856,9 @@ const Navbar = () => {
         }
         .site-navbar__backdrop.is-visible { opacity: 1; pointer-events: auto; }
 
+        /* ============================================ */
+        /* DRAWER */
+        /* ============================================ */
         .site-navbar__drawer {
           position: fixed;
           top: 0;
@@ -877,13 +943,11 @@ const Navbar = () => {
           align-items: center;
           justify-content: center;
         }
-
         .site-navbar__drawer-avatar-img {
           width: 100%;
           height: 100%;
           object-fit: cover;
         }
-
         .site-navbar__drawer-avatar-fallback {
           width: 100%;
           height: 100%;
@@ -902,14 +966,12 @@ const Navbar = () => {
           flex: 1;
           min-width: 0;
         }
-
         .site-navbar__drawer-username {
           font-size: 0.9rem;
           font-weight: 700;
           color: var(--text-secondary);
           font-family: 'Cairo', sans-serif;
         }
-
         .site-navbar__drawer-useremail {
           font-size: 0.7rem;
           color: var(--text-muted);
@@ -943,6 +1005,9 @@ const Navbar = () => {
           color: var(--text-light);
         }
 
+        /* ============================================ */
+        /* RESPONSIVE */
+        /* ============================================ */
         @media (max-width: 767px) {
           .site-navbar__inner { padding: 0 14px; }
           .site-navbar__logo { height: 34px; }

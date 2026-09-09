@@ -1,4 +1,4 @@
-import { Container, Row, Col, Form, Button, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Button, Spinner } from 'react-bootstrap';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { announcementService } from '../services/announcementService';
@@ -10,7 +10,6 @@ import SubCategorySelector from '../components/announcements/SubCategorySelector
 import AnnouncementFilters from '../components/announcements/AnnouncementFilters';
 import SEO from '../components/SEO';
 import type { Announcement, Governorate, City, SubCategory, UserContext } from '../types';
-import { FaSearch, FaTimes, FaThLarge, FaList } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
 const AnnouncementsPage = () => {
@@ -152,12 +151,10 @@ const AnnouncementsPage = () => {
         params.category = selectedCategory;
       }
 
-      // ✅ FIX: Add sub-category filter as array
+      // Add sub-category filter as array
       if (selectedSubCategories.length > 0) {
         params.sub_category_id = selectedSubCategories;
       }
-
-      console.log('📤 Fetching with params:', params);
 
       const response = await announcementService.getPublicAnnouncements(params);
       
@@ -265,8 +262,10 @@ const AnnouncementsPage = () => {
     );
   };
 
+  // ✅ إصلاح: مسح الفئات الفرعية عند تغيير الفئة الرئيسية
   const handleCategorySelect = (category: 'goods' | 'services' | null) => {
     setSelectedCategory(category);
+    setSelectedSubCategories([]); // ✅ مسح الفئات الفرعية
   };
 
   const handleClearFilters = () => {
@@ -282,14 +281,14 @@ const AnnouncementsPage = () => {
     setSortBy('newest');
   };
 
+  // ✅ إصلاح: إزالة selectedCategory و selectedSubCategories من hasActiveFilters
+  // لأنها تعرض في SubCategorySelector وليس في زر الفلاتر
   const hasActiveFilters = Boolean(
     selectedGovernorate || 
     selectedCity || 
     selectedType || 
     selectedPriceType || 
-    selectedPrivacyType || 
-    selectedSubCategories.length > 0 || 
-    selectedCategory !== null
+    selectedPrivacyType
   );
 
   const sortOptions = [
@@ -376,183 +375,24 @@ const AnnouncementsPage = () => {
           </motion.div>
 
           {/* ============================================ */}
-          {/* SEARCH BAR */}
-          <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '16px', padding: '1rem 1.25rem', marginBottom: '1.5rem', boxShadow: '0 2px 12px var(--shadow-sm)', border: '1px solid var(--border-color)' }}>
-            <Row className="align-items-center g-2">
-              <Col xs={12} md={6} lg={7}>
-                <div style={{ position: 'relative' }}>
-                  <FaSearch style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', opacity: 0.6, fontSize: '0.9rem' }} />
-                  <Form.Control
-                    type="text"
-                    placeholder="ابحث عن إعلان، خدمة، أو سلعة..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                      paddingRight: '40px',
-                      paddingLeft: '40px',
-                      borderRadius: '12px',
-                      height: '44px',
-                      backgroundColor: 'var(--bg-input)',
-                      borderColor: 'var(--border-color)',
-                      color: 'var(--text-primary)',
-                      fontFamily: 'Cairo, sans-serif',
-                      transition: 'all 0.3s ease',
-                      fontSize: '0.95rem',
-                    }}
-                    onFocus={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--primary-orange)';
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,122,32,0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  />
-                  {/* Add placeholder color for dark mode */}
-                  <style>{`
-                    input::placeholder {
-                      color: var(--text-muted) !important;
-                      opacity: 0.7 !important;
-                      font-family: 'Cairo', sans-serif;
-                    }
-                    [data-theme="dark"] input::placeholder {
-                      color: #a08070 !important;
-                      opacity: 0.8 !important;
-                    }
-                  `}</style>
-                  {searchTerm && (
-                    <button
-                      onClick={() => setSearchTerm('')}
-                      style={{
-                        position: 'absolute',
-                        left: '12px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--text-muted)',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        fontSize: '0.8rem',
-                        transition: 'all 0.2s ease',
-                        borderRadius: '50%',
-                        width: '28px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'rgba(220,53,69,0.1)';
-                        e.currentTarget.style.color = '#DC3545';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.color = 'var(--text-muted)';
-                      }}
-                    >
-                      <FaTimes />
-                    </button>
-                  )}
-                  {isSearching && searchTerm && (
-                    <div style={{ position: 'absolute', left: '45px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Spinner animation="border" size="sm" style={{ color: 'var(--primary-orange)', width: '16px', height: '16px' }} />
-                    </div>
-                  )}
-                </div>
-              </Col>
-                
-              <Col xs={12} md={6} lg={5}>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <Form.Select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    style={{
-                      width: 'auto',
-                      minWidth: '120px',
-                      flex: '1 1 auto',
-                      borderRadius: '12px',
-                      height: '44px',
-                      backgroundColor: 'var(--bg-input)',
-                      borderColor: 'var(--border-color)',
-                      color: 'var(--text-primary)',
-                      fontFamily: 'Cairo, sans-serif',
-                      fontSize: '0.85rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {sortOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </Form.Select>
-                  
-                  <div className="view-mode-toggle" style={{ display: 'flex', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', height: '44px' }}>
-                    <button
-                      onClick={() => setViewMode('list')}
-                      style={{
-                        padding: '0 14px',
-                        border: 'none',
-                        background: viewMode === 'list' ? 'var(--primary-orange)' : 'transparent',
-                        color: viewMode === 'list' ? '#FFFFFF' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (viewMode !== 'list') {
-                          e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
-                          e.currentTarget.style.color = 'var(--primary-orange)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (viewMode !== 'list') {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = 'var(--text-muted)';
-                        }
-                      }}
-                    >
-                      <FaList size={16} />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      style={{
-                        padding: '0 14px',
-                        border: 'none',
-                        background: viewMode === 'grid' ? 'var(--primary-orange)' : 'transparent',
-                        color: viewMode === 'grid' ? '#FFFFFF' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (viewMode !== 'grid') {
-                          e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
-                          e.currentTarget.style.color = 'var(--primary-orange)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (viewMode !== 'grid') {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = 'var(--text-muted)';
-                        }
-                      }}
-                    >
-                      <FaThLarge size={16} />
-                    </button>
-                  </div>
-                </div>
-              </Col>
-            </Row>
-          </div>
-
-          {/* ============================================ */}
-          {/* FILTERS PANEL */}
+          {/* SEARCH + FILTERS - مكون واحد */}
           {/* ============================================ */}
           <AnnouncementFilters
+            // Search
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            isSearching={isSearching}
+
+            // Sort
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            sortOptions={sortOptions}
+
+            // View Mode
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+
+            // Filters
             showFilters={showFilters}
             setShowFilters={setShowFilters}
             governorates={governorates}

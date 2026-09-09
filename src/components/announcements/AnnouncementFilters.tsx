@@ -1,9 +1,27 @@
-import { Row, Col, Form, Button } from 'react-bootstrap';
+import { Row, Col, Form, Button, Spinner } from 'react-bootstrap';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaFilter, FaTimes, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { 
+  FaFilter, FaTimes, FaChevronDown, FaChevronUp, 
+  FaSearch, FaList, FaThLarge 
+} from 'react-icons/fa';
 import type { Governorate, City, UserContext } from '../../types';
 
 interface AnnouncementFiltersProps {
+  // Search
+  searchTerm: string;
+  setSearchTerm: (value: string) => void;
+  isSearching: boolean;
+  
+  // Sort
+  sortBy: string;
+  setSortBy: (value: string) => void;
+  sortOptions: { value: string; label: string }[];
+  
+  // View Mode
+  viewMode: 'list' | 'grid';
+  setViewMode: (mode: 'list' | 'grid') => void;
+  
+  // Filters
   showFilters: boolean;
   setShowFilters: (show: boolean) => void;
   governorates: Governorate[];
@@ -26,6 +44,21 @@ interface AnnouncementFiltersProps {
 }
 
 const AnnouncementFilters = ({
+  // Search
+  searchTerm,
+  setSearchTerm,
+  isSearching,
+  
+  // Sort
+  sortBy,
+  setSortBy,
+  sortOptions,
+  
+  // View Mode
+  viewMode,
+  setViewMode,
+  
+  // Filters
   showFilters,
   setShowFilters,
   governorates,
@@ -59,6 +92,14 @@ const AnnouncementFilters = ({
     { value: 'barter', label: 'مقايضة' },
   ];
 
+  // ✅ تسميات الخصوصية المطلوبة
+  const privacyLabels: Record<string, string> = {
+    'public': 'عام - للجميع',
+    'region_only': 'نفس المنطقة فقط',
+    'verified_only': 'للموثقين الهوية فقط',
+    'verified_region': 'موثق الهوية + نفس المنطقة',
+  };
+
   // Determine which filters are available based on user_context
   const canFilterByGovernorate = userContext?.available_filters?.governorate_id !== false;
   const canFilterByCity = userContext?.available_filters?.city_id !== false;
@@ -66,7 +107,6 @@ const AnnouncementFilters = ({
   const canFilterByPaymentType = userContext?.available_filters?.payment_type !== false;
   const canFilterByPrivacy = userContext?.available_filters?.privacy_type === true && isLoggedIn;
 
-  // Filter privacy options to only show available ones
   const availablePrivacyOptions = privacyOptions.filter(opt => opt.available);
 
   // Count how many filters are visible
@@ -77,7 +117,6 @@ const AnnouncementFilters = ({
   if (canFilterByPaymentType) visibleFilterCount++;
   if (canFilterByPrivacy && availablePrivacyOptions.length > 0) visibleFilterCount++;
 
-  // Calculate column size
   let colSize = 12;
   let isFiveFilters = false;
 
@@ -103,156 +142,241 @@ const AnnouncementFilters = ({
       }}
     >
       {/* ============================================ */}
-      {/* FILTERS TOGGLE ROW */}
+      {/* SEARCH + SORT + FILTER BUTTON + VIEW MODE */}
       {/* ============================================ */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Button
-            variant={hasActiveFilters ? 'primary' : 'outline-secondary'}
-            onClick={() => setShowFilters(!showFilters)}
-            style={{
-              borderRadius: '12px',
-              height: '44px',
-              padding: '0 18px',
-              backgroundColor: hasActiveFilters ? 'var(--primary-orange)' : 'transparent',
-              borderColor: hasActiveFilters ? 'var(--primary-orange)' : 'var(--border-color)',
-              color: hasActiveFilters ? '#FFFFFF' : 'var(--text-secondary)',
-              fontFamily: 'Cairo, sans-serif',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <FaFilter size={14} /> 
-            {hasActiveFilters ? 'تعديل الفلاتر' : 'إظهار الفلاتر'}
-            {hasActiveFilters && (
-              <span
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.3)',
-                  borderRadius: '50%',
-                  padding: '0 8px',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                }}
-              >
-                {[selectedGovernorate, selectedCity, selectedType, selectedPriceType, selectedPrivacyType].filter(Boolean).length}
-              </span>
-            )}
-            {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
-          </Button>
-
-          {hasActiveFilters && (
-            <Button
-              variant="link"
-              onClick={onClearFilters}
+      <Row className="align-items-center g-2">
+        {/* Search */}
+        <Col xs={12} md={6} lg={7}>
+          <div style={{ position: 'relative' }}>
+            <FaSearch 
+              style={{ 
+                position: 'absolute', 
+                right: '14px', 
+                top: '50%', 
+                transform: 'translateY(-50%)', 
+                color: 'var(--text-muted)', 
+                opacity: 0.6, 
+                fontSize: '0.9rem' 
+              }} 
+            />
+            <Form.Control
+              type="text"
+              placeholder="ابحث عن إعلان، خدمة، أو سلعة..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               style={{
-                color: 'var(--text-muted)',
-                textDecoration: 'none',
+                paddingRight: '40px',
+                paddingLeft: '40px',
+                borderRadius: '12px',
+                height: '44px',
+                backgroundColor: 'var(--bg-input)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-primary)',
                 fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.8rem',
-                padding: '4px 8px',
-                transition: 'all 0.2s ease',
+                transition: 'all 0.3s ease',
+                fontSize: '0.95rem',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#DC3545';
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--primary-orange)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,122,32,0.1)';
               }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-muted)';
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-color)';
+                e.currentTarget.style.boxShadow = 'none';
               }}
-            >
-              <FaTimes size={12} style={{ marginLeft: '4px' }} /> مسح الكل
-            </Button>
-          )}
-        </div>
-
-        {/* Active filters summary - Enhanced */}
-        {hasActiveFilters && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            {selectedGovernorate && (
-              <span
+            />
+            <style>{`
+              input::placeholder {
+                color: var(--text-muted) !important;
+                opacity: 0.7 !important;
+                font-family: 'Cairo', sans-serif;
+              }
+              [data-theme="dark"] input::placeholder {
+                color: #a08070 !important;
+                opacity: 0.8 !important;
+              }
+            `}</style>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
                 style={{
-                  backgroundColor: 'rgba(232,122,32,0.12)',
-                  color: 'var(--primary-orange)',
-                  padding: '2px 12px',
-                  borderRadius: '14px',
-                  fontSize: '0.7rem',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontWeight: 600,
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  fontSize: '0.8rem',
+                  transition: 'all 0.2s ease',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(220,53,69,0.1)';
+                  e.currentTarget.style.color = '#DC3545';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-muted)';
                 }}
               >
-                {governorates.find(g => g.id === Number(selectedGovernorate))?.name}
-              </span>
+                <FaTimes />
+              </button>
             )}
-            {selectedCity && (
-              <span
-                style={{
-                  backgroundColor: 'rgba(232,122,32,0.12)',
-                  color: 'var(--primary-orange)',
-                  padding: '2px 12px',
-                  borderRadius: '14px',
-                  fontSize: '0.7rem',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontWeight: 600,
-                }}
-              >
-                {cities.find(c => c.id === Number(selectedCity))?.name}
-              </span>
-            )}
-            {selectedType && (
-              <span
-                style={{
-                  backgroundColor: 'rgba(232,122,32,0.12)',
-                  color: 'var(--primary-orange)',
-                  padding: '2px 12px',
-                  borderRadius: '14px',
-                  fontSize: '0.7rem',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontWeight: 600,
-                }}
-              >
-                {typeOptions.find(t => t.value === selectedType)?.label}
-              </span>
-            )}
-            {selectedPriceType && (
-              <span
-                style={{
-                  backgroundColor: 'rgba(232,122,32,0.12)',
-                  color: 'var(--primary-orange)',
-                  padding: '2px 12px',
-                  borderRadius: '14px',
-                  fontSize: '0.7rem',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontWeight: 600,
-                }}
-              >
-                {priceOptions.find(p => p.value === selectedPriceType)?.label}
-              </span>
-            )}
-            {selectedPrivacyType && isLoggedIn && (
-              <span
-                style={{
-                  backgroundColor: 'rgba(232,122,32,0.12)',
-                  color: 'var(--primary-orange)',
-                  padding: '2px 12px',
-                  borderRadius: '14px',
-                  fontSize: '0.7rem',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontWeight: 600,
-                }}
-              >
-                {availablePrivacyOptions.find(p => p.value === selectedPrivacyType)?.label}
-              </span>
+            {isSearching && searchTerm && (
+              <div style={{ position: 'absolute', left: '45px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Spinner animation="border" size="sm" style={{ color: 'var(--primary-orange)', width: '16px', height: '16px' }} />
+              </div>
             )}
           </div>
-        )}
-      </div>
+        </Col>
+
+        {/* Sort + Filter Button + View Mode */}
+        <Col xs={12} md={6} lg={5}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Sort Dropdown */}
+            <Form.Select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{
+                width: 'auto',
+                minWidth: '120px',
+                flex: '1 1 auto',
+                borderRadius: '12px',
+                height: '44px',
+                backgroundColor: 'var(--bg-input)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-primary)',
+                fontFamily: 'Cairo, sans-serif',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+              }}
+            >
+              {sortOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </Form.Select>
+
+            {/* Filter Button */}
+            <Button
+              variant={hasActiveFilters ? 'primary' : 'outline-secondary'}
+              onClick={() => setShowFilters(!showFilters)}
+              style={{
+                borderRadius: '12px',
+                height: '44px',
+                padding: '0 18px',
+                backgroundColor: hasActiveFilters ? 'var(--primary-orange)' : 'transparent',
+                borderColor: hasActiveFilters ? 'var(--primary-orange)' : 'var(--border-color)',
+                color: hasActiveFilters ? '#FFFFFF' : 'var(--text-secondary)',
+                fontFamily: 'Cairo, sans-serif',
+                fontWeight: 600,
+                fontSize: '0.85rem',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <FaFilter size={14} />
+              {showFilters ? 'إخفاء الفلاتر' : 'إظهار الفلاتر'}
+              {hasActiveFilters && (
+                <span
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.3)',
+                    borderRadius: '50%',
+                    padding: '0 6px',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {[selectedGovernorate, selectedCity, selectedType, selectedPriceType, selectedPrivacyType].filter(Boolean).length}
+                </span>
+              )}
+              {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+            </Button>
+
+            {/* View Mode Toggle */}
+            <div 
+              className="view-mode-toggle" 
+              style={{ 
+                display: 'flex', 
+                borderRadius: '12px', 
+                border: '1px solid var(--border-color)', 
+                overflow: 'hidden', 
+                height: '44px' 
+              }}
+            >
+              <button
+                onClick={() => setViewMode('list')}
+                style={{
+                  padding: '0 14px',
+                  border: 'none',
+                  background: viewMode === 'list' ? 'var(--primary-orange)' : 'transparent',
+                  color: viewMode === 'list' ? '#FFFFFF' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  if (viewMode !== 'list') {
+                    e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
+                    e.currentTarget.style.color = 'var(--primary-orange)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (viewMode !== 'list') {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                  }
+                }}
+              >
+                <FaList size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                style={{
+                  padding: '0 14px',
+                  border: 'none',
+                  background: viewMode === 'grid' ? 'var(--primary-orange)' : 'transparent',
+                  color: viewMode === 'grid' ? '#FFFFFF' : 'var(--text-muted)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  if (viewMode !== 'grid') {
+                    e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
+                    e.currentTarget.style.color = 'var(--primary-orange)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (viewMode !== 'grid') {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-muted)';
+                  }
+                }}
+              >
+                <FaThLarge size={16} />
+              </button>
+            </div>
+          </div>
+        </Col>
+      </Row>
 
       {/* ============================================ */}
-      {/* FILTERS DROPDOWNS */}
+      {/* FILTERS PANEL */}
       {/* ============================================ */}
       <AnimatePresence>
         {showFilters && (
@@ -311,7 +435,7 @@ const AnnouncementFilters = ({
                         transition: 'all 0.3s ease',
                       }}
                     >
-                      <option value="">جميع الأحياء\المدن</option>
+                      <option value="">جميع المدن والأحياء</option>
                       {cities.map(city => (
                         <option key={city.id} value={city.id}>{city.name}</option>
                       ))}
@@ -369,7 +493,7 @@ const AnnouncementFilters = ({
                   </Col>
                 )}
 
-                {/* Privacy Filter */}
+                {/* Privacy Filter - ✅ مع التسميات المطلوبة */}
                 {canFilterByPrivacy && availablePrivacyOptions.length > 0 && (
                   <Col xs={12} sm={colSize} lg={isFiveFilters ? 2 : colSize} style={isFiveFilters ? { flex: '0 0 20%', maxWidth: '20%' } : {}}>
                     <Form.Select
@@ -387,23 +511,69 @@ const AnnouncementFilters = ({
                         transition: 'all 0.3s ease',
                       }}
                     >
-                      <option value="">🔒 جميع الخصوصية</option>
+                      <option value="">جميع خيارات الخصوصية</option>
                       {availablePrivacyOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        <option key={opt.value} value={opt.value}>
+                          {privacyLabels[opt.value] || opt.label}
+                        </option>
                       ))}
                     </Form.Select>
                   </Col>
                 )}
               </Row>
 
-              {/* Quick tip */}
-              <div style={{ marginTop: '0.75rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.7rem', fontFamily: 'Cairo, sans-serif', opacity: 0.6 }}>
-                يمكنك اختيار أكثر من فئة فرعية من الأسفل
+              {/* Clear Filters + Quick Tip */}
+              <div style={{ 
+                marginTop: '0.75rem', 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                {hasActiveFilters && (
+                  <Button
+                    variant="link"
+                    onClick={onClearFilters}
+                    style={{
+                      color: 'var(--text-muted)',
+                      textDecoration: 'none',
+                      fontFamily: 'Cairo, sans-serif',
+                      fontSize: '0.8rem',
+                      padding: '4px 8px',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#DC3545';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--text-muted)';
+                    }}
+                  >
+                    <FaTimes size={12} style={{ marginLeft: '4px' }} /> مسح جميع الفلاتر
+                  </Button>
+                )}
+                <div style={{ 
+                  color: 'var(--text-muted)', 
+                  fontSize: '0.7rem', 
+                  fontFamily: 'Cairo, sans-serif', 
+                  opacity: 0.6,
+                  textAlign: 'center',
+                }}>
+                  يمكنك اختيار أكثر من فئة فرعية من الأسفل
+                </div>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <style>{`
+        @media (max-width: 767px) {
+          .view-mode-toggle {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

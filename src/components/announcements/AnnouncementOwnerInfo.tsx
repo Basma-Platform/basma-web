@@ -1,131 +1,208 @@
-import { FaUser, FaStar, FaWhatsapp } from 'react-icons/fa';
+import { Badge } from 'react-bootstrap';
+import { FaUser, FaStar, FaUserCheck, FaClock } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
-import type { User } from '../../types';
+import { motion } from 'framer-motion';
 
 interface AnnouncementOwnerInfoProps {
-  owner: User | undefined;
+  ownerName: string;
+  isVerified: boolean;
+  avatarUrl: string | null;
   rating?: number;
   ratingCount?: number;
-  whatsapp?: string;
-  isLoggedIn?: boolean;
+  memberSince?: string;
 }
 
 const AnnouncementOwnerInfo = ({
-  owner,
+  ownerName,
+  isVerified,
+  avatarUrl,
   rating = 4.8,
   ratingCount = 12,
-  whatsapp,
-  isLoggedIn = false,
+  memberSince,
 }: AnnouncementOwnerInfoProps) => {
   const { isDark } = useTheme();
 
+  const formatDate = (date?: string) => {
+    if (!date) return 'غير معروف';
+    return new Date(date).toLocaleDateString('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const userInitials = ownerName.charAt(0).toUpperCase();
+
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, delay: 0.2 }}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 16px',
-        backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(139,90,43,0.04)',
-        borderRadius: '12px',
-        marginBottom: '1.5rem',
-        flexWrap: 'wrap',
-        gap: '8px',
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: '16px',
+        padding: '1.25rem 1.5rem',
+        boxShadow: '0 4px 16px var(--shadow-sm)',
         border: '1px solid var(--border-color)',
+        transition: 'all 0.3s ease',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <h4
+        style={{
+          color: 'var(--text-secondary)',
+          fontSize: '0.95rem',
+          fontWeight: 700,
+          fontFamily: 'Cairo, sans-serif',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+      >
+        <FaUser size={16} color="var(--primary-orange)" />
+        معلومات المعلن
+      </h4>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.5rem' }}>
         <div
           style={{
             width: '48px',
             height: '48px',
             borderRadius: '50%',
-            backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
+            overflow: 'hidden',
+            backgroundColor: isDark ? '#2a3a5a' : '#e8e0d8',
+            border: '2px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: isDark ? '#C49A6C' : '#8B5A2B',
-            fontSize: '20px',
+            flexShrink: 0,
+            transition: 'all 0.3s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--primary-orange)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-color)';
           }}
         >
-          <FaUser />
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={ownerName}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  const fallback = document.createElement('span');
+                  fallback.style.cssText = `
+                    color: var(--text-muted);
+                    font-size: 18px;
+                    font-weight: 700;
+                    font-family: 'Cairo', sans-serif;
+                  `;
+                  fallback.textContent = userInitials;
+                  parent.appendChild(fallback);
+                }
+              }}
+            />
+          ) : (
+            <span
+              style={{
+                color: isDark ? '#C49A6C' : '#8B5A2B',
+                fontSize: '18px',
+                fontWeight: 700,
+                fontFamily: 'Cairo, sans-serif',
+              }}
+            >
+              {userInitials}
+            </span>
+          )}
         </div>
+
         <div>
           <div
             style={{
               color: 'var(--text-secondary)',
-              fontSize: '1rem',
+              fontSize: '0.95rem',
               fontWeight: 700,
               fontFamily: 'Cairo, sans-serif',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px',
               flexWrap: 'wrap',
             }}
           >
-            {owner?.name || 'مستخدم'}
-            {owner?.is_verified && (
-              <span
+            {ownerName}
+            {isVerified && (
+              <Badge
                 style={{
                   backgroundColor: '#28A745',
                   color: '#FFFFFF',
-                  fontSize: '0.6rem',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontWeight: 600,
+                  fontSize: '0.45rem',
+                  padding: '2px 10px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                موثق
-              </span>
+                <FaUserCheck size={8} /> موثق
+              </Badge>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <FaStar size={14} color="#F5A623" />
-            <span
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.85rem',
-              }}
-            >
-              {rating} ({ratingCount} تقييم)
-            </span>
+          <div
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.75rem',
+              fontFamily: 'Cairo, sans-serif',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <FaStar size={12} color="#F5A623" />
+            {rating} ({ratingCount} تقييم)
           </div>
         </div>
       </div>
 
-      {isLoggedIn && whatsapp && (
-        <a
-          href={`https://wa.me/${whatsapp}`}
-          target="_blank"
-          rel="noopener noreferrer"
+      <div
+        style={{
+          marginTop: '0.75rem',
+          paddingTop: '0.75rem',
+          borderTop: '1px solid var(--border-color)',
+        }}
+      >
+        <div
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            backgroundColor: '#25D366',
-            color: '#FFFFFF',
-            padding: '6px 16px',
-            borderRadius: '20px',
-            fontSize: '0.85rem',
-            fontWeight: 600,
+            display: 'flex',
+            justifyContent: 'space-between',
+            color: 'var(--text-muted)',
+            fontSize: '0.8rem',
             fontFamily: 'Cairo, sans-serif',
-            textDecoration: 'none',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#1DA851';
-            e.currentTarget.style.transform = 'scale(1.03)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#25D366';
-            e.currentTarget.style.transform = 'scale(1)';
           }}
         >
-          <FaWhatsapp size={14} />
-          واتساب
-        </a>
-      )}
-    </div>
+          <span>عضو منذ</span>
+          <span
+            style={{
+              color: 'var(--text-secondary)',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <FaClock size={12} />
+            {formatDate(memberSince)}
+          </span>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 

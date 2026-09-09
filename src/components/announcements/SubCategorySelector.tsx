@@ -30,8 +30,10 @@ const SubCategorySelector = ({
 
   const handleCategoryClick = (category: 'goods' | 'services') => {
     if (selectedCategory === category) {
+      // ✅ إلغاء اختيار الفئة
       onCategorySelect(null);
     } else {
+      // ✅ تغيير الفئة (يتم مسح الفئات الفرعية في الـ parent)
       onCategorySelect(category);
     }
   };
@@ -153,14 +155,14 @@ const SubCategorySelector = ({
                       {/* Name */}
                       <span className="sub-category-name">{sub.name}</span>
 
-                      {/* ✅ High Risk Badge */}
+                      {/* High Risk Badge */}
                       {sub.is_high_risk && (
                         <span className="high-risk-badge" title="يتطلب توثيق الهوية">
                           ⚠️
                         </span>
                       )}
 
-                      {/* ✅ Selected Checkmark */}
+                      {/* Selected Checkmark */}
                       {selected && (
                         <span className="selected-check">✓</span>
                       )}
@@ -393,62 +395,38 @@ const SubCategorySelector = ({
           line-height: 1.3;
         }
 
-        /* ============================================ */
-        /* ✅ HIGH RISK BADGE - مع لون حدود حسب الوضع */
-        /* ============================================ */
         .high-risk-badge {
           position: absolute;
           top: -6px;
           right: -6px;
+          font-size: 0.7rem;
+          background: #ffc107;
+          border-radius: 50%;
           width: 22px;
           height: 22px;
-          border-radius: 50%;
-          background: #ffc107;
-          box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4);
-          border: 2px solid var(--border-color);
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 5;
-          font-size: 0.6rem;
-          line-height: 1;
-          color: #856404;
-          font-weight: 700;
-          transition: all 0.3s ease;
+          box-shadow: 0 2px 8px rgba(255, 193, 7, 0.4);
+          border: 2px solid var(--bg-card);
         }
 
-        .sub-category-card:hover .high-risk-badge {
-          transform: scale(1.1);
-          box-shadow: 0 4px 16px rgba(255, 193, 7, 0.6);
-        }
-
-        /* ============================================ */
-        /* ✅ SELECTED CHECK - مع لون حدود حسب الوضع */
-        /* ============================================ */
         .selected-check {
           position: absolute;
           bottom: -6px;
           right: -6px;
-          width: 22px;
-          height: 22px;
-          border-radius: 50%;
+          font-size: 0.8rem;
           background: var(--primary-orange);
-          box-shadow: 0 2px 8px rgba(232, 122, 32, 0.4);
-          border: 2px solid var(--border-color);
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 5;
-          font-size: 0.65rem;
-          line-height: 1;
           color: #ffffff;
+          box-shadow: 0 2px 8px rgba(232, 122, 32, 0.4);
+          border: 2px solid var(--bg-card);
           font-weight: 700;
-          transition: all 0.3s ease;
-        }
-
-        .sub-category-card:hover .selected-check {
-          transform: scale(1.1);
-          box-shadow: 0 4px 16px rgba(232, 122, 32, 0.6);
         }
 
         .clear-all-row {
@@ -548,22 +526,6 @@ const SubCategorySelector = ({
           .category-selected-badge {
             font-size: 0.7rem;
             padding: 2px 10px;
-          }
-
-          .high-risk-badge {
-            width: 20px;
-            height: 20px;
-            font-size: 0.55rem;
-            top: -5px;
-            right: -5px;
-          }
-
-          .selected-check {
-            width: 20px;
-            height: 20px;
-            font-size: 0.6rem;
-            bottom: -5px;
-            right: -5px;
           }
         }
 
