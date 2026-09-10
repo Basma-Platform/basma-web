@@ -113,11 +113,17 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
       onSubmit={handleSubmit(onSubmit)}
       style={{ direction: 'rtl' }}
     >
-      {/* Two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
-        
+      {/* ✅ Grid Container - Responsive */}
+      <div 
+        className="register-form-grid"
+        style={{ 
+          display: 'grid', 
+          gridTemplateColumns: '1fr 1fr', 
+          gap: '0 1rem',
+        }}
+      >
         {/* Name - Full Width */}
-        <div style={{ gridColumn: '1 / -1', marginBottom: '0.75rem' }}>
+        <div className="register-form-field" style={{ gridColumn: '1 / -1', marginBottom: '0.75rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Cairo, sans-serif', marginBottom: '4px' }}>
             <FaUser size={14} color="var(--primary-orange)" /> الاسم الكامل <span style={{ color: 'var(--error)' }}>*</span>
           </label>
@@ -125,15 +131,16 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
             {...register('name')}
             type="text"
             placeholder="أدخل اسمك الكامل"
+            className="register-form-input"
             style={{
               width: '100%',
-              padding: '10px 14px',
+              padding: '12px 14px',
               borderRadius: '10px',
               border: `1px solid ${errors.name ? 'var(--error)' : 'var(--input-border)'}`,
               backgroundColor: 'var(--bg-input)',
               color: 'var(--text-primary)',
               fontFamily: 'Cairo, sans-serif',
-              fontSize: '0.9rem',
+              fontSize: '0.95rem',
               transition: 'all 0.3s ease',
               outline: 'none',
             }}
@@ -150,7 +157,7 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
         </div>
 
         {/* Email - Full Width */}
-        <div style={{ gridColumn: '1 / -1', marginBottom: '0.75rem' }}>
+        <div className="register-form-field" style={{ gridColumn: '1 / -1', marginBottom: '0.75rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Cairo, sans-serif', marginBottom: '4px' }}>
             <FaEnvelope size={14} color="var(--primary-orange)" /> البريد الإلكتروني <span style={{ color: 'var(--error)' }}>*</span>
           </label>
@@ -158,15 +165,16 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
             {...register('email')}
             type="email"
             placeholder="أدخل بريدك الإلكتروني"
+            className="register-form-input"
             style={{
               width: '100%',
-              padding: '10px 14px',
+              padding: '12px 14px',
               borderRadius: '10px',
               border: `1px solid ${errors.email ? 'var(--error)' : 'var(--input-border)'}`,
               backgroundColor: 'var(--bg-input)',
               color: 'var(--text-primary)',
               fontFamily: 'Cairo, sans-serif',
-              fontSize: '0.9rem',
+              fontSize: '0.95rem',
               transition: 'all 0.3s ease',
               outline: 'none',
             }}
@@ -183,7 +191,7 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
         </div>
 
         {/* Password */}
-        <div style={{ marginBottom: '0.75rem' }}>
+        <div className="register-form-field" style={{ marginBottom: '0.75rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Cairo, sans-serif', marginBottom: '4px' }}>
             <FaLock size={14} color="var(--primary-orange)" /> كلمة المرور <span style={{ color: 'var(--error)' }}>*</span>
           </label>
@@ -192,16 +200,17 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
               {...register('password')}
               type={showPassword ? 'text' : 'password'}
               placeholder="********"
+              className="register-form-input"
               style={{
                 width: '100%',
-                padding: '10px 14px',
+                padding: '12px 14px',
                 paddingLeft: '40px',
                 borderRadius: '10px',
                 border: `1px solid ${errors.password ? 'var(--error)' : 'var(--input-border)'}`,
                 backgroundColor: 'var(--bg-input)',
                 color: 'var(--text-primary)',
                 fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.9rem',
+                fontSize: '0.95rem',
                 transition: 'all 0.3s ease',
                 outline: 'none',
               }}
@@ -236,7 +245,7 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
         </div>
 
         {/* Confirm Password */}
-        <div style={{ marginBottom: '0.75rem' }}>
+        <div className="register-form-field" style={{ marginBottom: '0.75rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Cairo, sans-serif', marginBottom: '4px' }}>
             <FaLock size={14} color="var(--primary-orange)" /> تأكيد كلمة المرور <span style={{ color: 'var(--error)' }}>*</span>
           </label>
@@ -245,16 +254,17 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
               {...register('password_confirmation')}
               type={showConfirmPassword ? 'text' : 'password'}
               placeholder="********"
+              className="register-form-input"
               style={{
                 width: '100%',
-                padding: '10px 14px',
+                padding: '12px 14px',
                 paddingLeft: '40px',
                 borderRadius: '10px',
                 border: `1px solid ${errors.password_confirmation ? 'var(--error)' : 'var(--input-border)'}`,
                 backgroundColor: 'var(--bg-input)',
                 color: 'var(--text-primary)',
                 fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.9rem',
+                fontSize: '0.95rem',
                 transition: 'all 0.3s ease',
                 outline: 'none',
               }}
@@ -293,6 +303,7 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
+            className="register-form-field"
             style={{ gridColumn: '1 / -1', marginBottom: '0.5rem' }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
@@ -324,7 +335,7 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
         )}
 
         {/* WhatsApp - Full Width */}
-        <div style={{ gridColumn: '1 / -1', marginBottom: '0.75rem' }}>
+        <div className="register-form-field" style={{ gridColumn: '1 / -1', marginBottom: '0.75rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Cairo, sans-serif', marginBottom: '4px' }}>
             <FaWhatsapp size={14} color="#25D366" /> رقم واتساب <span style={{ color: 'var(--error)' }}>*</span>
           </label>
@@ -332,6 +343,7 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
             <div style={{ position: 'relative', minWidth: '90px' }}>
               <select
                 {...register('countryCode')}
+                className="register-form-input"
                 style={{
                   width: '100%',
                   padding: '10px 12px',
@@ -362,7 +374,6 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
                   e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                {/* ✅ استخدام unicode-bidi لحل مشكلة + */}
                 <option value="+970" style={{ unicodeBidi: 'plaintext', direction: 'ltr' }}>+970</option>
                 <option value="+972" style={{ unicodeBidi: 'plaintext', direction: 'ltr' }}>+972</option>
               </select>
@@ -371,19 +382,21 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
               {...register('whatsappNumber')}
               type="tel"
               placeholder="5XXXXXXXX"
+              className="register-form-input"
               style={{
                 flex: 1,
-                padding: '10px 14px',
+                padding: '12px 14px',
                 borderRadius: '10px',
                 border: `1px solid ${errors.whatsappNumber ? 'var(--error)' : 'var(--input-border)'}`,
                 backgroundColor: 'var(--bg-input)',
                 color: 'var(--text-primary)',
                 fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.9rem',
+                fontSize: '0.95rem',
                 transition: 'all 0.3s ease',
                 outline: 'none',
                 direction: 'ltr',
                 textAlign: 'left',
+                minWidth: '0',
               }}
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = 'var(--primary-orange)';
@@ -399,22 +412,23 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
         </div>
 
         {/* Governorate */}
-        <div style={{ marginBottom: '0.75rem' }}>
+        <div className="register-form-field" style={{ marginBottom: '0.75rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Cairo, sans-serif', marginBottom: '4px' }}>
             <FaMapMarkerAlt size={14} color="var(--primary-orange)" /> المحافظة <span style={{ color: 'var(--error)' }}>*</span>
           </label>
           <div style={{ position: 'relative' }}>
             <select
               {...register('governorate_id')}
+              className="register-form-input"
               style={{
                 width: '100%',
-                padding: '10px 14px',
+                padding: '12px 14px',
                 borderRadius: '10px',
                 border: `1px solid ${errors.governorate_id ? 'var(--error)' : 'var(--input-border)'}`,
                 backgroundColor: 'var(--bg-input)',
                 color: 'var(--text-primary)',
                 fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.9rem',
+                fontSize: '0.95rem',
                 outline: 'none',
                 cursor: 'pointer',
                 transition: 'all 0.3s ease',
@@ -438,7 +452,7 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
         </div>
 
         {/* City */}
-        <div style={{ marginBottom: '0.75rem' }}>
+        <div className="register-form-field" style={{ marginBottom: '0.75rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 600, fontFamily: 'Cairo, sans-serif', marginBottom: '4px' }}>
             <FaCity size={14} color="var(--primary-orange)" /> المدينة / الحي <span style={{ color: 'var(--error)' }}>*</span>
           </label>
@@ -446,15 +460,16 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
             <select
               {...register('city_id')}
               disabled={!governorateId}
+              className="register-form-input"
               style={{
                 width: '100%',
-                padding: '10px 14px',
+                padding: '12px 14px',
                 borderRadius: '10px',
                 border: `1px solid ${errors.city_id ? 'var(--error)' : 'var(--input-border)'}`,
                 backgroundColor: 'var(--bg-input)',
                 color: 'var(--text-primary)',
                 fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.9rem',
+                fontSize: '0.95rem',
                 outline: 'none',
                 cursor: governorateId ? 'pointer' : 'not-allowed',
                 opacity: governorateId ? 1 : 0.6,
@@ -483,7 +498,7 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
         </div>
 
         {/* Terms - Full Width */}
-        <div style={{ gridColumn: '1 / -1', marginBottom: '1rem' }}>
+        <div className="register-form-field" style={{ gridColumn: '1 / -1', marginBottom: '1rem' }}>
           <div
             style={{
               padding: '1rem 1.25rem',
@@ -603,6 +618,35 @@ const RegisterForm = ({ onSubmit, isLoading = false }: RegisterFormProps) => {
           <><FaCheckCircle size={18} /> إنشاء حساب</>
         )}
       </motion.button>
+
+      {/* ✅ CSS للـ Responsive - عمود واحد على الموبايل مع تصميم محسّن */}
+      <style>{`
+        @media (max-width: 767px) {
+          .register-form-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0 0 !important;
+          }
+          .register-form-field {
+            grid-column: 1 / -1 !important;
+            width: 100% !important;
+            margin-bottom: 0.75rem !important;
+          }
+          .register-form-input {
+            width: 100% !important;
+            min-width: 0 !important;
+            font-size: 0.9rem !important;
+            padding: 10px 12px !important;
+          }
+          /* تحسين مظهر الـ select */
+          .register-form-input select {
+            width: 100% !important;
+          }
+          /* تحسين مظهر الـ WhatsApp */
+          .register-form-field .register-form-input[type="tel"] {
+            min-width: 0 !important;
+          }
+        }
+      `}</style>
     </motion.form>
   );
 };

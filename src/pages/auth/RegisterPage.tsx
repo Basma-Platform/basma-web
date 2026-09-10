@@ -1,23 +1,44 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FaHandshake, FaShieldAlt, FaUserCheck, FaUsers,
+  FaExchangeAlt
+} from 'react-icons/fa';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 import { getPostAuthPath } from '../../utils/authRedirect';
 import RegisterForm from '../../components/auth/RegisterForm';
 import type { RegisterFormData } from '../../components/auth/RegisterForm';
 import logo from '../../assets/logo.png';
-import SEO from '../../components/SEO'; // ✅ إضافة
+import SEO from '../../components/SEO';
 
 const RegisterPage = () => {
+  const { isDark } = useTheme();
   const { register: registerUser, isLoading, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [activeStep, setActiveStep] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (isAuthenticated && user) {
       navigate(getPostAuthPath(user));
     }
   }, [isAuthenticated, user, navigate]);
+
+  // ✅ 6 seconds per bubble
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setActiveStep((prev) => (prev + 1) % 4);
+    }, 6000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
 
   const handleRegister = async (data: RegisterFormData) => {
     try {
@@ -37,53 +58,52 @@ const RegisterPage = () => {
     }
   };
 
-  // 4 Badges - always visible on desktop
-  const floatingItems = [
+  const features = [
     { 
-      icon: '🤝', 
+      icon: <FaExchangeAlt />, 
       label: 'تبادل آمن', 
-      left: '-3%',
-      top: '-12px',
-      color: '#28A745',
-      delay: 0.1,
-      hoverScale: 1.25,
-      hoverRotate: -8,
+      desc: 'تواصل وتبادل موثوق بين أفراد المجتمع',
+      color: '#10B981',
+      bgColor: 'rgba(16, 185, 129, 0.15)',
+      glowColor: 'rgba(16, 185, 129, 0.4)',
     },
     { 
-      icon: '🛡️', 
+      icon: <FaShieldAlt />, 
       label: 'تسجيل آمن', 
-      left: '23%',
-      top: '-28px',
+      desc: 'بياناتك محمية بأعلى معايير الأمان والتشفير',
       color: '#E87A20',
-      delay: 0.15,
-      hoverScale: 1.3,
-      hoverRotate: 0,
+      bgColor: 'rgba(232, 122, 32, 0.15)',
+      glowColor: 'rgba(232, 122, 32, 0.4)',
     },
     { 
-      icon: '✅', 
+      icon: <FaUserCheck />, 
       label: 'هوية موثقة', 
-      left: '49%',
-      top: '-28px',
-      color: '#17A2B8',
-      delay: 0.2,
-      hoverScale: 1.25,
-      hoverRotate: 8,
+      desc: 'نظام توثيق يبني الثقة بين جميع الأعضاء',
+      color: '#3B82F6',
+      bgColor: 'rgba(59, 130, 246, 0.15)',
+      glowColor: 'rgba(59, 130, 246, 0.4)',
     },
     { 
-      icon: '👥', 
+      icon: <FaUsers />, 
       label: 'مجتمع متكافل', 
-      left: '75%',
-      top: '-12px',
-      color: '#8B5A2B',
-      delay: 0.25,
-      hoverScale: 1.25,
-      hoverRotate: -8,
+      desc: 'مجتمع متنامٍ يتبادل الخدمات والموارد بروح التعاون',
+      color: '#8B5CF6',
+      bgColor: 'rgba(139, 92, 246, 0.15)',
+      glowColor: 'rgba(139, 92, 246, 0.4)',
     },
+  ];
+
+  const activeFeature = features[activeStep];
+
+  const dotPositions = [
+    { top: '-15px', left: '50%', transform: 'translateX(-50%)' },
+    { top: '50%', right: '-15px', transform: 'translateY(-50%)' },
+    { bottom: '-15px', left: '50%', transform: 'translateX(-50%)' },
+    { top: '50%', left: '-15px', transform: 'translateY(-50%)' },
   ];
 
   return (
     <>
-      {/* ✅ إضافة SEO */}
       <SEO
         title="إنشاء حساب"
         description="أنشئ حسابك في منصة بصمة وانضم إلى مجتمع التبادل والتكافل في غزة."
@@ -106,173 +126,68 @@ const RegisterPage = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
+          className="register-shell"
           style={{
             width: '100%',
-            maxWidth: '580px', // ✅ كما هو - واسع للتسجيل
-            backgroundColor: 'var(--bg-card)',
-            borderRadius: '24px',
-            padding: '2.5rem 2rem',
+            maxWidth: '1080px',
+            display: 'grid',
+            borderRadius: '28px',
+            overflow: 'hidden',
             boxShadow: '0 8px 32px var(--shadow-sm)',
             border: '1px solid var(--border-color)',
-            position: 'relative',
-            overflow: 'visible',
           }}
         >
-          {/* Logo & Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            style={{ 
-              textAlign: 'center', 
-              marginBottom: '0.5rem',
+          {/* ===== FORM PANEL ===== */}
+          <div
+            style={{
+              backgroundColor: 'var(--bg-card)',
+              padding: '2.5rem 2rem',
               position: 'relative',
             }}
           >
-            {/* Logo Container */}
-            <div
-              style={{
-                display: 'inline-block',
-                position: 'relative',
-                cursor: 'pointer',
-              }}
+            {/* ✅ Logo & Header - Logo يظهر فقط على الموبايل */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{ textAlign: 'center', marginBottom: '0.5rem', position: 'relative' }}
             >
-              <Link to="/" style={{ display: 'inline-block' }}>
-                <img
-                  src={logo}
-                  alt="بصمة"
-                  style={{
-                    height: '55px',
-                    width: 'auto',
-                    transition: 'transform 0.3s ease',
-                    display: 'block',
-                    margin: '0 auto',
-                  }}
-                />
-              </Link>
-
-              {/* ===== DESKTOP: 4 Floating Badges ===== */}
-              <div
-                style={{
-                  display: 'none', // Hidden by default, shown on desktop
-                  position: 'absolute',
-                  top: '-48px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '480px',
-                  height: '60px',
-                  pointerEvents: 'none',
-                  zIndex: 30,
-                }}
-                className="desktop-badges"
-              >
-                {floatingItems.map((item, index) => {
-                  const isHovered = hoveredIndex === index;
-                  
-                  return (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, scale: 0, y: 15 }}
-                      animate={{
-                        opacity: 1,
-                        scale: 1,
-                        y: 0,
-                        transition: {
-                          delay: item.delay,
-                          type: 'spring',
-                          stiffness: 200,
-                          damping: 15,
-                        },
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: item.top,
-                        left: item.left,
-                        transform: 'translateX(-50%)',
-                        pointerEvents: 'auto',
-                        cursor: 'default',
-                      }}
-                      onMouseEnter={() => setHoveredIndex(index)}
-                      onMouseLeave={() => setHoveredIndex(null)}
-                    >
-                      <motion.div
-                        animate={{
-                          y: isHovered ? -12 : [0, -5, 0],
-                          scale: isHovered ? item.hoverScale : 1,
-                          rotate: isHovered ? item.hoverRotate : 0,
-                          boxShadow: isHovered 
-                            ? '0 12px 40px rgba(0,0,0,0.2)' 
-                            : '0 8px 30px var(--shadow-md)',
-                        }}
-                        transition={{
-                          y: isHovered 
-                            ? { duration: 0.3 }
-                            : { duration: 2.5 + index * 0.15, repeat: Infinity, ease: 'easeInOut', delay: index * 0.1 },
-                          scale: { duration: 0.3, type: 'spring', stiffness: 300 },
-                          rotate: { duration: 0.3 },
-                          boxShadow: { duration: 0.3 },
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '5px 14px',
-                          background: 'var(--bg-card)',
-                          borderRadius: '16px',
-                          border: `2px solid ${isHovered ? item.color : item.color + '35'}`,
-                          boxShadow: '0 8px 30px var(--shadow-md)',
-                          whiteSpace: 'nowrap',
-                          pointerEvents: 'auto',
-                          backdropFilter: 'blur(12px)',
-                          transition: 'border-color 0.3s ease',
-                        }}
-                      >
-                        <span style={{ fontSize: '0.9rem' }}>{item.icon}</span>
-                        <span
-                          style={{
-                            color: isHovered ? item.color : 'var(--text-secondary)',
-                            fontSize: '0.7rem',
-                            fontWeight: isHovered ? 800 : 700,
-                            fontFamily: 'Cairo, sans-serif',
-                            transition: 'color 0.3s ease, font-weight 0.3s ease',
-                          }}
-                        >
-                          {item.label}
-                        </span>
-                      </motion.div>
-                    </motion.div>
-                  );
-                })}
+              {/* ✅ Logo - يظهر على الموبايل فقط مع لون مناسب للوضع */}
+              <div className="mobile-logo" style={{ marginBottom: '0.5rem' }}>
+                <Link to="/" style={{ display: 'inline-block' }}>
+                  <img
+                    src={logo}
+                    alt="بصمة"
+                    style={{ 
+                      height: '50px', 
+                      width: 'auto', 
+                      display: 'block', 
+                      margin: '0 auto',
+                      // ✅ في الوضع الداكن: يصبح أبيض، في الوضع الفاتح: لونه الطبيعي
+                      filter: isDark ? 'brightness(0) invert(1)' : 'none',
+                      transition: 'filter 0.3s ease',
+                    }}
+                  />
+                </Link>
               </div>
 
-              {/* ===== MOBILE: Single Static Badge ===== */}
-              <div
-                style={{
-                  display: 'block', // Shown by default, hidden on desktop
-                  position: 'absolute',
-                  top: '-38px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  pointerEvents: 'none',
-                  zIndex: 30,
-                }}
-                className="mobile-badge"
-              >
+              {/* ✅ Mobile Badge - يظهر على الموبايل فقط */}
+              <div className="mobile-badge">
                 <div
                   style={{
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
                     padding: '4px 14px',
                     background: 'var(--bg-card)',
                     borderRadius: '16px',
-                    border: '2px solid #E87A2035',
+                    border: '2px solid rgba(232,122,32,0.2)',
                     boxShadow: '0 4px 16px var(--shadow-md)',
                     whiteSpace: 'nowrap',
                     backdropFilter: 'blur(8px)',
                   }}
                 >
-                  <span style={{ fontSize: '0.85rem' }}>🛡️</span>
+                  <FaShieldAlt size={14} color="#E87A20" />
                   <span
                     style={{
                       color: '#E87A20',
@@ -285,101 +200,491 @@ const RegisterPage = () => {
                   </span>
                 </div>
               </div>
-            </div>
 
-            <h1
+              <h1
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '1.6rem',
+                  fontWeight: 900,
+                  fontFamily: 'Cairo, sans-serif',
+                  marginBottom: '0.15rem',
+                  marginTop: '0.5rem',
+                }}
+              >
+                إنشاء حساب جديد
+              </h1>
+              <p
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.85rem',
+                  fontFamily: 'Cairo, sans-serif',
+                }}
+              >
+                انضم إلى مجتمع بصمة وابدأ بالمشاركة والتبادل
+              </p>
+            </motion.div>
+
+            <RegisterForm onSubmit={handleRegister} isLoading={isLoading} />
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
               style={{
-                color: 'var(--text-secondary)',
-                fontSize: '1.6rem',
-                fontWeight: 900,
-                fontFamily: 'Cairo, sans-serif',
-                marginBottom: '0.15rem',
-                marginTop: '0.5rem',
+                marginTop: '1.5rem',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
               }}
             >
-              إنشاء حساب جديد
-            </h1>
-            <p
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.85rem',
-                fontFamily: 'Cairo, sans-serif',
-              }}
-            >
-              انضم إلى مجتمع بصمة وابدأ بالمشاركة والتبادل
-            </p>
-          </motion.div>
+              <p
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.9rem',
+                  fontFamily: 'Cairo, sans-serif',
+                }}
+              >
+                لديك حساب بالفعل؟{' '}
+                <Link to="/login" style={{ color: 'var(--primary-orange)', textDecoration: 'none', fontWeight: 600 }}>
+                  تسجيل الدخول
+                </Link>
+              </p>
+              <Link
+                to="/forgot-password"
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  textDecoration: 'none',
+                  fontFamily: 'Cairo, sans-serif',
+                  opacity: 0.6,
+                  transition: 'opacity 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                  e.currentTarget.style.color = 'var(--primary-orange)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '0.6';
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                }}
+              >
+                نسيت كلمة المرور؟
+              </Link>
+            </motion.div>
+          </div>
 
-          {/* Register Form */}
-          <RegisterForm onSubmit={handleRegister} isLoading={isLoading} />
-
-          {/* Footer Links */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
+          {/* ===== BRANDING PANEL - مع ألوان متغيرة من index.css ===== */}
+          <div
+            className="register-brand-panel"
             style={{
-              marginTop: '1.5rem',
-              textAlign: 'center',
+              background: 'var(--brand-gradient)',
+              padding: '3rem 2.5rem',
+              position: 'relative',
+              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              gap: '6px',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
             }}
           >
-            <p
+            {/* Decorative blurred circles */}
+            <div
               style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.9rem',
+                position: 'absolute',
+                top: '-60px',
+                left: '-60px',
+                width: '220px',
+                height: '220px',
+                borderRadius: '50%',
+                background: 'var(--brand-glow)',
+                filter: 'blur(10px)',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '-80px',
+                right: '-40px',
+                width: '260px',
+                height: '260px',
+                borderRadius: '50%',
+                background: 'var(--brand-glow)',
+                filter: 'blur(10px)',
+              }}
+            />
+
+            {/* Brand Logo - بحجم أكبر مع ألوانه الطبيعية */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              style={{ marginBottom: '1.5rem' }}
+            >
+              <img
+                src={logo}
+                alt="بصمة"
+                style={{ 
+                  height: '80px', 
+                  width: 'auto', 
+                  display: 'block',
+                  margin: '0 auto',
+                  // ✅ في الوضع الداكن: يصبح أبيض، في الوضع الفاتح: لونه الطبيعي
+                  filter: isDark ? 'brightness(0) invert(1)' : 'none',
+                  transition: 'filter 0.3s ease',
+                }}
+              />
+            </motion.div>
+
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              style={{
+                color: 'var(--brand-text)',
+                fontSize: '1.8rem',
+                fontWeight: 900,
                 fontFamily: 'Cairo, sans-serif',
+                marginBottom: '0.5rem',
+                lineHeight: 1.3,
               }}
             >
-              لديك حساب بالفعل؟{' '}
-              <Link to="/login" style={{ color: 'var(--primary-orange)', textDecoration: 'none', fontWeight: 600 }}>
-                تسجيل الدخول
-              </Link>
-            </p>
-            <Link
-              to="/forgot-password"
+              مجتمع التبادل والتكافل لأهل غزة
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
               style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.8rem',
-                textDecoration: 'none',
+                color: 'var(--brand-text-secondary)',
+                fontSize: '0.95rem',
                 fontFamily: 'Cairo, sans-serif',
-                opacity: 0.6,
-                transition: 'opacity 0.3s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '1';
-                e.currentTarget.style.color = 'var(--primary-orange)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '0.6';
-                e.currentTarget.style.color = 'var(--text-muted)';
+                lineHeight: 1.8,
+                marginBottom: '2rem',
+                maxWidth: '400px',
               }}
             >
-              نسيت كلمة المرور؟
-            </Link>
-          </motion.div>
+              منصة تبادل مجتمعية تربط بين أبناء غزة لتبادل السلع والخدمات بروح التعاون والثقة.
+            </motion.p>
+
+            {/* ===== CYCLE CONTAINER ===== */}
+            <div
+              style={{
+                position: 'relative',
+                width: '280px',
+                height: '280px',
+                margin: '0 auto',
+              }}
+            >
+              {/* Rotating Ring */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  border: '2px dashed rgba(255,255,255,0.15)',
+                  borderRadius: '50%',
+                }}
+              />
+
+              {/* Center Core */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '110px',
+                  height: '110px',
+                  borderRadius: '50%',
+                  background: 'var(--brand-core-bg)',
+                  backdropFilter: 'blur(4px)',
+                  border: `2px solid ${activeFeature.color}60`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 3,
+                }}
+              >
+                <motion.div
+                  animate={{
+                    scale: [1, 1.6, 1.6, 1],
+                    boxShadow: [
+                      `0 0 20px ${activeFeature.glowColor}`,
+                      `0 0 80px ${activeFeature.glowColor}`,
+                      `0 0 80px ${activeFeature.glowColor}`,
+                      `0 0 20px ${activeFeature.glowColor}`,
+                    ],
+                  }}
+                  transition={{
+                    scale: {
+                      duration: 6,
+                      times: [0, 0.5, 0.5, 1],
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    },
+                    boxShadow: {
+                      duration: 6,
+                      times: [0, 0.5, 0.5, 1],
+                      repeat: Infinity,
+                      ease: 'easeInOut',
+                    },
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <FaHandshake color="var(--brand-icon)" size={40} />
+                </motion.div>
+              </div>
+
+              {/* 4 Dots */}
+              {features.map((feature, index) => {
+                const isActive = activeStep === index;
+                const pos = dotPositions[index];
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      position: 'absolute',
+                      ...pos,
+                      zIndex: 4,
+                    }}
+                  >
+                    <motion.div
+                      animate={{
+                        scale: isActive ? 1.4 : 1,
+                        borderColor: isActive ? feature.color : 'rgba(255,255,255,0.25)',
+                        backgroundColor: isActive ? feature.bgColor : 'rgba(255,255,255,0.06)',
+                        boxShadow: isActive 
+                          ? `0 0 40px ${feature.glowColor}` 
+                          : 'none',
+                      }}
+                      whileHover={{
+                        scale: 1.25,
+                        borderColor: feature.color,
+                        boxShadow: `0 0 30px ${feature.glowColor}`,
+                      }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
+                      style={{
+                        width: '50px',
+                        height: '50px',
+                        borderRadius: '50%',
+                        border: '2px solid rgba(255,255,255,0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.2rem',
+                        cursor: 'pointer',
+                        backgroundColor: 'rgba(255,255,255,0.06)',
+                        backdropFilter: 'blur(4px)',
+                        color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.6)',
+                      }}
+                      onClick={() => {
+                        setActiveStep(index);
+                        if (intervalRef.current) {
+                          clearInterval(intervalRef.current);
+                          intervalRef.current = null;
+                        }
+                        setTimeout(() => {
+                          intervalRef.current = setInterval(() => {
+                            setActiveStep((prev) => (prev + 1) % 4);
+                          }, 6000);
+                        }, 3000);
+                      }}
+                      aria-label={feature.label}
+                    >
+                      <span style={{ 
+                        fontSize: '1.2rem',
+                        color: isActive ? feature.color : '#FFFFFF',
+                        transition: 'color 0.3s ease',
+                      }}>
+                        {feature.icon}
+                      </span>
+                    </motion.div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Cycle Content */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeStep}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.4 }}
+                style={{
+                  marginTop: '2rem',
+                  textAlign: 'center',
+                  minHeight: '80px',
+                  backgroundColor: 'var(--brand-content-bg)',
+                  borderRadius: '16px',
+                  padding: '16px 24px',
+                  border: '1px solid var(--brand-border)',
+                  width: '100%',
+                  maxWidth: '320px',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    color: 'var(--brand-text)',
+                    fontFamily: 'Cairo, sans-serif',
+                    marginBottom: '4px',
+                  }}
+                >
+                  <span style={{ color: activeFeature.color, marginLeft: '8px' }}>
+                    {activeFeature.icon}
+                  </span>
+                  {activeFeature.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.8rem',
+                    color: 'var(--brand-text-secondary)',
+                    fontFamily: 'Cairo, sans-serif',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {activeFeature.desc}
+                </div>
+
+                {/* Progress Bar */}
+                <div
+                  style={{
+                    width: '60px',
+                    height: '3px',
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    borderRadius: '2px',
+                    margin: '10px auto 0',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <motion.div
+                    key={activeStep}
+                    initial={{ width: '0%' }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 6, ease: 'linear' }}
+                    style={{
+                      height: '100%',
+                      backgroundColor: activeFeature.color,
+                      borderRadius: '2px',
+                    }}
+                  />
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Dot Indicators */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                justifyContent: 'center',
+                marginTop: '2rem',
+              }}
+            >
+              {features.map((feature, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setActiveStep(index);
+                    if (intervalRef.current) {
+                      clearInterval(intervalRef.current);
+                      intervalRef.current = null;
+                    }
+                    setTimeout(() => {
+                      intervalRef.current = setInterval(() => {
+                        setActiveStep((prev) => (prev + 1) % 4);
+                      }, 6000);
+                    }, 3000);
+                  }}
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    border: 'none',
+                    backgroundColor: activeStep === index 
+                      ? feature.color 
+                      : 'rgba(255,255,255,0.2)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    padding: 0,
+                    boxShadow: activeStep === index 
+                      ? `0 0 15px ${feature.glowColor}` 
+                      : 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = feature.color;
+                    e.currentTarget.style.boxShadow = `0 0 15px ${feature.glowColor}`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = activeStep === index 
+                      ? feature.color 
+                      : 'rgba(255,255,255,0.2)';
+                    e.currentTarget.style.boxShadow = activeStep === index 
+                      ? `0 0 15px ${feature.glowColor}` 
+                      : 'none';
+                  }}
+                  aria-label={feature.label}
+                />
+              ))}
+            </div>
+          </div>
         </motion.div>
 
-        {/* CSS for responsive display */}
         <style>{`
-          /* Desktop: show 4 badges, hide mobile badge */
-          @media (min-width: 768px) {
-            .desktop-badges {
-              display: block !important;
+          .register-shell {
+            grid-template-columns: 1fr;
+          }
+          .register-brand-panel {
+            display: none;
+          }
+          .mobile-badge {
+            display: none;
+          }
+          .mobile-logo {
+            display: block;
+          }
+
+          @media (min-width: 992px) {
+            .register-shell {
+              grid-template-columns: 1fr 1fr;
+            }
+            .register-brand-panel {
+              display: flex;
             }
             .mobile-badge {
+              display: none !important;
+            }
+            .mobile-logo {
               display: none !important;
             }
           }
 
-          /* Mobile: show single badge, hide 4 badges */
-          @media (max-width: 767px) {
-            .desktop-badges {
+          @media (max-width: 991px) {
+            .register-shell {
+              grid-template-columns: 1fr;
+            }
+            .register-brand-panel {
               display: none !important;
             }
             .mobile-badge {
+              display: block !important;
+            }
+            .mobile-logo {
               display: block !important;
             }
           }

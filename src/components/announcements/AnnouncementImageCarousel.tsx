@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { FaChevronRight, FaChevronLeft, FaImage } from 'react-icons/fa';
 import type { AnnouncementImage } from '../../types';
-import { FaChevronRight, FaChevronLeft } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AnnouncementImageCarouselProps {
   images: AnnouncementImage[];
@@ -9,11 +10,9 @@ interface AnnouncementImageCarouselProps {
 
 const FALLBACK_IMAGE = '/placeholder-image.png';
 
-const AnnouncementImageCarousel = ({
-  images,
-  title,
-}: AnnouncementImageCarouselProps) => {
+const AnnouncementImageCarousel = ({ images, title }: AnnouncementImageCarouselProps) => {
   const [activeImage, setActiveImage] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
 
   const hasImages = images && images.length > 0;
 
@@ -21,15 +20,9 @@ const AnnouncementImageCarousel = ({
     ? images.map((img) => ({
         id: img.id,
         src: `http://localhost:8000/storage/${img.image_path}`,
-        alt: `صورة`,
+        alt: `صورة ${img.order + 1}`,
       }))
-    : [
-        {
-          id: 0,
-          src: FALLBACK_IMAGE,
-          alt: 'لا توجد صور',
-        },
-      ];
+    : [{ id: 0, src: FALLBACK_IMAGE, alt: 'لا توجد صور' }];
 
   const mainImage = imageList[activeImage]?.src || FALLBACK_IMAGE;
 
@@ -45,6 +38,10 @@ const AnnouncementImageCarousel = ({
     }
   };
 
+  const goToImage = (index: number) => {
+    setActiveImage(index);
+  };
+
   const isPrevDisabled = !hasImages || activeImage === 0;
   const isNextDisabled = !hasImages || activeImage === imageList.length - 1;
 
@@ -52,38 +49,50 @@ const AnnouncementImageCarousel = ({
     <div
       style={{
         backgroundColor: 'var(--bg-card)',
-        borderRadius: '20px',
+        borderRadius: '16px',
         overflow: 'hidden',
         boxShadow: '0 4px 16px var(--shadow-sm)',
         border: '1px solid var(--border-color)',
         position: 'relative',
         transition: 'all 0.3s ease',
       }}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
+      {/* Main Image */}
       <div
         style={{
           position: 'relative',
           backgroundColor: 'var(--bg-input)',
-          minHeight: '300px',
+          minHeight: '350px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'hidden',
         }}
       >
-        <img
-          src={mainImage}
-          alt={title}
-          style={{
-            width: '100%',
-            height: '400px',
-            objectFit: 'cover',
-            display: 'block',
-          }}
-          onError={(e) => {
-            e.currentTarget.src = FALLBACK_IMAGE;
-          }}
-        />
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={activeImage}
+            src={mainImage}
+            alt={title}
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              width: '100%',
+              height: '400px',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+            onError={(e) => {
+              e.currentTarget.src = FALLBACK_IMAGE;
+            }}
+          />
+        </AnimatePresence>
 
+        {/* No Images Badge */}
         {!hasImages && (
           <div
             style={{
@@ -92,17 +101,44 @@ const AnnouncementImageCarousel = ({
               right: '16px',
               backgroundColor: 'rgba(0,0,0,0.6)',
               color: '#FFFFFF',
-              padding: '4px 14px',
+              padding: '6px 16px',
               borderRadius: '20px',
-              fontSize: '0.7rem',
+              fontSize: '0.75rem',
               fontWeight: 500,
               backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            📷 لا توجد صور
+            <FaImage size={14} />
+            لا توجد صور
           </div>
         )}
 
+        {/* Image Counter */}
+        {hasImages && imageList.length > 1 && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '16px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              color: '#FFFFFF',
+              padding: '4px 14px',
+              borderRadius: '20px',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              backdropFilter: 'blur(4px)',
+              zIndex: 2,
+            }}
+          >
+            {activeImage + 1} / {imageList.length}
+          </div>
+        )}
+
+        {/* Navigation Buttons - Show on hover or always on mobile */}
         <button
           onClick={goToPrevious}
           disabled={isPrevDisabled}
@@ -113,7 +149,9 @@ const AnnouncementImageCarousel = ({
             transform: 'translateY(-50%)',
             backgroundColor: isPrevDisabled
               ? 'rgba(0,0,0,0.2)'
-              : 'rgba(0,0,0,0.6)',
+              : isHovering || window.innerWidth < 768
+              ? 'rgba(0,0,0,0.6)'
+              : 'rgba(0,0,0,0)',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: '50%',
@@ -121,13 +159,14 @@ const AnnouncementImageCarousel = ({
             height: '44px',
             fontSize: '18px',
             cursor: isPrevDisabled ? 'default' : 'pointer',
-            opacity: isPrevDisabled ? 0.4 : 1,
+            opacity: isPrevDisabled ? 0.4 : isHovering || window.innerWidth < 768 ? 1 : 0,
             transition: 'all 0.3s ease',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             backdropFilter: 'blur(4px)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            zIndex: 2,
           }}
           onMouseEnter={(e) => {
             if (!isPrevDisabled) {
@@ -138,7 +177,7 @@ const AnnouncementImageCarousel = ({
           }}
           onMouseLeave={(e) => {
             if (!isPrevDisabled) {
-              e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.6)';
+              e.currentTarget.style.backgroundColor = isHovering ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0)';
               e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
             }
@@ -157,7 +196,9 @@ const AnnouncementImageCarousel = ({
             transform: 'translateY(-50%)',
             backgroundColor: isNextDisabled
               ? 'rgba(0,0,0,0.2)'
-              : 'rgba(0,0,0,0.6)',
+              : isHovering || window.innerWidth < 768
+              ? 'rgba(0,0,0,0.6)'
+              : 'rgba(0,0,0,0)',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: '50%',
@@ -165,13 +206,14 @@ const AnnouncementImageCarousel = ({
             height: '44px',
             fontSize: '18px',
             cursor: isNextDisabled ? 'default' : 'pointer',
-            opacity: isNextDisabled ? 0.4 : 1,
+            opacity: isNextDisabled ? 0.4 : isHovering || window.innerWidth < 768 ? 1 : 0,
             transition: 'all 0.3s ease',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             backdropFilter: 'blur(4px)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            zIndex: 2,
           }}
           onMouseEnter={(e) => {
             if (!isNextDisabled) {
@@ -182,7 +224,7 @@ const AnnouncementImageCarousel = ({
           }}
           onMouseLeave={(e) => {
             if (!isNextDisabled) {
-              e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.6)';
+              e.currentTarget.style.backgroundColor = isHovering ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0)';
               e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
             }
@@ -190,35 +232,16 @@ const AnnouncementImageCarousel = ({
         >
           <FaChevronLeft size={20} />
         </button>
-
-        {hasImages && imageList.length > 1 && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '16px',
-              right: '50%',
-              transform: 'translateX(50%)',
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              color: '#FFFFFF',
-              padding: '4px 14px',
-              borderRadius: '20px',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              backdropFilter: 'blur(4px)',
-            }}
-          >
-            {activeImage + 1} / {imageList.length}
-          </div>
-        )}
       </div>
 
+      {/* Thumbnails */}
       {hasImages && imageList.length > 1 && (
         <div
           style={{
             display: 'flex',
             justifyContent: 'center',
             gap: '8px',
-            padding: '16px',
+            padding: '12px 16px',
             overflowX: 'auto',
             backgroundColor: 'var(--bg-input)',
             borderTop: '1px solid var(--border-color)',
@@ -227,10 +250,10 @@ const AnnouncementImageCarousel = ({
           {imageList.map((image, index) => (
             <button
               key={image.id || index}
-              onClick={() => setActiveImage(index)}
+              onClick={() => goToImage(index)}
               style={{
-                width: '80px',
-                height: '60px',
+                width: '70px',
+                height: '55px',
                 borderRadius: '8px',
                 overflow: 'hidden',
                 cursor: 'pointer',
