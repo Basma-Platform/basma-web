@@ -17,6 +17,9 @@ interface AnnouncementPostProps {
   viewMode?: 'list' | 'grid';
 }
 
+// ✅ استخدام VITE_STORAGE_URL مع fallback للتطوير
+const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+
 const AnnouncementPost = ({ 
   announcement, 
   isLoggedIn = false,
@@ -107,6 +110,7 @@ const AnnouncementPost = ({
     return type === 'offer' ? 'var(--success)' : 'var(--error)';
   };
 
+  // ✅ Keep from develop - Privacy Labels
   const getPrivacyLabel = (privacyType: string) => {
     const map: Record<string, string> = {
       'public': 'عام - للجميع',
@@ -117,6 +121,7 @@ const AnnouncementPost = ({
     return map[privacyType] || privacyType;
   };
 
+  // ✅ Keep from develop - Privacy Colors
   const getPrivacyColor = (privacyType: string) => {
     const map: Record<string, string> = {
       'public': 'var(--success)',
@@ -135,10 +140,12 @@ const AnnouncementPost = ({
     });
   };
 
+  // ✅ Use STORAGE_URL from env
   const coverImage = announcement.images && announcement.images.length > 0
-    ? `http://localhost:8000/storage/${announcement.images[0].image_path}`
+    ? `${STORAGE_URL}/${announcement.images[0].image_path}`
     : '/placeholder-image.png';
 
+  // ✅ Use STORAGE_URL in getUserAvatar
   const getUserAvatar = (): string | null => {
     const profileImage = announcement.user?.profile_image;
     if (!profileImage) return null;
@@ -146,12 +153,12 @@ const AnnouncementPost = ({
       return profileImage;
     }
     if (profileImage.startsWith('storage/')) {
-      return `http://localhost:8000/${profileImage}`;
+      return `${STORAGE_URL}/${profileImage.replace('storage/', '')}`;
     }
     if (profileImage.startsWith('profile/')) {
-      return `http://localhost:8000/storage/${profileImage}`;
+      return `${STORAGE_URL}/${profileImage}`;
     }
-    return `http://localhost:8000/storage/${profileImage}`;
+    return `${STORAGE_URL}/${profileImage}`;
   };
 
   const userAvatar = getUserAvatar();
@@ -599,9 +606,7 @@ const AnnouncementPost = ({
               </span>
             </div>
 
-            {/* ============================================ */}
-            {/* ACTIONS - مع LikeButton */}
-            {/* ============================================ */}
+            {/* ACTIONS */}
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -612,7 +617,6 @@ const AnnouncementPost = ({
               width: '100%',
               flexWrap: 'wrap',
             }}>
-              {/* Like Button */}
               <LikeButton
                 announcementId={announcement.id}
                 initialLiked={announcement.is_liked_by_user || false}
@@ -1187,9 +1191,7 @@ const AnnouncementPost = ({
             </span>
           </div>
 
-          {/* ============================================ */}
-          {/* ACTIONS - مع LikeButton */}
-          {/* ============================================ */}
+          {/* ACTIONS */}
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -1198,7 +1200,6 @@ const AnnouncementPost = ({
             borderTop: '1px solid var(--border-color)',
             flexWrap: 'wrap',
           }}>
-            {/* Like Button */}
             <LikeButton
               announcementId={announcement.id}
               initialLiked={announcement.is_liked_by_user || false}

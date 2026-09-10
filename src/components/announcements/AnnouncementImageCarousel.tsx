@@ -10,7 +10,13 @@ interface AnnouncementImageCarouselProps {
 
 const FALLBACK_IMAGE = '/placeholder-image.png';
 
-const AnnouncementImageCarousel = ({ images, title }: AnnouncementImageCarouselProps) => {
+// ✅ استخدام VITE_STORAGE_URL مع fallback للتطوير
+const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+
+const AnnouncementImageCarousel = ({
+  images,
+  title,
+}: AnnouncementImageCarouselProps) => {
   const [activeImage, setActiveImage] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
@@ -19,7 +25,7 @@ const AnnouncementImageCarousel = ({ images, title }: AnnouncementImageCarouselP
   const imageList = hasImages
     ? images.map((img) => ({
         id: img.id,
-        src: `http://localhost:8000/storage/${img.image_path}`,
+        src: `${STORAGE_URL}/${img.image_path}`,
         alt: `صورة ${img.order + 1}`,
       }))
     : [{ id: 0, src: FALLBACK_IMAGE, alt: 'لا توجد صور' }];
@@ -138,7 +144,7 @@ const AnnouncementImageCarousel = ({ images, title }: AnnouncementImageCarouselP
           </div>
         )}
 
-        {/* Navigation Buttons - Show on hover or always on mobile */}
+        {/* Navigation Buttons */}
         <button
           onClick={goToPrevious}
           disabled={isPrevDisabled}
