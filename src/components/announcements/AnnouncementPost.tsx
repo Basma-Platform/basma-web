@@ -17,8 +17,8 @@ interface AnnouncementPostProps {
   viewMode?: 'list' | 'grid';
 }
 
-// ✅ استخدام VITE_STORAGE_URL مع fallback للتطوير
-const STORAGE_URL = import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+// it's wmpty will be filled auto with domain from vercel.json
+const STORAGE_URL = '/storage';
 
 const AnnouncementPost = ({ 
   announcement, 
