@@ -4,7 +4,6 @@ import { Container } from 'react-bootstrap';
 import { useAuth } from '../../hooks/useAuth';
 import DashboardSidebar from './Main_Layout_Components/DashboardSidebar';
 import DashboardHeader from './Main_Layout_Components/DashboardHeader';
-import DashboardStats from './Main_Layout_Components/DashboardStats';
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -16,6 +15,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const [isMobile, setIsMobile] = useState(false);
 
   const isAdmin = user?.role === 'admin';
+  const isVerified = user?.is_verified === true;
 
   // Check if mobile
   useEffect(() => {
@@ -41,6 +41,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     if (isMobile) {
       setSidebarOpen(false);
     }
+  };
+
+  // ✅ تحديد عنوان الصفحة حسب نوع المستخدم
+  const getTitle = () => {
+    if (isAdmin) return 'لوحة الإدارة';
+    if (isVerified) return 'لوحة التحكم - موثق';
+    return 'لوحة التحكم';
   };
 
   return (
@@ -88,16 +95,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       >
         {/* ✅ Header */}
         <DashboardHeader
-          title={isAdmin ? 'لوحة الإدارة' : 'لوحة التحكم'}
+          title={getTitle()}
           onToggleSidebar={toggleSidebar}
         />
 
-        {/* ✅ Page Content */}
+        {/* ✅ Page Content - إزالة DashboardStats من هنا */}
         <Container fluid style={{ padding: '24px', flex: 1 }}>
-          {/* Stats */}
-          <DashboardStats isAdmin={isAdmin} />
-
-          {/* Page Content */}
           {children || <Outlet />}
         </Container>
       </main>

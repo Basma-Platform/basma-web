@@ -1,13 +1,11 @@
 import { Card } from 'react-bootstrap';
-import { useTheme } from '../../context/ThemeContext';
 
 const AnnouncementCardSkeleton = () => {
-  const { isDark } = useTheme();
-
   return (
     <Card
+      className="announcement-card-skeleton"
       style={{
-        backgroundColor: isDark ? 'var(--bg-card)' : 'var(--bg-card)',
+        backgroundColor: 'var(--bg-card)',
         border: '1px solid var(--border-color)',
         borderRadius: '16px',
         overflow: 'hidden',
@@ -17,56 +15,72 @@ const AnnouncementCardSkeleton = () => {
         flexDirection: 'column',
       }}
     >
-      {/* Image Skeleton */}
+      {/* Image Skeleton - Top */}
       <div
         className="skeleton shimmer"
         style={{
           width: '100%',
-          height: '160px',
-          backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-          borderRadius: '0',
+          height: '190px',
           flexShrink: 0,
         }}
       />
 
+      {/* Content Skeleton - Bottom */}
       <Card.Body style={{ 
-        padding: '1rem',
+        padding: '0.8rem 0.9rem 0.9rem',
         display: 'flex',
         flexDirection: 'column',
         flex: 1,
       }}>
-        {/* Header Skeleton */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+        {/* User Info Box Skeleton */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: 'var(--bg-input)',
+            borderRadius: '8px',
+            padding: '4px 10px',
+            marginBottom: '0.4rem',
+            border: '1px solid var(--border-color)',
+          }}
+        >
           <div
             className="skeleton shimmer"
             style={{
-              width: '32px',
-              height: '32px',
+              width: '24px',
+              height: '24px',
               borderRadius: '50%',
-              backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
               flexShrink: 0,
             }}
           />
           <div style={{ flex: 1 }}>
-            <div              className="skeleton shimmer"
+            <div
+              className="skeleton shimmer"
               style={{
-                width: '60%',
-                height: '12px',
-                backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-                borderRadius: '6px',
-                marginBottom: '4px',
+                width: '45%',
+                height: '8px',
+                borderRadius: '3px',
+                marginBottom: '2px',
               }}
             />
             <div
               className="skeleton shimmer"
               style={{
-                width: '35%',
-                height: '8px',
-                backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-                borderRadius: '6px',
+                width: '30%',
+                height: '6px',
+                borderRadius: '3px',
               }}
             />
           </div>
+          <div
+            className="skeleton shimmer"
+            style={{
+              width: '25px',
+              height: '8px',
+              borderRadius: '3px',
+            }}
+          />
         </div>
 
         {/* Title Skeleton */}
@@ -74,62 +88,36 @@ const AnnouncementCardSkeleton = () => {
           className="skeleton shimmer"
           style={{
             width: '85%',
-            height: '16px',
-            backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-            borderRadius: '6px',
-            marginBottom: '10px',
+            height: '13px',
+            borderRadius: '3px',
+            marginBottom: '0.2rem',
           }}
         />
 
-        {/* Tags Row 1 Skeleton - 3 badges */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '6px', flexWrap: 'wrap' }}>
+        {/* Tags Skeleton */}
+        <div style={{ display: 'flex', gap: '3px', marginBottom: '0.3rem', marginTop: 'auto', flexWrap: 'wrap' }}>
           <div
             className="skeleton shimmer"
             style={{
-              width: '50px',
-              height: '20px',
-              backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-              borderRadius: '8px',
+              width: '30px',
+              height: '12px',
+              borderRadius: '3px',
             }}
           />
           <div
             className="skeleton shimmer"
             style={{
               width: '40px',
-              height: '20px',
-              backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-              borderRadius: '8px',
+              height: '12px',
+              borderRadius: '3px',
             }}
           />
           <div
             className="skeleton shimmer"
             style={{
-              width: '55px',
-              height: '20px',
-              backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-              borderRadius: '8px',
-            }}
-          />
-        </div>
-
-        {/* Tags Row 2 Skeleton - 2 location badges */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '10px', flexWrap: 'wrap' }}>
-          <div
-            className="skeleton shimmer"
-            style={{
-              width: '60px',
-              height: '18px',
-              backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-              borderRadius: '6px',
-            }}
-          />
-          <div
-            className="skeleton shimmer"
-            style={{
-              width: '55px',
-              height: '18px',
-              backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-              borderRadius: '6px',
+              width: '50px',
+              height: '12px',
+              borderRadius: '3px',
             }}
           />
         </div>
@@ -137,25 +125,24 @@ const AnnouncementCardSkeleton = () => {
         {/* Actions Skeleton */}
         <div style={{ 
           display: 'flex', 
-          gap: '6px', 
-          marginTop: 'auto',
+          gap: '4px', 
+          paddingTop: '0.4rem',
+          borderTop: '1px solid var(--border-color)',
         }}>
           <div
             className="skeleton shimmer"
             style={{
               flex: 1,
-              height: '30px',
-              backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-              borderRadius: '8px',
+              height: '22px',
+              borderRadius: '6px',
             }}
           />
           <div
             className="skeleton shimmer"
             style={{
               flex: 1,
-              height: '30px',
-              backgroundColor: isDark ? '#2a3a5a' : '#e0e0e0',
-              borderRadius: '8px',
+              height: '22px',
+              borderRadius: '6px',
             }}
           />
         </div>
@@ -165,7 +152,9 @@ const AnnouncementCardSkeleton = () => {
         .skeleton {
           position: relative;
           overflow: hidden;
+          background-color: #e8e0d8;
         }
+        
         .shimmer::after {
           content: '';
           position: absolute;
@@ -176,22 +165,28 @@ const AnnouncementCardSkeleton = () => {
           background: linear-gradient(
             90deg,
             transparent 0%,
-            rgba(255, 255, 255, 0.05) 50%,
+            rgba(255, 255, 255, 0.5) 50%,
             transparent 100%
           );
-          animation: shimmer 1.5s infinite;
+          animation: shimmer 1.8s infinite;
         }
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
+        
+        [data-theme="dark"] .skeleton {
+          background-color: #5a4432 !important;
         }
+        
         [data-theme="dark"] .shimmer::after {
           background: linear-gradient(
             90deg,
             transparent 0%,
-            rgba(255, 255, 255, 0.03) 50%,
+            rgba(255, 255, 255, 0.08) 50%,
             transparent 100%
           );
+        }
+        
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
         }
       `}</style>
     </Card>

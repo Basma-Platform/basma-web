@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   FaBell, FaUser, FaCog, FaSignOutAlt, 
-  FaMoon, FaSun, FaChevronDown, FaSearch
+  FaMoon, FaSun, FaChevronDown, FaUserCheck
 } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../context/ThemeContext';
@@ -19,8 +19,7 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [notifications] = useState(3); // ✅ إزالة setNotifications
-  const [isMobile, setIsMobile] = useState(false);
+  const [notifications] = useState(3);
 
   // Handle scroll effect
   useEffect(() => {
@@ -31,20 +30,23 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ✅ Check mobile screen
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  // ✅ الحصول على صورة المستخدم
+  const getUserAvatar = () => {
+    if (user?.profile_image) {
+      if (user.profile_image.startsWith('http')) {
+        return user.profile_image;
+      }
+      return `http://localhost:8000/storage/${user.profile_image}`;
+    }
+    return null;
+  };
+
+  const userAvatar = getUserAvatar();
 
   const getUserInitials = () => {
     if (!user?.name) return 'U';
@@ -52,6 +54,8 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
     if (names.length === 1) return names[0].charAt(0).toUpperCase();
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   };
+
+  const isVerified = user?.is_verified === true;
 
   return (
     <motion.header
@@ -111,9 +115,29 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
               fontSize: '1rem',
               fontWeight: 700,
               fontFamily: 'Cairo, sans-serif',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
             }}
           >
             {title}
+            {isVerified && (
+              <span
+                style={{
+                  backgroundColor: '#28A745',
+                  color: '#FFFFFF',
+                  fontSize: '0.5rem',
+                  padding: '2px 10px',
+                  borderRadius: '12px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <FaUserCheck size={10} /> موثق
+              </span>
+            )}
           </span>
           <div
             style={{
@@ -135,46 +159,6 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
 
       {/* Right: Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        {/* ✅ Search - Hidden on mobile using isMobile state */}
-        {!isMobile && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(139,90,43,0.04)',
-              borderRadius: '30px',
-              padding: '6px 14px',
-              gap: '8px',
-              border: '1px solid var(--border-color)',
-              transition: 'all 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--primary-orange)';
-              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,122,32,0.08)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border-color)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <FaSearch size={14} color="var(--text-muted)" />
-            <input
-              type="text"
-              placeholder="بحث..."
-              style={{
-                background: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text-primary)',
-                fontSize: '0.8rem',
-                fontFamily: 'Cairo, sans-serif',
-                padding: '4px 0',
-                width: '120px',
-              }}
-            />
-          </div>
-        )}
-
         {/* Theme Toggle */}
         <motion.button
           onClick={toggleDarkMode}
@@ -264,7 +248,7 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              padding: '4px 12px 4px 16px',
+              padding: '4px 8px 4px 16px',
               borderRadius: '30px',
               border: `1px solid ${dropdownOpen ? 'var(--primary-orange)' : 'var(--border-color)'}`,
               background: dropdownOpen ? 'rgba(232,122,32,0.06)' : 'transparent',
@@ -274,24 +258,58 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
               fontFamily: 'Cairo, sans-serif',
             }}
           >
+            {/* ✅ صورة المستخدم */}
             <div
               style={{
                 width: '34px',
                 height: '34px',
                 borderRadius: '50%',
-                background: isDark 
-                  ? 'linear-gradient(135deg, #2a3a5a, #1a2a4a)' 
-                  : 'linear-gradient(135deg, #e0d8d0, #d0c8c0)',
+                overflow: 'hidden',
+                backgroundColor: isDark ? '#2a3a5a' : '#e0d8d0',
+                border: '2px solid var(--border-color)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: isDark ? '#C49A6C' : '#6B4226',
-                fontSize: '13px',
-                fontWeight: 700,
-                fontFamily: 'Cairo, sans-serif',
+                flexShrink: 0,
               }}
             >
-              {getUserInitials()}
+              {userAvatar ? (
+                <img
+                  src={userAvatar}
+                  alt={user?.name || 'مستخدم'}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      const fallback = document.createElement('span');
+                      fallback.style.cssText = `
+                        color: var(--text-muted);
+                        font-size: 13px;
+                        font-weight: 700;
+                        font-family: 'Cairo', sans-serif;
+                      `;
+                      fallback.textContent = getUserInitials();
+                      parent.appendChild(fallback);
+                    }
+                  }}
+                />
+              ) : (
+                <span
+                  style={{
+                    color: isDark ? '#C49A6C' : '#6B4226',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    fontFamily: 'Cairo, sans-serif',
+                  }}
+                >
+                  {getUserInitials()}
+                </span>
+              )}
             </div>
             <span style={{ fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
               {user?.name?.split(' ')[0] || 'مستخدم'}
