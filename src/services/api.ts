@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Empty API_ROOT allows requests to default to the current host (Vercel on prod, localhost in dev)
-const API_ROOT = '';
+const API_ROOT = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 const API_BASE_URL = `${API_ROOT}/api/`;
 
 console.log('🔧 [API] Initialized with base URL:', API_BASE_URL);
