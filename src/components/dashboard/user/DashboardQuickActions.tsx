@@ -126,7 +126,7 @@ const DashboardQuickActions = ({ actions }: DashboardQuickActionsProps) => {
             {/* Create Announcement Action */}
             {actions?.can_create !== false && (
               <Link
-                to={actions?.create_path || '/dashboard/create-announcement'}
+                to={actions?.create_path || '/user/announcements/create'}
                 className="quick-action-btn btn-primary-action"
               >
                 <span>إضافة إعلان جديد</span>
@@ -138,7 +138,7 @@ const DashboardQuickActions = ({ actions }: DashboardQuickActionsProps) => {
 
             {/* Manage My Announcements */}
             <Link
-              to={actions?.my_announcements_path || '/dashboard/my-announcements'}
+              to={actions?.my_announcements_path || '/user/my-announcements'}
               className="quick-action-btn"
             >
               <span>إدارة إعلاناتي</span>
@@ -149,7 +149,7 @@ const DashboardQuickActions = ({ actions }: DashboardQuickActionsProps) => {
 
             {/* Edit Profile */}
             <Link
-              to={actions?.profile_path || '/dashboard/profile'}
+              to={actions?.profile_path || '/user/profile'}
               className="quick-action-btn"
             >
               <span>تعديل الملف الشخصي</span>
@@ -161,7 +161,7 @@ const DashboardQuickActions = ({ actions }: DashboardQuickActionsProps) => {
             {/* Verify Identity (shown if can_verify is true) */}
             {actions?.can_verify && (
               <Link
-                to={actions?.verify_path || '/dashboard/verify-identity'}
+                to={actions?.verify_path || '/user/verify-identity'}
                 className="quick-action-btn"
               >
                 <span>توثيق الهوية</span>

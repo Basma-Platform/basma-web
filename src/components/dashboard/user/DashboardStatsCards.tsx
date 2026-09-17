@@ -1,5 +1,5 @@
-import { Row, Col, Card } from 'react-bootstrap';
-import { FaBullhorn, FaEye, FaHeart, FaStar } from 'react-icons/fa';
+import { Card } from 'react-bootstrap';
+import { FaBullhorn, FaEye, FaHeart, FaStar, FaCrown } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import type { DashboardStats } from '../../../types';
 
@@ -8,16 +8,21 @@ interface DashboardStatsCardsProps {
 }
 
 const DashboardStatsCards = ({ stats }: DashboardStatsCardsProps) => {
-  // Format helper enforcing standard 0-9 digits across all browsers
+  // ✅ Format numbers with Western digits (0-9)
   const formatValue = (val: number) => {
-    return val.toLocaleString('en-US');
+    return (val || 0).toLocaleString('en-US');
+  };
+
+  // ✅ Format rating (always 1 decimal)
+  const formatRating = (rating: number) => {
+    return Number(rating || 0).toFixed(1);
   };
 
   const cards = [
     {
       title: 'إعلاناتي',
       value: formatValue(stats.announcements_count),
-      icon: <FaBullhorn size={22} />,
+      icon: <FaBullhorn size={20} />,
       color: '#E87A20',
       bgColor: 'rgba(232, 122, 32, 0.1)',
       topBorder: '#E87A20',
@@ -25,7 +30,7 @@ const DashboardStatsCards = ({ stats }: DashboardStatsCardsProps) => {
     {
       title: 'المشاهدات',
       value: formatValue(stats.total_views),
-      icon: <FaEye size={22} />,
+      icon: <FaEye size={20} />,
       color: '#17A2B8',
       bgColor: 'rgba(23, 162, 184, 0.1)',
       topBorder: '#17A2B8',
@@ -33,31 +38,68 @@ const DashboardStatsCards = ({ stats }: DashboardStatsCardsProps) => {
     {
       title: 'الإعجابات',
       value: formatValue(stats.total_likes_received),
-      icon: <FaHeart size={22} />,
+      icon: <FaHeart size={20} />,
       color: '#DC3545',
       bgColor: 'rgba(220, 53, 69, 0.1)',
       topBorder: '#DC3545',
     },
     {
       title: 'التقييم العام',
-      value: `${formatValue(Number(stats.average_rating))} / 5`,
-      icon: <FaStar size={22} />,
+      value: `${formatRating(stats.average_rating)} / 5`,
+      icon: <FaStar size={20} />,
       color: '#FFC107',
       bgColor: 'rgba(255, 193, 7, 0.1)',
       topBorder: '#FFC107',
     },
+    // ✅ NEW: Featured Count
+    {
+      title: 'إعلانات مميزة',
+      value: formatValue(stats.featured_count),
+      icon: <FaCrown size={20} />,
+      color: '#9C27B0',
+      bgColor: 'rgba(156, 39, 176, 0.1)',
+      topBorder: '#9C27B0',
+    },
   ];
 
   return (
-    <Row className="g-3">
-      {cards.map((card, index) => (
-        <Col key={index} xs={12} sm={6} lg={3}>
+    <>
+      <style>{`
+        .dashboard-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 12px;
+          width: 100%;
+        }
+
+        @media (max-width: 1199px) {
+          .dashboard-stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        @media (max-width: 767px) {
+          .dashboard-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 480px) {
+          .dashboard-stats-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <div className="dashboard-stats-grid">
+        {cards.map((card, index) => (
           <motion.div
+            key={index}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: index * 0.08 }}
+            transition={{ duration: 0.35, delay: index * 0.06 }}
             whileHover={{
-              x: -6,
+              y: -4,
               transition: { duration: 0.2 },
             }}
           >
@@ -68,19 +110,19 @@ const DashboardStatsCards = ({ stats }: DashboardStatsCardsProps) => {
                 border: '1px solid var(--border-color)',
                 borderTop: `4px solid ${card.topBorder}`,
                 borderRadius: '14px',
-                padding: '1.25rem',
+                padding: '1.1rem 1rem',
                 boxShadow: '0 4px 12px var(--shadow-sm)',
                 transition: 'box-shadow 0.3s ease, border-color 0.3s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow =
-                  '0 8px 24px var(--shadow-md), 0 0 12px rgba(255, 255, 255, 0.12)';
+                  '0 8px 24px var(--shadow-md)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = '0 4px 12px var(--shadow-sm)';
               }}
             >
-              {/* Metallic Glow Overlay on Hover */}
+              {/* Metallic Glow Overlay */}
               <motion.div
                 style={{
                   position: 'absolute',
@@ -93,14 +135,18 @@ const DashboardStatsCards = ({ stats }: DashboardStatsCardsProps) => {
                 whileHover={{ opacity: 1 }}
               />
 
-              <div className="d-flex align-items-center justify-content-between">
-                <div>
+              <div className="d-flex align-items-center justify-content-between gap-2">
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <span
                     style={{
                       color: 'var(--text-muted)',
-                      fontSize: '0.85rem',
+                      fontSize: '0.78rem',
                       fontFamily: 'Cairo, sans-serif',
                       fontWeight: 600,
+                      display: 'block',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
                     }}
                   >
                     {card.title}
@@ -110,13 +156,13 @@ const DashboardStatsCards = ({ stats }: DashboardStatsCardsProps) => {
                     style={{
                       color: 'var(--text-primary)',
                       fontWeight: 800,
-                      fontSize: '1.6rem',
+                      fontSize: '1.4rem',
                     }}
                   >
-                    {/* Enforces Western digits (0-9) despite Cairo font or RTL body */}
                     <span
                       style={{
-                        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                        fontFamily:
+                          "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                         fontFeatureSettings: '"lnum" 1, "tnum" 1',
                         fontVariantNumeric: 'lining-nums tabular-nums',
                         direction: 'ltr',
@@ -130,14 +176,15 @@ const DashboardStatsCards = ({ stats }: DashboardStatsCardsProps) => {
 
                 <div
                   style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '12px',
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '11px',
                     backgroundColor: card.bgColor,
                     color: card.color,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
                   {card.icon}
@@ -145,9 +192,9 @@ const DashboardStatsCards = ({ stats }: DashboardStatsCardsProps) => {
               </div>
             </Card>
           </motion.div>
-        </Col>
-      ))}
-    </Row>
+        ))}
+      </div>
+    </>
   );
 };
 

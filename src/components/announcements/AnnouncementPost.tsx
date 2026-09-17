@@ -189,8 +189,9 @@ const AnnouncementPost = ({
             e.currentTarget.style.boxShadow = '0 2px 8px var(--shadow-sm)';
           }}
         >
-          {/* IMAGE - Left Side */}
-          <div
+          {/* IMAGE - Left Side (Clickable) */}
+          <Link
+            to={`/announcements/${announcement.id}`}
             style={{
               position: 'relative',
               width: '260px',
@@ -198,6 +199,8 @@ const AnnouncementPost = ({
               flexShrink: 0,
               overflow: 'hidden',
               backgroundColor: 'var(--bg-input)',
+              display: 'block',
+              textDecoration: 'none',
             }}
           >
             <img
@@ -306,8 +309,8 @@ const AnnouncementPost = ({
               <span
                 style={{
                   backgroundColor: announcement.price_type === 'free' ? 'var(--success)' :
-                                 announcement.price_type === 'paid' ? 'var(--primary-orange)' :
-                                 '#9C27B0',
+                               announcement.price_type === 'paid' ? 'var(--primary-orange)' :
+                               '#9C27B0',
                   color: '#FFFFFF',
                   padding: '3px 10px',
                   borderRadius: '6px',
@@ -364,7 +367,7 @@ const AnnouncementPost = ({
               <FaEye size={10} />
               {announcement.views}
             </div>
-          </div>
+          </Link>
 
           {/* CONTENT - Right Side */}
           <Card.Body style={{ 
@@ -493,7 +496,7 @@ const AnnouncementPost = ({
               </div>
             </div>
 
-            {/* Title */}
+            {/* Title (Clickable) */}
             <Link
               to={`/announcements/${announcement.id}`}
               style={{
@@ -599,9 +602,7 @@ const AnnouncementPost = ({
               </span>
             </div>
 
-            {/* ============================================ */}
-            {/* ACTIONS - مع LikeButton */}
-            {/* ============================================ */}
+            {/* ACTIONS */}
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -612,7 +613,6 @@ const AnnouncementPost = ({
               width: '100%',
               flexWrap: 'wrap',
             }}>
-              {/* Like Button */}
               <LikeButton
                 announcementId={announcement.id}
                 initialLiked={announcement.is_liked_by_user || false}
@@ -800,8 +800,9 @@ const AnnouncementPost = ({
           e.currentTarget.style.boxShadow = '0 2px 8px var(--shadow-sm)';
         }}
       >
-        {/* IMAGE - Top */}
-        <div
+        {/* IMAGE - Top (Clickable) */}
+        <Link
+          to={`/announcements/${announcement.id}`}
           style={{
             position: 'relative',
             width: '100%',
@@ -809,6 +810,8 @@ const AnnouncementPost = ({
             overflow: 'hidden',
             backgroundColor: 'var(--bg-input)',
             flexShrink: 0,
+            display: 'block',
+            textDecoration: 'none',
           }}
         >
           <img
@@ -974,7 +977,7 @@ const AnnouncementPost = ({
             <FaEye size={10} />
             {announcement.views}
           </div>
-        </div>
+        </Link>
 
         {/* CONTENT - Bottom */}
         <Card.Body style={{ 
@@ -1099,7 +1102,7 @@ const AnnouncementPost = ({
             </div>
           </div>
 
-          {/* Title */}
+          {/* Title (Clickable) */}
           <Link
             to={`/announcements/${announcement.id}`}
             style={{
@@ -1187,9 +1190,7 @@ const AnnouncementPost = ({
             </span>
           </div>
 
-          {/* ============================================ */}
-          {/* ACTIONS - مع LikeButton */}
-          {/* ============================================ */}
+          {/* ACTIONS */}
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
@@ -1198,7 +1199,6 @@ const AnnouncementPost = ({
             borderTop: '1px solid var(--border-color)',
             flexWrap: 'wrap',
           }}>
-            {/* Like Button */}
             <LikeButton
               announcementId={announcement.id}
               initialLiked={announcement.is_liked_by_user || false}

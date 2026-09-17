@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { 
   FaGavel, FaBan, FaExclamationTriangle, FaFileContract,
   FaShieldAlt, FaCheckCircle, FaGlobe, FaServer,
-  FaHandshake, FaWhatsapp
+  FaHandshake, FaWhatsapp, FaStar, FaMoneyBillWave
 } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
@@ -102,6 +102,45 @@ const TermsOfServicePage = () => {
         '• ننصح بالتواصل عبر واتساب لإتمام الصفقات',
       ],
     },
+    // ✅ NEW SECTION
+    {
+      icon: <FaStar size={22} color="var(--primary-orange)" />,
+      title: 'الإعلانات المميزة',
+      subtitle: 'ما هي شروط تمييز الإعلانات؟',
+      content: [
+        'نوفر خدمة تمييز الإعلانات مقابل رسوم رمزية لدعم استمرارية المنصة:',
+        { type: 'list', items: [
+          'التمييز اختياري تماماً وليس إلزامياً',
+          'مدة التمييز محددة مسبقاً (3 / 7 / 30 يوم)',
+          'يتم مراجعة كل طلب تمييز يدوياً من قبل الإدارة',
+          'يجب رفع صورة إشعار التحويل لإتمام الطلب',
+          'في حال رفض الطلب، لا يتم خصم أي مبلغ',
+          'الرسوم غير قابلة للاسترداد بعد الموافقة على الطلب',
+          'المنصة تحتفظ بحق رفض أي طلب تمييز دون إبداء الأسباب',
+          'الإعلانات المميزة تخضع لنفس قواعد المنصة',
+        ]},
+        '• الدفع يتم عبر PalPay / Jawwal Pay / Bank of Palestine فقط',
+        '• التمييز لا يضمن زيادة المبيعات أو المشاهدات بشكل مؤكد',
+        '• لا يوجد دفع نقدي أو تحويل مباشر بين المستخدمين والإدارة',
+      ],
+    },
+    // ✅ NEW SECTION
+    {
+      icon: <FaMoneyBillWave size={22} color="var(--primary-orange)" />,
+      title: 'سياسة الاسترداد',
+      subtitle: 'ما هي سياسة استرداد المبالغ؟',
+      content: [
+        'نوضح هنا سياسة استرداد المبالغ المدفوعة مقابل خدمة التمييز:',
+        { type: 'list', items: [
+          'لا يمكن استرداد المبلغ بعد الموافقة على طلب التمييز',
+          'في حال رفض الطلب: لا يتم خصم أي مبلغ',
+          'في حال خطأ من الإدارة: يتم استرداد المبلغ كاملاً',
+          'لا يمكن إلغاء التمييز بعد الموافقة عليه',
+          'لا يمكن ترحيل المبلغ لطلب آخر',
+        ]},
+        '• لأي استفسار بخصوص الاسترداد، تواصل معنا عبر البريد الإلكتروني',
+      ],
+    },
     {
       icon: <FaExclamationTriangle size={22} color="var(--primary-orange)" />,
       title: 'إخلاء المسؤولية',
@@ -132,7 +171,6 @@ const TermsOfServicePage = () => {
     },
   };
 
-  // ✅ إصلاح itemVariants - إزالة ease: 'easeOut'
   const itemVariants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
@@ -166,7 +204,6 @@ const TermsOfServicePage = () => {
         >
           <Row className="justify-content-center">
             <Col xs={12} lg={10}>
-              {/* Breadcrumb */}
               <nav
                 style={{
                   fontSize: '0.85rem',
@@ -182,7 +219,6 @@ const TermsOfServicePage = () => {
                 <span>شروط الخدمة</span>
               </nav>
 
-              {/* Header Content */}
               <div className="text-center mb-5">
                 <div
                   style={{
