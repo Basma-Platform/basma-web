@@ -1,23 +1,43 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FaChevronRight, 
-  FaChevronLeft, 
-  FaImage, 
-  FaExpand, 
-  FaSearchPlus, 
-  FaSearchMinus, 
-  FaRedo, 
-  FaTimes 
+import {
+  FaChevronRight,
+  FaChevronLeft,
+  FaImage,
+  FaExpand,
+  FaSearchPlus,
+  FaSearchMinus,
+  FaRedo,
+  FaTimes,
 } from 'react-icons/fa';
 import { Modal } from 'react-bootstrap';
 
+// ============================================
+// Types
+// ============================================
 interface ImageCarouselProps {
   images: Array<{ id: number; image_path: string }>;
   title: string;
 }
 
+// ============================================
+// Constants
+// ============================================
+const STORAGE_URL =
+  import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+
+const AUTO_LOOP_INTERVAL = 3000;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 3;
+const ZOOM_STEP = 0.25;
+
+// ============================================
+// Component
+// ============================================
 const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
+  // ============================================
+  // State
+  // ============================================
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -28,61 +48,55 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  // Fixed type compatibility for browser environments
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const getImageUrl = (path: string) => {
+  // ============================================
+  // Helpers
+  // ============================================
+  const hasImages = images && images.length > 0;
+
+  const getImageUrl = useCallback((path: string) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    return `http://localhost:8000/storage/${path}`;
-  };
+    return `${STORAGE_URL}/${path}`;
+  }, []);
 
   const handleNext = useCallback(() => {
-    if (images.length === 0) return;
+    if (!hasImages) return;
     setCurrentIndex((prev) => (prev + 1) % images.length);
     setZoomLevel(1);
     setPosition({ x: 0, y: 0 });
-  }, [images.length]);
+  }, [images.length, hasImages]);
 
   const handlePrev = useCallback(() => {
-    if (images.length === 0) return;
+    if (!hasImages) return;
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
     setZoomLevel(1);
     setPosition({ x: 0, y: 0 });
-  }, [images.length]);
+  }, [images.length, hasImages]);
 
-  // Keyboard navigation inside Lightbox
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!showLightbox) return;
-      if (e.key === 'ArrowRight') {
-        handlePrev();
-      } else if (e.key === 'ArrowLeft') {
-        handleNext();
-      } else if (e.key === 'Escape') {
-        setShowLightbox(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showLightbox, handleNext, handlePrev]);
-
+  // ============================================
   // Zoom Actions
-  const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.25, 3));
+  // ============================================
+  const handleZoomIn = () =>
+    setZoomLevel((prev) => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+
   const handleZoomOut = () => {
     setZoomLevel((prev) => {
-      const newZoom = Math.max(prev - 0.25, 1);
-      if (newZoom === 1) setPosition({ x: 0, y: 0 });
+      const newZoom = Math.max(prev - ZOOM_STEP, MIN_ZOOM);
+      if (newZoom === MIN_ZOOM) setPosition({ x: 0, y: 0 });
       return newZoom;
     });
   };
+
   const handleResetZoom = () => {
     setZoomLevel(1);
     setPosition({ x: 0, y: 0 });
   };
 
-  // Mouse Drag Handlers
+  // ============================================
+  // Mouse Drag Handlers (for zoomed image)
+  // ============================================
   const handleMouseDown = (e: React.MouseEvent) => {
     if (zoomLevel <= 1) return;
     setIsDragging(true);
@@ -101,19 +115,43 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
     setIsDragging(false);
   };
 
-  // 3-Second Infinite Auto Loop
+  // ============================================
+  // Keyboard Navigation (Lightbox)
+  // ============================================
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!showLightbox) return;
+      if (e.key === 'ArrowRight') {
+        handlePrev();
+      } else if (e.key === 'ArrowLeft') {
+        handleNext();
+      } else if (e.key === 'Escape') {
+        setShowLightbox(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showLightbox, handleNext, handlePrev]);
+
+  // ============================================
+  // Auto Loop (3s)
+  // ============================================
   useEffect(() => {
     if (images.length > 1 && !isHovered && !showLightbox) {
       timerRef.current = setInterval(() => {
         handleNext();
-      }, 3000);
+      }, AUTO_LOOP_INTERVAL);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [currentIndex, images.length, isHovered, showLightbox, handleNext]);
 
-  if (!images || images.length === 0) {
+  // ============================================
+  // Empty State
+  // ============================================
+  if (!hasImages) {
     return (
       <div
         style={{
@@ -132,11 +170,18 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
         }}
       >
         <FaImage size={48} opacity={0.4} />
-        <span style={{ fontFamily: 'Cairo, sans-serif', fontSize: '0.9rem' }}>لا توجد صور لهذا الإعلان</span>
+        <span
+          style={{ fontFamily: 'Cairo, sans-serif', fontSize: '0.9rem' }}
+        >
+          لا توجد صور لهذا الإعلان
+        </span>
       </div>
     );
   }
 
+  // ============================================
+  // Render
+  // ============================================
   return (
     <div
       onMouseEnter={() => setIsHovered(true)}
@@ -151,7 +196,9 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
         border: '1px solid var(--border-color)',
       }}
     >
+      {/* ============================================ */}
       {/* Main Slide Screen */}
+      {/* ============================================ */}
       <div
         style={{
           position: 'relative',
@@ -234,6 +281,7 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
             zIndex: 3,
           }}
           title="توسيع ومعاينة الصورة"
+          aria-label="توسيع الصورة"
         >
           <FaExpand size={14} />
         </button>
@@ -243,7 +291,7 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
           <>
             <button
               onClick={handlePrev}
-              aria-label="Previous Image"
+              aria-label="الصورة السابقة"
               style={{
                 position: 'absolute',
                 right: '12px',
@@ -269,7 +317,7 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
 
             <button
               onClick={handleNext}
-              aria-label="Next Image"
+              aria-label="الصورة التالية"
               style={{
                 position: 'absolute',
                 left: '12px',
@@ -296,7 +344,9 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
         )}
       </div>
 
+      {/* ============================================ */}
       {/* Centered Thumbnails Row */}
+      {/* ============================================ */}
       {images.length > 1 && (
         <div
           style={{
@@ -318,7 +368,10 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                 setPosition({ x: 0, y: 0 });
               }}
               style={{
-                border: idx === currentIndex ? '2px solid var(--primary-orange)' : '2px solid transparent',
+                border:
+                  idx === currentIndex
+                    ? '2px solid var(--primary-orange)'
+                    : '2px solid transparent',
                 borderRadius: '10px',
                 padding: 0,
                 overflow: 'hidden',
@@ -327,8 +380,10 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                 cursor: 'pointer',
                 flexShrink: 0,
                 transition: 'all 0.2s ease',
-                transform: idx === currentIndex ? 'scale(1.05)' : 'scale(1)',
+                transform:
+                  idx === currentIndex ? 'scale(1.05)' : 'scale(1)',
               }}
+              aria-label={`الصورة ${idx + 1}`}
             >
               <img
                 src={getImageUrl(img.image_path)}
@@ -345,7 +400,9 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
         </div>
       )}
 
+      {/* ============================================ */}
       {/* Lightbox Previewer Modal */}
+      {/* ============================================ */}
       <Modal
         show={showLightbox}
         onHide={() => setShowLightbox(false)}
@@ -365,7 +422,9 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
             overflow: 'hidden',
           }}
         >
-          {/* Header Bar: Mobile Stacked, Desktop Side-by-Side */}
+          {/* ============================================ */}
+          {/* Header Bar */}
+          {/* ============================================ */}
           <div
             className="d-flex flex-column flex-md-row align-items-center justify-content-between"
             style={{
@@ -379,16 +438,32 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
           >
             {/* Title & Index */}
             <div className="text-center text-md-start">
-              <div style={{ fontFamily: 'Cairo, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#FFFFFF' }}>
+              <div
+                style={{
+                  fontFamily: 'Cairo, sans-serif',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  color: '#FFFFFF',
+                }}
+              >
                 {title}
               </div>
-              <div style={{ fontFamily: 'Cairo, sans-serif', fontSize: '0.78rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+              <div
+                style={{
+                  fontFamily: 'Cairo, sans-serif',
+                  fontSize: '0.78rem',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                }}
+              >
                 صورة {currentIndex + 1} من {images.length}
               </div>
             </div>
 
-            {/* Desktop Side-by-Side Toolbar / Mobile Grid Toolbar */}
-            <div className="d-flex align-items-center justify-content-center" style={{ gap: '8px' }}>
+            {/* Toolbar */}
+            <div
+              className="d-flex align-items-center justify-content-center"
+              style={{ gap: '8px' }}
+            >
               <button
                 onClick={handleZoomIn}
                 style={{
@@ -404,6 +479,7 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                   cursor: 'pointer',
                 }}
                 title="تكبير"
+                aria-label="تكبير"
               >
                 <FaSearchPlus size={16} />
               </button>
@@ -423,6 +499,7 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                   cursor: 'pointer',
                 }}
                 title="تصغير"
+                aria-label="تصغير"
               >
                 <FaSearchMinus size={16} />
               </button>
@@ -442,6 +519,7 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                   cursor: 'pointer',
                 }}
                 title="إعادة ضبط الحجم"
+                aria-label="إعادة ضبط الحجم"
               >
                 <FaRedo size={14} />
               </button>
@@ -462,13 +540,16 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                   marginRight: '4px',
                 }}
                 title="إغلاق (Esc)"
+                aria-label="إغلاق"
               >
                 <FaTimes size={18} />
               </button>
             </div>
           </div>
 
+          {/* ============================================ */}
           {/* Interactive Panning Viewport */}
+          {/* ============================================ */}
           <div
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
@@ -482,7 +563,12 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
               justifyContent: 'center',
               overflow: 'hidden',
               userSelect: 'none',
-              cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+              cursor:
+                zoomLevel > 1
+                  ? isDragging
+                    ? 'grabbing'
+                    : 'grab'
+                  : 'default',
             }}
           >
             {images.length > 1 && (
@@ -505,6 +591,7 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                   cursor: 'pointer',
                   zIndex: 5,
                 }}
+                aria-label="الصورة السابقة"
               >
                 <FaChevronRight size={20} />
               </button>
@@ -553,13 +640,16 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                   cursor: 'pointer',
                   zIndex: 5,
                 }}
+                aria-label="الصورة التالية"
               >
                 <FaChevronLeft size={20} />
               </button>
             )}
           </div>
 
+          {/* ============================================ */}
           {/* Bottom Thumbnails */}
+          {/* ============================================ */}
           {images.length > 1 && (
             <div
               style={{
@@ -580,7 +670,10 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                     setPosition({ x: 0, y: 0 });
                   }}
                   style={{
-                    border: idx === currentIndex ? '2px solid var(--primary-orange)' : '2px solid transparent',
+                    border:
+                      idx === currentIndex
+                        ? '2px solid var(--primary-orange)'
+                        : '2px solid transparent',
                     borderRadius: '8px',
                     padding: 0,
                     overflow: 'hidden',
@@ -588,11 +681,17 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
                     opacity: idx === currentIndex ? 1 : 0.4,
                     cursor: 'pointer',
                   }}
+                  aria-label={`الانتقال للصورة ${idx + 1}`}
                 >
                   <img
                     src={getImageUrl(img.image_path)}
                     alt={`thumb-${idx}`}
-                    style={{ width: '50px', height: '38px', objectFit: 'cover', display: 'block' }}
+                    style={{
+                      width: '50px',
+                      height: '38px',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
                   />
                 </button>
               ))}
