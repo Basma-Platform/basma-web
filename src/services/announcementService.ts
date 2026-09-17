@@ -4,10 +4,14 @@ import type {
   AnnouncementsResponse, 
   FiltersResponse, 
   SubCategory,
-  LikeResponse 
+  LikeResponse,
+  FeaturedAnnouncementsResponse
 } from '../types';
 
 export const announcementService = {
+  // ============================================
+  // Get Public Announcements (NON-FEATURED)
+  // ============================================
   getPublicAnnouncements: async (params?: {
     page?: number;
     per_page?: number;
@@ -19,7 +23,7 @@ export const announcementService = {
     type?: 'offer' | 'request';
     price_type?: 'free' | 'paid' | 'barter';
     privacy_type?: 'public' | 'verified_only' | 'region_only' | 'verified_region';
-    sort?: 'newest' | 'oldest' | 'most_viewed';
+    sort?: 'newest' | 'oldest' | 'most_viewed' | 'most_liked';
     status?: 'active' | 'disabled' | 'deleted';
   }) => {
     console.log('📤 Sending params:', params);
@@ -46,24 +50,41 @@ export const announcementService = {
     return response.data;
   },
 
-  // ✅ استخدام CancelToken بدلاً من signal
-  getAnnouncement: async (id: number, cancelToken?: any) => {
-    const response = await api.get<Announcement>(`/v1/announcements/${id}`, {
-      cancelToken: cancelToken,
-    });
+  // ============================================
+  // ✅ NEW: Get Featured Announcements
+  // ============================================
+  getFeaturedAnnouncements: async () => {
+    const response = await api.get<FeaturedAnnouncementsResponse>('/v1/announcements/featured');
     return response.data;
   },
 
+  // ============================================
+  // Get Single Announcement
+  // ============================================
+  getAnnouncement: async (id: number) => {
+    const response = await api.get<Announcement>(`/v1/announcements/${id}`);
+    return response.data;
+  },
+
+  // ============================================
+  // Get Filter Options
+  // ============================================
   getFilters: async () => {
     const response = await api.get<FiltersResponse>('/v1/announcements/filters');
     return response.data;
   },
 
+  // ============================================
+  // Get Sub-Categories Only
+  // ============================================
   getSubCategories: async () => {
     const response = await api.get<{ data: SubCategory[] }>('/v1/sub-categories');
     return response.data;
   },
 
+  // ============================================
+  // Toggle Like
+  // ============================================
   toggleLike: async (id: number): Promise<LikeResponse> => {
     const response = await api.post<LikeResponse>(`/v1/announcements/${id}/like`);
     return response.data;

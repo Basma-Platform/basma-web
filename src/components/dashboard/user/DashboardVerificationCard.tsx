@@ -43,7 +43,7 @@ const DashboardVerificationCard = ({ verification }: DashboardVerificationCardPr
       icon: <FaShieldAlt size={24} style={{ color: 'var(--primary-orange)' }} />,
       bgColor: 'rgba(232, 122, 32, 0.08)',
       borderColor: 'rgba(232, 122, 32, 0.3)',
-      title: 'وثّق حسابك الآن لشارات موثوقة',
+      title: 'وثّق حسابك الآن للحصول على شارة موثوق',
       description: 'توثيق الهوية يمنحك مصداقية أكبر ويزيد من فرصة وصول إعلاناتك للجمهور.',
       showButton: true,
     };
@@ -109,7 +109,7 @@ const DashboardVerificationCard = ({ verification }: DashboardVerificationCardPr
           {content.showButton && (
             <Button
               as={Link as any}
-              to="/dashboard/verify"
+              to="/user/verify-identity"
               className="btn-orange text-nowrap align-self-start align-self-md-center"
               style={{
                 borderRadius: '10px',

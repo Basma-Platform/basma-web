@@ -8,6 +8,8 @@ import AnnouncementPostSkeleton from '../components/announcements/AnnouncementPo
 import AnnouncementCardSkeleton from '../components/announcements/AnnouncementCardSkeleton';
 import SubCategorySelector from '../components/announcements/SubCategorySelector';
 import AnnouncementFilters from '../components/announcements/AnnouncementFilters';
+import FeaturedCarousel from '../components/announcements/FeaturedCarousel';
+import AnnouncementsEndCTA from '../components/announcements/AnnouncementsEndCTA';
 import SEO from '../components/SEO';
 import type { Announcement, Governorate, City, SubCategory, UserContext } from '../types';
 import { motion } from 'framer-motion';
@@ -15,6 +17,8 @@ import { motion } from 'framer-motion';
 const AnnouncementsPage = () => {
   const { isAuthenticated } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [featuredAnnouncements, setFeaturedAnnouncements] = useState<Announcement[]>([]);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,7 +57,25 @@ const AnnouncementsPage = () => {
   const isLoggedIn = isAuthenticated;
 
   // ============================================
-  // Fetch Filters (including sub-categories and user_context)
+  // Fetch Featured Announcements
+  // ============================================
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        setLoadingFeatured(true);
+        const response = await announcementService.getFeaturedAnnouncements();
+        setFeaturedAnnouncements(response.data || []);
+      } catch (error) {
+        console.error('Error fetching featured announcements:', error);
+      } finally {
+        setLoadingFeatured(false);
+      }
+    };
+    fetchFeatured();
+  }, []);
+
+  // ============================================
+  // Fetch Filters
   // ============================================
   useEffect(() => {
     const fetchFilters = async () => {
@@ -146,12 +168,10 @@ const AnnouncementsPage = () => {
         sort: sortBy,
       };
 
-      // Add category filter if selected (from SubCategorySelector)
       if (selectedCategory) {
         params.category = selectedCategory;
       }
 
-      // Add sub-category filter as array
       if (selectedSubCategories.length > 0) {
         params.sub_category_id = selectedSubCategories;
       }
@@ -167,12 +187,10 @@ const AnnouncementsPage = () => {
       setTotal(response.meta?.total || response.data.length);
       setHasMore(page < (response.meta?.last_page || 1));
 
-      // Update sub-categories from response
       if (response.filters?.sub_categories) {
         setSubCategories(response.filters.sub_categories);
       }
 
-      // Update user context from response
       if (response.user_context) {
         setUserContext(response.user_context);
       }
@@ -198,25 +216,19 @@ const AnnouncementsPage = () => {
     }, 400);
   }, [fetchAnnouncements]);
 
-  // ============================================
-  // Effects that trigger fetches
-  // ============================================
-
   // Initial fetch
   useEffect(() => {
     setCurrentPage(1);
     fetchAnnouncements(1, true);
   }, []);
 
-  // Reset page when filters change (except sub-categories - handled separately)
+  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
     fetchAnnouncements(1, true);
   }, [selectedGovernorate, selectedCity, selectedType, selectedPriceType, selectedPrivacyType, sortBy, selectedCategory]);
 
-  // ============================================
-  // SUB-CATEGORY CHANGE - Uses debounced fetch
-  // ============================================
+  // SUB-CATEGORY CHANGE
   useEffect(() => {
     setCurrentPage(1);
     debouncedFetchAnnouncements(1, true);
@@ -253,7 +265,6 @@ const AnnouncementsPage = () => {
   // ============================================
   // Handlers
   // ============================================
-
   const handleSubCategoryToggle = (id: number) => {
     setSelectedSubCategories((prev) =>
       prev.includes(id)
@@ -262,10 +273,9 @@ const AnnouncementsPage = () => {
     );
   };
 
-  // ✅ إصلاح: مسح الفئات الفرعية عند تغيير الفئة الرئيسية
   const handleCategorySelect = (category: 'goods' | 'services' | null) => {
     setSelectedCategory(category);
-    setSelectedSubCategories([]); // ✅ مسح الفئات الفرعية
+    setSelectedSubCategories([]);
   };
 
   const handleClearFilters = () => {
@@ -281,28 +291,24 @@ const AnnouncementsPage = () => {
     setSortBy('newest');
   };
 
-  // ✅ إصلاح: إزالة selectedCategory و selectedSubCategories من hasActiveFilters
-  // لأنها تعرض في SubCategorySelector وليس في زر الفلاتر
   const hasActiveFilters = Boolean(
     selectedGovernorate || 
     selectedCity || 
     selectedType || 
     selectedPriceType || 
-    selectedPrivacyType
+    selectedPrivacyType ||
+    selectedSubCategories.length > 0 ||
+    selectedCategory
   );
 
   const sortOptions = [
     { value: 'newest', label: 'الأحدث' },
     { value: 'oldest', label: 'الأقدم' },
     { value: 'most_viewed', label: 'الأكثر مشاهدة' },
+    { value: 'most_liked', label: 'الأكثر إعجاباً' },
   ];
 
   const showSkeletons = loading || isSearching;
-
-  const getSkeletonCount = () => {
-    if (viewMode === 'list') return 3;
-    return 8;
-  };
 
   const renderSkeletons = () => {
     if (viewMode === 'list') {
@@ -310,10 +316,9 @@ const AnnouncementsPage = () => {
         <AnnouncementPostSkeleton key={`skeleton-${index}`} />
       ));
     } else {
-      const count = getSkeletonCount();
       return (
         <Row className="g-3">
-          {Array.from({ length: count }).map((_, index) => (
+          {Array.from({ length: 8 }).map((_, index) => (
             <Col key={`skeleton-${index}`} xs={12} sm={6} lg={4} xl={3}>
               <AnnouncementCardSkeleton />
             </Col>
@@ -366,33 +371,32 @@ const AnnouncementsPage = () => {
   return (
     <>
       <SEO title="الإعلانات" description="تصفح جميع الإعلانات على منصة بصمة" />
-      <div style={{ paddingTop: '80px', paddingBottom: '60px', backgroundColor: 'var(--bg-body)', minHeight: '100vh', transition: 'background-color 0.3s ease' }}>
-        <Container>
+      <div style={{ paddingTop: '80px', paddingBottom: '60px', backgroundColor: 'var(--bg-body)', minHeight: '100vh', transition: 'background-color 0.3s ease', overflowX: 'hidden' }}>
+        
+        {/* Full-bleed Edge-to-Edge Carousel */}
+        <FeaturedCarousel
+          announcements={featuredAnnouncements}
+          loading={loadingFeatured}
+        />
+
+        <Container fluid="xl" className="px-3 px-md-4">
+          {/* Page Header */}
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center mb-4">
             <div style={{ width: '50px', height: '4px', backgroundColor: 'var(--primary-orange)', borderRadius: '2px', margin: '0 auto 0.75rem' }} />
             <h1 style={{ color: 'var(--text-secondary)', fontSize: 'clamp(1.8rem, 2.5vw, 2.4rem)', fontWeight: 900, fontFamily: 'Cairo, sans-serif', marginBottom: '0.25rem' }}>الإعلانات</h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', fontFamily: 'Cairo, sans-serif' }}>استعرض أحدث الإعلانات من مجتمعك</p>
           </motion.div>
 
-          {/* ============================================ */}
-          {/* SEARCH + FILTERS - مكون واحد */}
-          {/* ============================================ */}
+          {/* Search + Filters */}
           <AnnouncementFilters
-            // Search
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             isSearching={isSearching}
-
-            // Sort
             sortBy={sortBy}
             setSortBy={setSortBy}
             sortOptions={sortOptions}
-
-            // View Mode
             viewMode={viewMode}
             setViewMode={setViewMode}
-
-            // Filters
             showFilters={showFilters}
             setShowFilters={setShowFilters}
             governorates={governorates}
@@ -414,9 +418,7 @@ const AnnouncementsPage = () => {
             privacyOptions={privacyOptions}
           />
 
-          {/* ============================================ */}
-          {/* SUB-CATEGORY SELECTOR */}
-          {/* ============================================ */}
+          {/* Subcategory Selector */}
           <SubCategorySelector
             subCategories={subCategories}
             selectedSubCategories={selectedSubCategories}
@@ -426,9 +428,7 @@ const AnnouncementsPage = () => {
             isLoading={subCategories.goods.length === 0 && subCategories.services.length === 0}
           />
 
-          {/* ============================================ */}
-          {/* RESULTS COUNT */}
-          {/* ============================================ */}
+          {/* Results Count */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', padding: '0 4px' }}>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontFamily: 'Cairo, sans-serif' }}>
               {!showSkeletons && (
@@ -439,23 +439,10 @@ const AnnouncementsPage = () => {
                   <Spinner animation="border" size="sm" style={{ color: 'var(--primary-orange)', width: '14px', height: '14px' }} /> جاري البحث...
                 </span>
               )}
-              {selectedCategory && (
-                <span style={{ marginRight: '8px', color: 'var(--primary-orange)' }}>
-                  📂 {selectedCategory === 'goods' ? 'سلع' : 'خدمات'}
-                  {selectedSubCategories.length > 0 && ` + ${selectedSubCategories.length} فئة`}
-                </span>
-              )}
-              {selectedSubCategories.length > 0 && !selectedCategory && (
-                <span style={{ marginRight: '8px', color: 'var(--primary-orange)' }}>
-                  🏷️ {selectedSubCategories.length} فئة محددة
-                </span>
-              )}
             </span>
           </div>
 
-          {/* ============================================ */}
-          {/* ANNOUNCEMENTS LIST */}
-          {/* ============================================ */}
+          {/* Announcements Grid / List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: viewMode === 'list' ? '1.25rem' : '0', maxWidth: viewMode === 'list' ? '820px' : '100%', margin: '0 auto' }}>
             {showSkeletons ? (
               renderSkeletons()
@@ -463,17 +450,21 @@ const AnnouncementsPage = () => {
               <>
                 {renderAnnouncements()}
                 <div ref={observerRef} style={{ height: '20px' }} />
+                
                 {loadingMore && (
                   <div style={{ textAlign: 'center', padding: '1.5rem' }}>
                     <Spinner animation="border" style={{ color: 'var(--primary-orange)', width: '2rem', height: '2rem' }} />
                     <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontFamily: 'Cairo, sans-serif', fontSize: '0.85rem' }}>جاري تحميل المزيد...</p>
                   </div>
                 )}
+
+                {/* Enhanced Call-To-Action Block at End of Scrolling */}
                 {!hasMore && announcements.length > 0 && (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontFamily: 'Cairo, sans-serif', fontSize: '0.9rem' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏁</div>
-                    <p>لقد وصلت إلى نهاية الإعلانات</p>
-                  </div>
+                  <AnnouncementsEndCTA
+                    isLoggedIn={isLoggedIn}
+                    searchTerm={debouncedSearchTerm}
+                    hasFilters={hasActiveFilters}
+                  />
                 )}
               </>
             ) : (
@@ -496,14 +487,6 @@ const AnnouncementsPage = () => {
                       fontWeight: 600,
                       transition: 'all 0.3s ease',
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--primary-orange-dark)';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
                   >
                     مسح البحث
                   </Button>
@@ -513,14 +496,6 @@ const AnnouncementsPage = () => {
           </div>
         </Container>
       </div>
-
-      <style>{`
-        @media (max-width: 767px) {
-          .view-mode-toggle {
-            display: none !important;
-          }
-        }
-      `}</style>
     </>
   );
 };

@@ -4,19 +4,19 @@ import { FaBullseye, FaEye, FaGem } from 'react-icons/fa';
 const MissionVisionValues = () => {
   const items = [
     {
-      icon: <FaBullseye size={36} color="#E87A20" />,
+      icon: <FaBullseye size={28} color="#E87A20" />,
       title: 'رسالتنا',
       description:
         'تسهيل تبادل الموارد والخدمات بين أهالي غزة، وتعزيز روح التكافل والتعاون المجتمعي',
     },
     {
-      icon: <FaEye size={36} color="#E87A20" />,
+      icon: <FaEye size={28} color="#E87A20" />,
       title: 'رؤيتنا',
       description:
         'بناء مجتمع متكافل ومترابط، حيث يصبح التبادل أسلوب حياة يعزز القوة المجتمعية',
     },
     {
-      icon: <FaGem size={36} color="#E87A20" />,
+      icon: <FaGem size={28} color="#E87A20" />,
       title: 'قيمنا',
       description:
         'الثقة، التعاون، الشفافية، الأمان - هذه هي المبادئ التي نبني عليها منصتنا',
@@ -26,7 +26,7 @@ const MissionVisionValues = () => {
   return (
     <section
       style={{
-        padding: '4rem 0',
+        padding: '5rem 0',
         backgroundColor: 'var(--bg-white)',
         transition: 'background-color 0.3s ease',
       }}
@@ -39,28 +39,47 @@ const MissionVisionValues = () => {
                 style={{
                   backgroundColor: 'var(--bg-card)',
                   borderRadius: '16px',
-                  padding: '2.5rem 1.5rem',
+                  padding: '2.5rem 1.75rem',
                   textAlign: 'center',
                   height: '100%',
-                  transition: 'all 0.3s ease',
+                  transition: 'all 0.35s ease',
                   boxShadow: '0 4px 16px var(--shadow-sm)',
                   border: '1px solid var(--border-color)',
+                  position: 'relative',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-8px)';
-                  e.currentTarget.style.boxShadow = '0 12px 40px var(--shadow-md)';
+                  e.currentTarget.style.boxShadow = '0 12px 30px rgba(232, 122, 32, 0.18)';
+                  e.currentTarget.style.borderColor = '#E87A20';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.boxShadow = '0 4px 16px var(--shadow-sm)';
+                  e.currentTarget.style.borderColor = 'var(--border-color)';
                 }}
               >
-                <div className="mb-3">{item.icon}</div>
+                {/* Icon Wrapper Pill */}
+                <div
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(232, 122, 32, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 1.25rem auto',
+                    transition: 'transform 0.3s ease',
+                  }}
+                  className="icon-pill"
+                >
+                  {item.icon}
+                </div>
 
                 <h3
                   style={{
                     color: 'var(--text-secondary)',
-                    fontSize: '1.4rem',
+                    fontSize: '1.35rem',
                     fontWeight: 700,
                     fontFamily: 'Cairo, sans-serif',
                     marginBottom: '0.75rem',

@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { 
   FaChevronRight, FaTag, FaLock, FaThumbtack, 
   FaMapMarkerAlt, FaExclamationTriangle, FaArrowRight,
-  FaWhatsapp, FaEnvelope, FaShieldAlt
+  FaWhatsapp, FaEnvelope, FaShieldAlt, FaStar
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -18,6 +18,7 @@ import AnnouncementOwnerInfo from '../components/announcements/AnnouncementOwner
 import AnnouncementInfoCards from '../components/announcements/AnnouncementInfoCards';
 import AnnouncementSecurityTips from '../components/announcements/AnnouncementSecurityTips';
 import AnnouncementContactButton from '../components/announcements/AnnouncementContactButton';
+import FeaturedDetailsBanner from '../components/announcements/FeaturedDetailsBanner';
 import type { Announcement } from '../types';
 import type { ContactButtonConfig } from '../components/announcements/AnnouncementContactButton';
 
@@ -30,6 +31,9 @@ const AnnouncementDetailsPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   const cancelTokenSource = useRef<any>(null);
+  
+  // Guard to prevent double-incrementing views during React strict mode / double renders
+  const hasIncrementedView = useRef(false);
 
   const isEmailVerified = user?.email_verified_at !== null && user?.email_verified_at !== undefined;
   const isVerifiedUser = user?.is_verified === true;
@@ -131,11 +135,14 @@ const AnnouncementDetailsPage = () => {
         return;
       }
 
+      if (hasIncrementedView.current) return;
+      hasIncrementedView.current = true;
+
       setLoading(true);
       setError(null);
 
       try {
-        const data = await announcementService.getAnnouncement(Number(id), source.token);
+        const data = await announcementService.getAnnouncement(Number(id));
         setAnnouncement(data);
         setLoading(false);
       } catch (err: any) {
@@ -215,6 +222,7 @@ const AnnouncementDetailsPage = () => {
   };
 
   const contactConfig = getContactButtonConfig();
+  const isFeatured = Boolean(announcement?.pinned_at || announcement?.featured_until);
 
   // ============================================
   // LOADING & ERROR STATES
@@ -263,7 +271,7 @@ const AnnouncementDetailsPage = () => {
               gap: '8px',
               fontSize: '0.85rem',
               color: 'var(--text-muted)',
-              marginBottom: '1.5rem',
+              marginBottom: '1.25rem',
               fontFamily: 'Cairo, sans-serif',
               flexWrap: 'wrap',
             }}
@@ -274,6 +282,9 @@ const AnnouncementDetailsPage = () => {
             <FaChevronRight size={10} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
             <span style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{announcement.title.length > 30 ? announcement.title.slice(0, 30) + '...' : announcement.title}</span>
           </motion.nav>
+
+          {/* Featured Banner Display */}
+          {isFeatured && <FeaturedDetailsBanner />}
 
           <Row className="g-4">
             {/* ============================================ */}
@@ -297,18 +308,58 @@ const AnnouncementDetailsPage = () => {
                   isEmailVerified={isEmailVerified}
                 />
 
+                {/* 📱 MOBILE OPTIMIZATION: Owner Info Card placed right under Actions Bar for mobile view */}
+                <div className="d-block d-lg-none my-3">
+                  <AnnouncementOwnerInfo
+                    ownerName={announcement.user?.name || 'مستخدم'}
+                    isVerified={announcement.user?.is_verified || false}
+                    avatarUrl={getOwnerAvatar()}
+                    rating={4.8}
+                    ratingCount={12}
+                    memberSince={announcement.user?.created_at}
+                  />
+                </div>
+
                 {/* Main Content Card */}
                 <div
                   style={{
                     marginTop: '1.25rem',
-                    backgroundColor: 'var(--bg-card)',
+                    backgroundColor: isFeatured
+                      ? isDark
+                        ? 'rgba(232, 122, 32, 0.04)'
+                        : 'rgba(255, 248, 238, 0.7)'
+                      : 'var(--bg-card)',
                     borderRadius: '16px',
                     padding: '1.5rem',
-                    boxShadow: '0 2px 12px var(--shadow-sm)',
-                    border: '1px solid var(--border-color)',
+                    boxShadow: isFeatured
+                      ? isDark
+                        ? '0 8px 30px rgba(232, 122, 32, 0.15)'
+                        : '0 8px 30px rgba(255, 193, 7, 0.2)'
+                      : '0 2px 12px var(--shadow-sm)',
+                    border: isFeatured
+                      ? isDark
+                        ? '1.5px solid rgba(232, 122, 32, 0.4)'
+                        : '1.5px solid #FFC107'
+                      : '1px solid var(--border-color)',
                     transition: 'all 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
+                  {/* Special Featured Glow Line */}
+                  {isFeatured && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '4px',
+                        background: 'linear-gradient(90deg, #FFD700 0%, #E87A20 50%, #FFC107 100%)',
+                      }}
+                    />
+                  )}
+
                   {/* Title */}
                   <h1
                     style={{
@@ -318,6 +369,9 @@ const AnnouncementDetailsPage = () => {
                       fontFamily: 'Cairo, sans-serif',
                       marginBottom: '0.75rem',
                       lineHeight: 1.3,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
                     }}
                   >
                     {announcement.title}
@@ -325,6 +379,25 @@ const AnnouncementDetailsPage = () => {
 
                   {/* Badges */}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '1rem' }}>
+                    {isFeatured && (
+                      <span
+                        style={{
+                          background: 'linear-gradient(135deg, #FFD700 0%, #E87A20 100%)',
+                          color: '#FFFFFF',
+                          padding: '4px 12px',
+                          borderRadius: '10px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          boxShadow: '0 2px 8px rgba(232, 122, 32, 0.3)',
+                        }}
+                      >
+                        <FaStar size={11} /> إعلان مميز
+                      </span>
+                    )}
+
                     <span
                       style={{
                         backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : '#F0EBE5',
@@ -401,7 +474,7 @@ const AnnouncementDetailsPage = () => {
                       {getPriceLabel()}
                     </span>
 
-                    {announcement.pinned_at && (
+                    {announcement.pinned_at && !isFeatured && (
                       <span
                         style={{
                           backgroundColor: 'var(--primary-orange)',
@@ -415,7 +488,7 @@ const AnnouncementDetailsPage = () => {
                           gap: '4px',
                         }}
                       >
-                        <FaThumbtack size={10} /> مميز
+                        <FaThumbtack size={10} /> مثبت
                       </span>
                     )}
 
@@ -439,19 +512,21 @@ const AnnouncementDetailsPage = () => {
                     {announcement.sub_category?.is_high_risk && (
                       <span
                         style={{
-                          backgroundColor: 'rgba(255,193,7,0.15)',
-                          color: '#856404',
+                          backgroundColor: isDark ? 'rgba(255, 193, 7, 0.18)' : 'rgba(255, 193, 7, 0.15)',
+                          color: isDark ? '#FFD54F' : '#856404',
                           padding: '4px 12px',
                           borderRadius: '10px',
                           fontSize: '0.7rem',
-                          fontWeight: 600,
+                          fontWeight: 700,
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
-                          border: '1px solid rgba(255,193,7,0.3)',
+                          border: isDark
+                            ? '1px solid rgba(255, 213, 79, 0.4)'
+                            : '1px solid rgba(255, 193, 7, 0.4)',
                         }}
                       >
-                        <FaExclamationTriangle size={9} /> يتطلب توثيق الهوية
+                        <FaExclamationTriangle size={10} /> يتطلب توثيق الهوية
                       </span>
                     )}
                   </div>
@@ -520,18 +595,20 @@ const AnnouncementDetailsPage = () => {
                   top: '90px',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '1.5rem',
+                  gap: '1.25rem',
                 }}
               >
-                {/* Owner Info */}
-                <AnnouncementOwnerInfo
-                  ownerName={announcement.user?.name || 'مستخدم'}
-                  isVerified={announcement.user?.is_verified || false}
-                  avatarUrl={getOwnerAvatar()}
-                  rating={4.8}
-                  ratingCount={12}
-                  memberSince={announcement.user?.created_at}
-                />
+                {/* 💻 DESKTOP OPTIMIZATION: Owner Info stays in the right sidebar on desktop screens (hidden on mobile) */}
+                <div className="d-none d-lg-block">
+                  <AnnouncementOwnerInfo
+                    ownerName={announcement.user?.name || 'مستخدم'}
+                    isVerified={announcement.user?.is_verified || false}
+                    avatarUrl={getOwnerAvatar()}
+                    rating={4.8}
+                    ratingCount={12}
+                    memberSince={announcement.user?.created_at}
+                  />
+                </div>
 
                 {/* Security Tips */}
                 <AnnouncementSecurityTips />

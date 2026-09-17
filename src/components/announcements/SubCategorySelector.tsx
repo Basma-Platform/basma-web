@@ -1,4 +1,16 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FaBox, 
+  FaTools 
+} from 'react-icons/fa';
+import { 
+  BiTag, 
+  BiError, 
+  BiCheck, 
+  BiX, 
+  BiFolder, 
+  BiPointer 
+} from 'react-icons/bi';
 import type { SubCategory } from '../../types';
 import SubCategorySelectorSkeleton from './SubCategorySelectorSkeleton';
 
@@ -30,10 +42,8 @@ const SubCategorySelector = ({
 
   const handleCategoryClick = (category: 'goods' | 'services') => {
     if (selectedCategory === category) {
-      // ✅ إلغاء اختيار الفئة
       onCategorySelect(null);
     } else {
-      // ✅ تغيير الفئة (يتم مسح الفئات الفرعية في الـ parent)
       onCategorySelect(category);
     }
   };
@@ -46,7 +56,6 @@ const SubCategorySelector = ({
     });
   };
 
-  // Show loading skeleton
   if (isLoading) {
     return <SubCategorySelectorSkeleton />;
   }
@@ -64,7 +73,7 @@ const SubCategorySelector = ({
   };
 
   const getCategoryIcon = (cat: 'goods' | 'services') => {
-    return cat === 'goods' ? '📦' : '🛠️';
+    return cat === 'goods' ? <FaBox size={16} /> : <FaTools size={16} />;
   };
 
   return (
@@ -99,7 +108,7 @@ const SubCategorySelector = ({
         {/* Selected count badge */}
         {selectedSubCategories.length > 0 && (
           <span className="category-selected-badge">
-            🏷️ {selectedSubCategories.length} فئة محددة
+            <BiTag size={14} className="me-1" /> {selectedSubCategories.length} فئة محددة
           </span>
         )}
       </div>
@@ -140,15 +149,16 @@ const SubCategorySelector = ({
                               e.currentTarget.style.display = 'none';
                               const parent = e.currentTarget.parentElement;
                               if (parent) {
-                                const placeholder = document.createElement('span');
+                                const placeholder = document.createElement('div');
                                 placeholder.className = 'sub-category-placeholder';
-                                placeholder.textContent = '📁';
                                 parent.appendChild(placeholder);
                               }
                             }}
                           />
                         ) : (
-                          <span className="sub-category-placeholder">📁</span>
+                          <div className="sub-category-placeholder">
+                            <BiFolder size={26} />
+                          </div>
                         )}
                       </div>
 
@@ -158,13 +168,15 @@ const SubCategorySelector = ({
                       {/* High Risk Badge */}
                       {sub.is_high_risk && (
                         <span className="high-risk-badge" title="يتطلب توثيق الهوية">
-                          ⚠️
+                          <BiError size={13} />
                         </span>
                       )}
 
                       {/* Selected Checkmark */}
                       {selected && (
-                        <span className="selected-check">✓</span>
+                        <span className="selected-check">
+                          <BiCheck size={14} strokeWidth={1} />
+                        </span>
                       )}
                     </motion.div>
                   );
@@ -174,8 +186,9 @@ const SubCategorySelector = ({
               {/* Clear all button */}
               {selectedSubCategories.length > 1 && (
                 <div className="clear-all-row">
-                  <button className="clear-all-btn" onClick={clearAll}>
-                    إلغاء تحديد الكل ✕
+                  <button className="clear-all-btn d-inline-flex align-items-center gap-1" onClick={clearAll}>
+                    <span>إلغاء تحديد الكل</span>
+                    <BiX size={16} />
                   </button>
                 </div>
               )}
@@ -188,7 +201,9 @@ const SubCategorySelector = ({
               exit={{ opacity: 0 }}
               className="sub-category-empty"
             >
-              <span className="empty-icon">📭</span>
+              <span className="empty-icon text-muted mb-2">
+                <FaBox size={42} />
+              </span>
               <p>لا توجد فئات فرعية في هذا القسم</p>
             </motion.div>
           ) : (
@@ -199,7 +214,9 @@ const SubCategorySelector = ({
               exit={{ opacity: 0 }}
               className="sub-category-placeholder-box"
             >
-              <span className="placeholder-icon">👆</span>
+              <span className="placeholder-icon text-muted mb-2">
+                <BiPointer size={42} />
+              </span>
               <p>اختر فئة أساسية لتحميل الفئات الفرعية</p>
             </motion.div>
           )}
@@ -269,7 +286,8 @@ const SubCategorySelector = ({
         }
 
         .category-main-btn .category-main-icon {
-          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
         }
 
         .category-main-btn .category-main-label {
@@ -288,6 +306,8 @@ const SubCategorySelector = ({
         }
 
         .category-selected-badge {
+          display: inline-flex;
+          align-items: center;
           font-family: 'Cairo', sans-serif;
           font-size: 0.8rem;
           font-weight: 600;
@@ -382,7 +402,6 @@ const SubCategorySelector = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.8rem;
           color: var(--text-muted);
         }
 
@@ -399,8 +418,8 @@ const SubCategorySelector = ({
           position: absolute;
           top: -6px;
           right: -6px;
-          font-size: 0.7rem;
           background: #ffc107;
+          color: #212529;
           border-radius: 50%;
           width: 22px;
           height: 22px;
@@ -415,7 +434,6 @@ const SubCategorySelector = ({
           position: absolute;
           bottom: -6px;
           right: -6px;
-          font-size: 0.8rem;
           background: var(--primary-orange);
           border-radius: 50%;
           width: 24px;
@@ -426,7 +444,6 @@ const SubCategorySelector = ({
           color: #ffffff;
           box-shadow: 0 2px 8px rgba(232, 122, 32, 0.4);
           border: 2px solid var(--bg-card);
-          font-weight: 700;
         }
 
         .clear-all-row {
@@ -460,25 +477,7 @@ const SubCategorySelector = ({
           background: var(--bg-card);
         }
 
-        .sub-category-placeholder-box .placeholder-icon {
-          font-size: 2.5rem;
-          display: block;
-          margin-bottom: 0.5rem;
-        }
-
-        .sub-category-placeholder-box p {
-          color: var(--text-muted);
-          font-family: 'Cairo', sans-serif;
-          font-size: 0.95rem;
-          margin: 0;
-        }
-
-        .sub-category-empty .empty-icon {
-          font-size: 2.5rem;
-          display: block;
-          margin-bottom: 0.5rem;
-        }
-
+        .sub-category-placeholder-box p,
         .sub-category-empty p {
           color: var(--text-muted);
           font-family: 'Cairo', sans-serif;
@@ -505,7 +504,6 @@ const SubCategorySelector = ({
           .sub-category-placeholder {
             width: 48px;
             height: 48px;
-            font-size: 1.4rem;
           }
 
           .sub-category-name {

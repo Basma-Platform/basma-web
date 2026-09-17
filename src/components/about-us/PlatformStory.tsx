@@ -5,7 +5,7 @@ const PlatformStory = () => {
   return (
     <section
       style={{
-        padding: '4rem 0',
+        padding: '5rem 0',
         backgroundColor: 'var(--bg-body)',
         transition: 'background-color 0.3s ease',
       }}
@@ -18,14 +18,16 @@ const PlatformStory = () => {
               style={{
                 borderRadius: '20px',
                 overflow: 'hidden',
-                boxShadow: '0 8px 32px var(--shadow-sm)',
-                transition: 'transform 0.3s ease',
+                boxShadow: '0 10px 30px var(--shadow-sm)',
+                transition: 'all 0.4s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.01)';
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 18px 45px rgba(232, 122, 32, 0.15)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 10px 30px var(--shadow-sm)';
               }}
             >
               <img
@@ -35,6 +37,13 @@ const PlatformStory = () => {
                   width: '100%',
                   height: 'auto',
                   display: 'block',
+                  transition: 'transform 0.5s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.03)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
                 }}
               />
             </div>
@@ -75,6 +84,8 @@ const PlatformStory = () => {
                   lineHeight: 1.9,
                   fontFamily: 'Cairo, sans-serif',
                   marginBottom: '1rem',
+                  textAlign: 'justify',
+                  textJustify: 'inter-word',
                 }}
               >
                 لاحظنا من حاجة الأشخاص أنهم يتشتتون في نشر إعلاناتهم عند الحاجة 
@@ -90,6 +101,8 @@ const PlatformStory = () => {
                   lineHeight: 1.9,
                   fontFamily: 'Cairo, sans-serif',
                   marginBottom: '1rem',
+                  textAlign: 'justify',
+                  textJustify: 'inter-word',
                 }}
               >
                 كما أن التبادل عبر وسائل التواصل الاجتماعي يفتقر إلى معايير 
@@ -105,6 +118,8 @@ const PlatformStory = () => {
                   lineHeight: 1.9,
                   fontFamily: 'Cairo, sans-serif',
                   marginBottom: '1rem',
+                  textAlign: 'justify',
+                  textJustify: 'inter-word',
                 }}
               >
                 والمجتمع الغزاوي يزخر بالخير والكفاءات، وكل شخص لديه بصمة 
@@ -112,23 +127,32 @@ const PlatformStory = () => {
                 شخص يبحث عن فرصة لمساعدة غيره.
               </p>
 
-              <p
+              <div
                 style={{
                   color: 'var(--text-muted)',
                   fontSize: '1rem',
                   lineHeight: 1.9,
                   fontFamily: 'Cairo, sans-serif',
                   fontWeight: 600,
-                  padding: '1rem 1.5rem',
+                  padding: '1.2rem 1.5rem',
                   backgroundColor: 'rgba(232, 122, 32, 0.06)',
                   borderRadius: '12px',
                   borderRight: '4px solid #E87A20',
+                  textAlign: 'justify',
+                  textJustify: 'inter-word',
+                  transition: 'background-color 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(232, 122, 32, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(232, 122, 32, 0.06)';
                 }}
               >
                 من هنا وُلدت بصمة، لترسم طريقاً جديداً للتبادل المجتمعي،
                 وتجمع شتات الإعلانات في مكان واحد، وتوفر بيئة آمنة وموثوقة 
                 للتواصل والتبادل بروح التعاون والمحبة.
-              </p>
+              </div>
             </div>
           </Col>
         </Row>

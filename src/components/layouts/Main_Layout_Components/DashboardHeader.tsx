@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  FaBell, FaUser, FaCog, FaSignOutAlt, 
-  FaMoon, FaSun, FaChevronDown, FaUserCheck
+  FaUser, FaCog, FaSignOutAlt, 
+  FaMoon, FaSun, FaChevronDown
 } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import NotificationsDropdown from './NotificationsDropdown';
 
 interface DashboardHeaderProps {
   title?: string;
@@ -19,7 +20,6 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [notifications] = useState(3);
 
   // Handle scroll effect
   useEffect(() => {
@@ -35,8 +35,15 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
     navigate('/login');
   };
 
-  // ✅ الحصول على صورة المستخدم
-  const getUserAvatar = () => {
+  const getUserInitials = () => {
+    if (!user?.name) return 'U';
+    const names = user.name.split(' ');
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+  };
+
+  // ✅ Get user avatar URL
+  const getUserAvatar = (): string | null => {
     if (user?.profile_image) {
       if (user.profile_image.startsWith('http')) {
         return user.profile_image;
@@ -47,15 +54,7 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
   };
 
   const userAvatar = getUserAvatar();
-
-  const getUserInitials = () => {
-    if (!user?.name) return 'U';
-    const names = user.name.split(' ');
-    if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
-  };
-
-  const isVerified = user?.is_verified === true;
+  const userInitials = getUserInitials();
 
   return (
     <motion.header
@@ -66,7 +65,7 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        backgroundColor: scrolled ? 'var(--bg-card)' : 'var(--bg-card)',
+        backgroundColor: 'var(--bg-card)',
         borderBottom: scrolled ? '1px solid var(--border-color)' : '1px solid transparent',
         padding: '10px 20px',
         display: 'flex',
@@ -108,53 +107,17 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
           </svg>
         </motion.button>
 
-        <div>
-          <span
-            style={{
-              color: 'var(--text-secondary)',
-              fontSize: '1rem',
-              fontWeight: 700,
-              fontFamily: 'Cairo, sans-serif',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            {title}
-            {isVerified && (
-              <span
-                style={{
-                  backgroundColor: '#28A745',
-                  color: '#FFFFFF',
-                  fontSize: '0.5rem',
-                  padding: '2px 10px',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <FaUserCheck size={10} /> موثق
-              </span>
-            )}
-          </span>
-          <div
-            style={{
-              color: 'var(--text-muted)',
-              fontSize: '0.65rem',
-              fontFamily: 'Cairo, sans-serif',
-              opacity: 0.6,
-            }}
-          >
-            {new Date().toLocaleDateString('ar-EG', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </div>
-        </div>
+        {/* Title only - no date */}
+        <span
+          style={{
+            color: 'var(--text-secondary)',
+            fontSize: '1rem',
+            fontWeight: 700,
+            fontFamily: 'Cairo, sans-serif',
+          }}
+        >
+          {title}
+        </span>
       </div>
 
       {/* Right: Actions */}
@@ -187,53 +150,8 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
           {isDark ? <FaSun /> : <FaMoon />}
         </motion.button>
 
-        {/* Notifications */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-muted)',
-            fontSize: '1.1rem',
-            cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '50%',
-            position: 'relative',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-          }}
-        >
-          <FaBell />
-          {notifications > 0 && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              style={{
-                position: 'absolute',
-                top: '4px',
-                right: '4px',
-                width: '18px',
-                height: '18px',
-                borderRadius: '50%',
-                backgroundColor: '#DC3545',
-                color: '#FFFFFF',
-                fontSize: '0.5rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {notifications > 9 ? '9+' : notifications}
-            </motion.span>
-          )}
-        </motion.button>
+        {/* Notifications Dropdown */}
+        <NotificationsDropdown />
 
         {/* User Dropdown */}
         <div
@@ -248,7 +166,7 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              padding: '4px 8px 4px 16px',
+              padding: '4px 12px 4px 16px',
               borderRadius: '30px',
               border: `1px solid ${dropdownOpen ? 'var(--primary-orange)' : 'var(--border-color)'}`,
               background: dropdownOpen ? 'rgba(232,122,32,0.06)' : 'transparent',
@@ -258,19 +176,25 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
               fontFamily: 'Cairo, sans-serif',
             }}
           >
-            {/* ✅ صورة المستخدم */}
+            {/* ✅ Avatar with profile_image support */}
             <div
               style={{
                 width: '34px',
                 height: '34px',
                 borderRadius: '50%',
                 overflow: 'hidden',
-                backgroundColor: isDark ? '#2a3a5a' : '#e0d8d0',
-                border: '2px solid var(--border-color)',
+                background: userAvatar 
+                  ? 'transparent'
+                  : (isDark 
+                    ? 'linear-gradient(135deg, #2a3a5a, #1a2a4a)' 
+                    : 'linear-gradient(135deg, #e0d8d0, #d0c8c0)'),
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0,
+                color: isDark ? '#C49A6C' : '#6B4226',
+                fontSize: '13px',
+                fontWeight: 700,
+                fontFamily: 'Cairo, sans-serif',
               }}
             >
               {userAvatar ? (
@@ -286,29 +210,17 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
                     e.currentTarget.style.display = 'none';
                     const parent = e.currentTarget.parentElement;
                     if (parent) {
+                      parent.style.background = isDark 
+                        ? 'linear-gradient(135deg, #2a3a5a, #1a2a4a)' 
+                        : 'linear-gradient(135deg, #e0d8d0, #d0c8c0)';
                       const fallback = document.createElement('span');
-                      fallback.style.cssText = `
-                        color: var(--text-muted);
-                        font-size: 13px;
-                        font-weight: 700;
-                        font-family: 'Cairo', sans-serif;
-                      `;
-                      fallback.textContent = getUserInitials();
+                      fallback.textContent = userInitials;
                       parent.appendChild(fallback);
                     }
                   }}
                 />
               ) : (
-                <span
-                  style={{
-                    color: isDark ? '#C49A6C' : '#6B4226',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    fontFamily: 'Cairo, sans-serif',
-                  }}
-                >
-                  {getUserInitials()}
-                </span>
+                userInitials
               )}
             </div>
             <span style={{ fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
@@ -342,7 +254,7 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
                 }}
               >
                 <Link
-                  to="/dashboard/profile"
+                  to={user?.role === 'admin' ? '/admin/profile' : '/user/profile'}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -368,7 +280,7 @@ const DashboardHeader = ({ title = 'لوحة التحكم', onToggleSidebar }: D
                   الملف الشخصي
                 </Link>
                 <Link
-                  to="/dashboard/settings"
+                  to={user?.role === 'admin' ? '/admin/settings' : '/user/settings'}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
