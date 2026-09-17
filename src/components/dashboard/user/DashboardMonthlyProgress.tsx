@@ -13,7 +13,7 @@ const DashboardMonthlyProgress = ({
   used,
   limit,
   isVerified = false,
-  verifyPath = '/dashboard/verify',
+  verifyPath = '/user/verify-identity',
 }: DashboardMonthlyProgressProps) => {
   const percentage = isVerified ? 100 : Math.min(100, Math.round((used / (limit || 1)) * 100));
   const remaining = Math.max(0, limit - used);

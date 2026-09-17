@@ -6,6 +6,7 @@ import SEO from '../../components/SEO';
 import DashboardStatsCards from '../../components/dashboard/user/DashboardStatsCards';
 import DashboardCharts from '../../components/dashboard/user/DashboardCharts';
 import DashboardRecentAnnouncements from '../../components/dashboard/user/DashboardRecentAnnouncements';
+import DashboardRecentNotifications from '../../components/dashboard/user/DashboardRecentNotifications';
 import DashboardVerificationCard from '../../components/dashboard/user/DashboardVerificationCard';
 import DashboardQuickActions from '../../components/dashboard/user/DashboardQuickActions';
 import DashboardSkeleton from '../../components/dashboard/user/DashboardSkeleton';
@@ -39,7 +40,7 @@ const UserDashboard = () => {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      const timeFormatted = now.toLocaleTimeString('ar-EG', {
+      const timeFormatted = now.toLocaleTimeString('en-US', {
         timeZone: 'Asia/Gaza',
         hour: '2-digit',
         minute: '2-digit',
@@ -78,9 +79,10 @@ const UserDashboard = () => {
   const isVerified = data.verification.is_verified;
   const usedCount = data.stats.monthly_used;
   const limitCount = data.stats.monthly_limit;
-  const percentage = isVerified ? 100 : Math.min(100, Math.round((usedCount / (limitCount || 1)) * 100));
+  const percentage = isVerified
+    ? 100
+    : Math.min(100, Math.round((usedCount / (limitCount || 1)) * 100));
 
-  // Compute location display string dynamically
   const locationText = (() => {
     const govName = data.user.governorate?.name;
     const cityName = data.user.city?.name;
@@ -105,6 +107,16 @@ const UserDashboard = () => {
           padding-bottom: 3rem;
           overflow-x: hidden;
           width: 100%;
+          animation: dashboardFadeIn 0.25s ease-out;
+        }
+
+        @keyframes dashboardFadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         .digital-clock-box {
@@ -118,13 +130,14 @@ const UserDashboard = () => {
         }
 
         .digital-clock-time {
-          font-family: 'Courier New', Courier, monospace, sans-serif;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
           font-size: 1.25rem;
           font-weight: 800;
-          letter-spacing: 1.5px;
+          letter-spacing: 1px;
           color: var(--primary-orange);
           direction: ltr;
           display: inline-block;
+          font-variant-numeric: tabular-nums;
         }
 
         .en-nums {
@@ -151,12 +164,15 @@ const UserDashboard = () => {
 
       <div className="dashboard-container">
         <Container fluid="xl" className="py-3 py-md-4 px-2 px-md-4">
+          {/* ============================================ */}
+          {/* Header Row: Welcome + Clock + Monthly */}
+          {/* ============================================ */}
           <Row className="g-3 mb-4 align-items-stretch">
             <Col xs={12} lg={6}>
               <motion.div
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35 }}
+                transition={{ duration: 0.3 }}
                 className="h-100"
               >
                 <Card
@@ -195,7 +211,9 @@ const UserDashboard = () => {
                           : 'rgba(232, 122, 32, 0.12)',
                         color: isVerified ? 'var(--success)' : 'var(--primary-orange)',
                         border: `1px solid ${
-                          isVerified ? 'rgba(40, 167, 69, 0.3)' : 'rgba(232, 122, 32, 0.3)'
+                          isVerified
+                            ? 'rgba(40, 167, 69, 0.3)'
+                            : 'rgba(232, 122, 32, 0.3)'
                         }`,
                       }}
                     >
@@ -220,7 +238,9 @@ const UserDashboard = () => {
                     }}
                   >
                     {locationText} • عضو منذ{' '}
-                    <span className="en-nums">{new Date(data.user.created_at).getFullYear()}</span>
+                    <span className="en-nums">
+                      {new Date(data.user.created_at).getFullYear()}
+                    </span>
                   </p>
                 </Card>
               </motion.div>
@@ -230,7 +250,7 @@ const UserDashboard = () => {
               <motion.div
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.05 }}
+                transition={{ duration: 0.3, delay: 0.05 }}
                 className="h-100"
               >
                 <Card
@@ -281,7 +301,7 @@ const UserDashboard = () => {
               <motion.div
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
                 className="h-100"
               >
                 <Card
@@ -310,7 +330,10 @@ const UserDashboard = () => {
                     </span>
 
                     {isVerified && (
-                      <Badge bg="success" className="d-flex align-items-center gap-1 px-2 py-1">
+                      <Badge
+                        bg="success"
+                        className="d-flex align-items-center gap-1 px-2 py-1"
+                      >
                         <FaInfinity size={10} /> موثق
                       </Badge>
                     )}
@@ -353,11 +376,22 @@ const UserDashboard = () => {
                           }}
                         >
                           <span className="en-nums">{usedCount}</span>{' '}
-                          <small style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <small
+                            style={{
+                              fontSize: '0.75rem',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
                             من <span className="en-nums">{limitCount}</span>
                           </small>
                         </span>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-orange)' }}>
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            color: 'var(--primary-orange)',
+                          }}
+                        >
                           <span className="en-nums">{percentage}%</span>
                         </span>
                       </div>
@@ -375,7 +409,8 @@ const UserDashboard = () => {
                           style={{
                             width: `${percentage}%`,
                             height: '100%',
-                            backgroundColor: percentage >= 90 ? '#dc3545' : 'var(--primary-orange)',
+                            backgroundColor:
+                              percentage >= 90 ? '#dc3545' : 'var(--primary-orange)',
                             borderRadius: '10px',
                             transition: 'width 0.4s ease',
                           }}
@@ -388,16 +423,25 @@ const UserDashboard = () => {
             </Col>
           </Row>
 
+          {/* ============================================ */}
+          {/* Verification Card (if not verified) */}
+          {/* ============================================ */}
           {!isVerified && (
             <div className="mb-4">
               <DashboardVerificationCard verification={data.verification} />
             </div>
           )}
 
+          {/* ============================================ */}
+          {/* Stats Cards - 5 Cards */}
+          {/* ============================================ */}
           <div className="mb-4">
             <DashboardStatsCards stats={data.stats} />
           </div>
 
+          {/* ============================================ */}
+          {/* Charts (lg=8) + Quick Actions (lg=4) */}
+          {/* ============================================ */}
           <Row className="g-3 mb-4 align-items-stretch">
             <Col xs={12} lg={8}>
               <DashboardCharts charts={data.charts} />
@@ -407,9 +451,22 @@ const UserDashboard = () => {
             </Col>
           </Row>
 
-          <div>
-            <DashboardRecentAnnouncements announcements={data.recent_announcements} />
-          </div>
+          {/* ============================================ */}
+          {/* Recent Announcements (lg=8) + Recent Notifications (lg=4) */}
+          {/* ============================================ */}
+          <Row className="g-3 align-items-stretch">
+            <Col xs={12} lg={8}>
+              <DashboardRecentAnnouncements
+                announcements={data.recent_announcements}
+              />
+            </Col>
+            <Col xs={12} lg={4}>
+              <DashboardRecentNotifications
+                initialNotifications={data.recent_notifications}
+                initialUnreadCount={data.unread_notifications_count}
+              />
+            </Col>
+          </Row>
         </Container>
       </div>
     </>

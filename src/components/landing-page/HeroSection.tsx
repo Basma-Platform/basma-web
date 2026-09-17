@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { TypeAnimation } from 'react-type-animation';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
+import { usePublicStats } from '../../hooks/usePublicStats';
 import { getPostAuthPath } from '../../utils/authRedirect';
 import {
   FaHandshake,
@@ -11,17 +12,24 @@ import {
   FaWhatsapp,
   FaUsers,
   FaCheckCircle,
+  FaChevronLeft,
 } from 'react-icons/fa';
 
 const HeroSection = () => {
   const { isDark } = useTheme();
   const { isAuthenticated, user } = useAuth();
+  const { stats } = usePublicStats();
   const authedLink = user ? getPostAuthPath(user) : '/register';
 
+  // ✅ Trust points with real user count
+  const usersLabel = stats?.users.display_format
+    ? `${stats.users.display_format} مستخدم`
+    : '+10,000 مستخدم'; // Fallback
+
   const trustPoints = [
-    { icon: <FaUsers size={14} />, label: '+10,000 مستخدم' },
-    { icon: <FaCheckCircle size={14} />, label: 'هوية موثّقة' },
-    { icon: <FaWhatsapp size={14} />, label: 'تواصل مباشر بواتساب' },
+    { icon: <FaUsers size={12} />, label: usersLabel },
+    { icon: <FaCheckCircle size={12} />, label: 'هوية موثّقة' },
+    { icon: <FaWhatsapp size={12} />, label: 'واتساب مباشر' },
   ];
 
   return (
@@ -30,30 +38,32 @@ const HeroSection = () => {
       style={{
         position: 'relative',
         width: '100%',
-        paddingTop: '108px',
-        paddingBottom: '64px',
+        paddingTop: '90px',
+        paddingBottom: '50px',
         overflow: 'hidden',
         backgroundColor: 'var(--bg-body)',
         transition: 'background-color 0.3s ease',
       }}
     >
       <Container>
-        <Row className="align-items-center w-100">
+        <Row className="align-items-center w-100 g-4">
+          {/* Text Content Column */}
           <Col xs={12} lg={6}>
             <div
+              className="text-center text-lg-end"
               style={{
-                padding: '1rem',
-                textAlign: 'right',
+                padding: '0.5rem',
               }}
             >
               <h1
+                className="hero-main-title"
                 style={{
                   color: 'var(--text-secondary)',
                   fontSize: 'clamp(2.5rem, 5vw, 4rem)',
                   fontWeight: 900,
-                  lineHeight: 1.2,
-                  marginBottom: '1.5rem',
-                  minHeight: 'clamp(5rem, 10vw, 8rem)',
+                  lineHeight: 1.25,
+                  marginBottom: '1.25rem',
+                  minHeight: 'clamp(5rem, 9vw, 8rem)',
                   fontFamily: 'Cairo, sans-serif',
                 }}
               >
@@ -73,46 +83,41 @@ const HeroSection = () => {
                     display: 'inline-block',
                     whiteSpace: 'pre-line',
                     fontFamily: 'Cairo, sans-serif',
-                    fontWeight: 700,
+                    fontWeight: 800,
                   }}
                 />
               </h1>
 
               <p
+                className="hero-desc-text mx-auto ms-lg-auto me-lg-0"
                 style={{
                   color: 'var(--text-muted)',
-                  fontSize: 'clamp(1rem, 1.4vw, 1.3rem)',
-                  lineHeight: 1.8,
-                  marginBottom: '2rem',
+                  fontSize: 'clamp(1rem, 1.3vw, 1.2rem)',
+                  lineHeight: '1.8',
+                  marginBottom: '1.75rem',
                   maxWidth: '550px',
-                  marginRight: 'auto',
-                  marginLeft: 0,
                 }}
               >
-                منصة بصمة تهدف إلى تعزيز التكافل الاجتماعي
-                <br />
-                وتسهيل تبادل الموارد والخدمات داخل المجتمع
-                <br />
-                بروح التعاون والمحبة.
+                منصة بصمة تهدف إلى تعزيز التكافل الاجتماعي وتسهيل تبادل الموارد والخدمات داخل المجتمع بروح التعاون والمحبة.
               </p>
 
+              {/* CTA Buttons */}
               <div
-                className="d-flex flex-wrap gap-3"
-                style={{ justifyContent: 'flex-start' }}
+                className="hero-cta-group d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start"
               >
                 <Button
                   as={Link as any}
                   to={isAuthenticated ? authedLink : '/register'}
-                  className="rounded-pill fw-bold"
+                  className="rounded-pill fw-bold hero-btn-primary"
                   style={{
                     backgroundColor: '#E87A20',
                     borderColor: '#E87A20',
                     color: 'white',
-                    padding: 'clamp(10px, 1.5vw, 16px) clamp(20px, 3vw, 40px)',
-                    fontSize: 'clamp(0.85rem, 1.1vw, 1.1rem)',
+                    padding: '12px 28px',
+                    fontSize: '0.95rem',
                     transition: 'all 0.3s ease',
                     boxShadow: '0 4px 16px rgba(232, 122, 32, 0.3)',
-                    minWidth: 'clamp(120px, 15vw, 160px)',
+                    flex: '1 1 auto',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#D46A1A';
@@ -131,16 +136,16 @@ const HeroSection = () => {
                 <Button
                   as={Link as any}
                   to="/announcements"
-                  className="rounded-pill fw-bold"
+                  className="rounded-pill fw-bold hero-btn-outline"
                   style={{
-                    padding: 'clamp(10px, 1.5vw, 16px) clamp(20px, 3vw, 40px)',
-                    fontSize: 'clamp(0.85rem, 1.1vw, 1.1rem)',
+                    padding: '12px 28px',
+                    fontSize: '0.95rem',
                     borderWidth: '2px',
                     borderColor: '#E87A20',
                     color: '#E87A20',
                     backgroundColor: 'transparent',
                     transition: 'all 0.3s ease',
-                    minWidth: 'clamp(120px, 15vw, 160px)',
+                    flex: '1 1 auto',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#E87A20';
@@ -157,31 +162,36 @@ const HeroSection = () => {
                 </Button>
               </div>
 
+              {/* Trust Points */}
               <div
-                className="d-flex flex-wrap"
+                className="trust-points-container"
                 style={{
-                  gap: '1.5rem',
-                  marginTop: '2rem',
-                  justifyContent: 'flex-start',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem 1rem',
+                  marginTop: '1.75rem',
+                  justifyContent: 'center',
                 }}
               >
                 {trustPoints.map((point, index) => (
                   <div
                     key={index}
+                    className="trust-point-item"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      gap: '5px',
                       color: 'var(--text-muted)',
-                      fontSize: '0.85rem',
+                      fontSize: '0.78rem',
                       fontWeight: 600,
                       fontFamily: 'Cairo, sans-serif',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     <span
                       style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '22px',
+                        height: '22px',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
@@ -202,10 +212,11 @@ const HeroSection = () => {
             </div>
           </Col>
 
+          {/* Desktop Visual Column (Hidden on Mobile) */}
           <Col
             lg={6}
             className="d-none d-lg-flex justify-content-center align-items-center"
-            style={{ minHeight: '460px' }}
+            style={{ minHeight: '420px' }}
           >
             <div className="hero-triangle-wrap">
               <div className="hero-triangle">
@@ -215,145 +226,52 @@ const HeroSection = () => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    <marker
-                      id="basma-arrow-1"
-                      markerWidth="9"
-                      markerHeight="9"
-                      refX="5"
-                      refY="4.5"
-                      orient="auto"
-                    >
-                      <path d="M0,0 L9,4.5 L0,9 Z" fill="#E87A20" />
-                    </marker>
-                    <marker
-                      id="basma-arrow-2"
-                      markerWidth="9"
-                      markerHeight="9"
-                      refX="5"
-                      refY="4.5"
-                      orient="auto"
-                    >
-                      <path d="M0,0 L9,4.5 L0,9 Z" fill="#8B5A2B" />
-                    </marker>
-                    <marker
-                      id="basma-arrow-3"
-                      markerWidth="9"
-                      markerHeight="9"
-                      refX="5"
-                      refY="4.5"
-                      orient="auto"
-                    >
-                      <path d="M0,0 L9,4.5 L0,9 Z" fill="#28A745" />
-                    </marker>
+                    <marker id="basma-arrow-1" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#E87A20" /></marker>
+                    <marker id="basma-arrow-2" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#8B5A2B" /></marker>
+                    <marker id="basma-arrow-3" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#28A745" /></marker>
                   </defs>
 
-                  <path
-                    id="basma-path-1"
-                    className="hero-arrow-path path-1"
-                    d="M265,138 Q350,180 345,272"
-                    fill="none"
-                    stroke="#E87A20"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    markerEnd="url(#basma-arrow-1)"
-                  />
-                  <path
-                    id="basma-path-2"
-                    className="hero-arrow-path path-2"
-                    d="M312,330 Q230,380 148,330"
-                    fill="none"
-                    stroke="#8B5A2B"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    markerEnd="url(#basma-arrow-2)"
-                  />
-                  <path
-                    id="basma-path-3"
-                    className="hero-arrow-path path-3"
-                    d="M115,272 Q110,180 195,138"
-                    fill="none"
-                    stroke="#28A745"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    markerEnd="url(#basma-arrow-3)"
-                  />
+                  <path id="basma-path-1" className="hero-arrow-path path-1" d="M265,138 Q350,180 345,272" fill="none" stroke="#E87A20" strokeWidth="3" strokeLinecap="round" markerEnd="url(#basma-arrow-1)" />
+                  <path id="basma-path-2" className="hero-arrow-path path-2" d="M312,330 Q230,380 148,330" fill="none" stroke="#8B5A2B" strokeWidth="3" strokeLinecap="round" markerEnd="url(#basma-arrow-2)" />
+                  <path id="basma-path-3" className="hero-arrow-path path-3" d="M115,272 Q110,180 195,138" fill="none" stroke="#28A745" strokeWidth="3" strokeLinecap="round" markerEnd="url(#basma-arrow-3)" />
 
                   <circle r="5" fill="#E87A20" opacity="0">
-                    <animate
-                      attributeName="opacity"
-                      from="0"
-                      to="1"
-                      dur="0.01s"
-                      begin="1.7s"
-                      fill="freeze"
-                    />
-                    <animateMotion dur="3s" repeatCount="indefinite" begin="1.7s">
-                      <mpath href="#basma-path-1" />
-                    </animateMotion>
+                    <animate attributeName="opacity" from="0" to="1" dur="0.01s" begin="1.7s" fill="freeze" />
+                    <animateMotion dur="3s" repeatCount="indefinite" begin="1.7s"><mpath href="#basma-path-1" /></animateMotion>
                   </circle>
                   <circle r="5" fill="#8B5A2B" opacity="0">
-                    <animate
-                      attributeName="opacity"
-                      from="0"
-                      to="1"
-                      dur="0.01s"
-                      begin="1.95s"
-                      fill="freeze"
-                    />
-                    <animateMotion dur="3s" repeatCount="indefinite" begin="1.95s">
-                      <mpath href="#basma-path-2" />
-                    </animateMotion>
+                    <animate attributeName="opacity" from="0" to="1" dur="0.01s" begin="1.95s" fill="freeze" />
+                    <animateMotion dur="3s" repeatCount="indefinite" begin="1.95s"><mpath href="#basma-path-2" /></animateMotion>
                   </circle>
                   <circle r="5" fill="#28A745" opacity="0">
-                    <animate
-                      attributeName="opacity"
-                      from="0"
-                      to="1"
-                      dur="0.01s"
-                      begin="2.2s"
-                      fill="freeze"
-                    />
-                    <animateMotion dur="3s" repeatCount="indefinite" begin="2.2s">
-                      <mpath href="#basma-path-3" />
-                    </animateMotion>
+                    <animate attributeName="opacity" from="0" to="1" dur="0.01s" begin="2.2s" fill="freeze" />
+                    <animateMotion dur="3s" repeatCount="indefinite" begin="2.2s"><mpath href="#basma-path-3" /></animateMotion>
                   </circle>
                 </svg>
 
                 <div className="hero-bubble-wrap bubble-1">
-                  <div
-                    className="hero-bubble"
-                    style={{ background: 'linear-gradient(135deg, #E87A20, #F5A623)' }}
-                  >
+                  <div className="hero-bubble" style={{ background: 'linear-gradient(135deg, #E87A20, #F5A623)' }}>
                     <FaHandshake size={30} color="#FFFFFF" />
                     <span className="hero-bubble-label">تعاون</span>
                   </div>
                 </div>
 
                 <div className="hero-bubble-wrap bubble-2">
-                  <div
-                    className="hero-bubble"
-                    style={{ background: 'linear-gradient(135deg, #8B5A2B, #C49A6C)' }}
-                  >
+                  <div className="hero-bubble" style={{ background: 'linear-gradient(135deg, #8B5A2B, #C49A6C)' }}>
                     <FaExchangeAlt size={28} color="#FFFFFF" />
                     <span className="hero-bubble-label">تبادل</span>
                   </div>
                 </div>
 
                 <div className="hero-bubble-wrap bubble-3">
-                  <div
-                    className="hero-bubble"
-                    style={{ background: 'linear-gradient(135deg, #28A745, #4FCB6E)' }}
-                  >
+                  <div className="hero-bubble" style={{ background: 'linear-gradient(135deg, #28A745, #4FCB6E)' }}>
                     <FaShieldAlt size={28} color="#FFFFFF" />
                     <span className="hero-bubble-label">ثقة</span>
                   </div>
                 </div>
               </div>
 
-              <p
-                className="hero-triangle-caption"
-                style={{ color: 'var(--text-muted)' }}
-              >
+              <p className="hero-triangle-caption" style={{ color: 'var(--text-muted)' }}>
                 <TypeAnimation
                   sequence={[
                     'من التعاون يبدأ التبادل،',
@@ -377,6 +295,182 @@ const HeroSection = () => {
                 />
               </p>
             </div>
+          </Col>
+
+          {/* Mobile Connected Chain Cards Row with Typing Caption */}
+          <Col xs={12} className="d-lg-none mt-4">
+            <div
+              className="mobile-cards-wrapper"
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '0.5rem 0',
+                width: '100%',
+                margin: '0 auto',
+              }}
+            >
+              {/* Card 1: تعاون */}
+              <div
+                className="mobile-card-item mobile-card-1"
+                style={{
+                  flex: '0 1 96px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  padding: '12px 4px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 12px var(--shadow-sm)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    margin: '0 auto 6px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #E87A20, #F5A623)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFF',
+                  }}
+                >
+                  <FaHandshake size={15} />
+                </div>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>تعاون</span>
+              </div>
+
+              {/* Connecting Link Arrow 1 */}
+              <div
+                className="mobile-card-item mobile-card-link-1"
+                style={{
+                  color: '#E87A20',
+                  opacity: 0.7,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FaChevronLeft size={13} />
+              </div>
+
+              {/* Card 2: تبادل */}
+              <div
+                className="mobile-card-item mobile-card-2"
+                style={{
+                  flex: '0 1 96px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  padding: '12px 4px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 12px var(--shadow-sm)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    margin: '0 auto 6px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #8B5A2B, #C49A6C)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFF',
+                  }}
+                >
+                  <FaExchangeAlt size={14} />
+                </div>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>تبادل</span>
+              </div>
+
+              {/* Connecting Link Arrow 2 */}
+              <div
+                className="mobile-card-item mobile-card-link-2"
+                style={{
+                  color: '#8B5A2B',
+                  opacity: 0.7,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FaChevronLeft size={13} />
+              </div>
+
+              {/* Card 3: ثقة */}
+              <div
+                className="mobile-card-item mobile-card-3"
+                style={{
+                  flex: '0 1 96px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  padding: '12px 4px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 12px var(--shadow-sm)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    margin: '0 auto 6px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #28A745, #4FCB6E)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFF',
+                  }}
+                >
+                  <FaShieldAlt size={14} />
+                </div>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>ثقة</span>
+              </div>
+            </div>
+
+            <p
+              className="hero-mobile-caption-wrap"
+              style={{
+                textAlign: 'center',
+                fontSize: '0.85rem',
+                color: 'var(--text-muted)',
+                fontFamily: 'Cairo, sans-serif',
+                marginTop: '12px',
+                padding: '0 1rem',
+                lineHeight: '1.7',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                maxWidth: '360px',
+                minHeight: '50px',
+              }}
+            >
+              <TypeAnimation
+                sequence={[
+                  'من التعاون يبدأ التبادل،',
+                  700,
+                  'من التعاون يبدأ التبادل، ومن التبادل تُبنى الثقة،',
+                  700,
+                  'من التعاون يبدأ التبادل، ومن التبادل تُبنى الثقة، سعياً نحو مجتمع متكافل ومترابط',
+                  200,
+                ]}
+                wrapper="span"
+                speed={65}
+                repeat={0}
+                cursor={true}
+                className="hero-mobile-caption-cursor"
+                style={{
+                  fontFamily: 'Cairo, sans-serif',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  lineHeight: 1.7,
+                }}
+              />
+            </p>
           </Col>
         </Row>
       </Container>
@@ -476,12 +570,24 @@ const HeroSection = () => {
           min-height: 80px;
         }
 
+        .hero-section .mobile-card-item {
+          opacity: 0;
+          animation: basma-mobile-card-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .hero-section .mobile-card-1 { animation-delay: 0.15s; }
+        .hero-section .mobile-card-link-1 { animation-delay: 0.3s; }
+        .hero-section .mobile-card-2 { animation-delay: 0.45s; }
+        .hero-section .mobile-card-link-2 { animation-delay: 0.6s; }
+        .hero-section .mobile-card-3 { animation-delay: 0.75s; }
+
         .hero-section .hero-typing-cursor::after {
           content: '|';
           animation: blink 0.8s step-end 3, hideCursor 0s 3s forwards;
         }
 
-        .hero-section .hero-caption-cursor::after {
+        .hero-section .hero-caption-cursor::after,
+        .hero-section .hero-mobile-caption-cursor::after {
           content: '|';
           animation: blink 0.8s step-end 3, hideCursor 0s 5s forwards;
         }
@@ -497,6 +603,11 @@ const HeroSection = () => {
 
         @keyframes basma-bubble-in {
           0% { opacity: 0; transform: scale(0.3) translateY(20px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes basma-mobile-card-in {
+          0% { opacity: 0; transform: scale(0.8) translateY(12px); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
         }
 
@@ -516,49 +627,62 @@ const HeroSection = () => {
         }
 
         @media (max-width: 991px) {
-          .hero-section .d-none.d-lg-flex {
-            display: none !important;
+          .hero-section p.hero-desc-text {
+            font-size: 0.95rem !important;
+            line-height: 1.7 !important;
           }
 
-          .hero-section .container {
-            text-align: right !important;
-          }
-
-          .hero-section .col-12 > div {
-            text-align: right !important;
-            padding: 1rem !important;
-          }
-
-          .hero-section .col-12 .d-flex {
-            justify-content: flex-start !important;
-            gap: 0.75rem !important;
-          }
-
-          .hero-section .col-12 h1 {
-            text-align: right !important;
-            font-size: 2.2rem !important;
-          }
-
-          .hero-section .col-12 p {
-            text-align: right !important;
-            margin-right: auto !important;
-            margin-left: 0 !important;
-            font-size: 1rem !important;
-          }
-
-          .hero-section .col-12 .d-flex .btn {
-            padding: 8px 16px !important;
-            font-size: 0.85rem !important;
-            min-width: 100px !important;
+          .hero-section .hero-btn-primary,
+          .hero-section .hero-btn-outline {
             flex: 1 !important;
-            max-width: 48% !important;
+            text-align: center !important;
+            padding: 10px 14px !important;
+            font-size: 0.88rem !important;
+            min-width: 0 !important;
+          }
+          
+          .trust-points-container {
+            justify-content: center !important;
+            gap: 12px !important;
+          }
+
+          .trust-point-item {
+            font-size: 0.72rem !important;
+            gap: 4px !important;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .hero-main-title {
+            font-size: 2.3rem !important;
+            min-height: 5.5rem !important;
+          }
+
+          .hero-cta-group {
+            gap: 8px !important;
+          }
+
+          .hero-btn-primary,
+          .hero-btn-outline {
+            padding: 10px 10px !important;
+            font-size: 0.82rem !important;
+          }
+
+          .mobile-cards-wrapper {
+            gap: 4px !important;
+            padding: 0 2px !important;
+          }
+
+          .mobile-cards-wrapper > div.mobile-card-item:not(.mobile-card-link-1):not(.mobile-card-link-2) {
+            flex: 0 1 88px !important;
+            padding: 10px 2px !important;
           }
         }
 
         @media (max-width: 576px) {
           .hero-section {
-            padding-top: 88px !important;
-            padding-bottom: 40px !important;
+            padding-top: 76px !important;
+            padding-bottom: 30px !important;
           }
         }
       `}</style>

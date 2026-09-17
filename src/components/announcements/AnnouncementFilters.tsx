@@ -44,21 +44,14 @@ interface AnnouncementFiltersProps {
 }
 
 const AnnouncementFilters = ({
-  // Search
   searchTerm,
   setSearchTerm,
   isSearching,
-  
-  // Sort
   sortBy,
   setSortBy,
   sortOptions,
-  
-  // View Mode
   viewMode,
   setViewMode,
-  
-  // Filters
   showFilters,
   setShowFilters,
   governorates,
@@ -100,7 +93,6 @@ const AnnouncementFilters = ({
     'verified_region': 'موثق الهوية + نفس المنطقة',
   };
 
-  // Determine which filters are available based on user_context
   const canFilterByGovernorate = userContext?.available_filters?.governorate_id !== false;
   const canFilterByCity = userContext?.available_filters?.city_id !== false;
   const canFilterByType = userContext?.available_filters?.type !== false;
@@ -109,7 +101,6 @@ const AnnouncementFilters = ({
 
   const availablePrivacyOptions = privacyOptions.filter(opt => opt.available);
 
-  // Count how many filters are visible
   let visibleFilterCount = 0;
   if (canFilterByGovernorate) visibleFilterCount++;
   if (canFilterByCity) visibleFilterCount++;
@@ -141,9 +132,7 @@ const AnnouncementFilters = ({
         transition: 'all 0.3s ease',
       }}
     >
-      {/* ============================================ */}
       {/* SEARCH + SORT + FILTER BUTTON + VIEW MODE */}
-      {/* ============================================ */}
       <Row className="align-items-center g-2">
         {/* Search */}
         <Col xs={12} md={6} lg={7}>
@@ -241,7 +230,6 @@ const AnnouncementFilters = ({
         {/* Sort + Filter Button + View Mode */}
         <Col xs={12} md={6} lg={5}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Sort Dropdown */}
             <Form.Select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -264,7 +252,6 @@ const AnnouncementFilters = ({
               ))}
             </Form.Select>
 
-            {/* Filter Button */}
             <Button
               variant={hasActiveFilters ? 'primary' : 'outline-secondary'}
               onClick={() => setShowFilters(!showFilters)}
@@ -303,7 +290,6 @@ const AnnouncementFilters = ({
               {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
             </Button>
 
-            {/* View Mode Toggle */}
             <div 
               className="view-mode-toggle" 
               style={{ 
@@ -375,9 +361,7 @@ const AnnouncementFilters = ({
         </Col>
       </Row>
 
-      {/* ============================================ */}
       {/* FILTERS PANEL */}
-      {/* ============================================ */}
       <AnimatePresence>
         {showFilters && (
           <motion.div
@@ -493,7 +477,7 @@ const AnnouncementFilters = ({
                   </Col>
                 )}
 
-                {/* Privacy Filter - ✅ مع التسميات المطلوبة */}
+                {/* Privacy Filter */}
                 {canFilterByPrivacy && availablePrivacyOptions.length > 0 && (
                   <Col xs={12} sm={colSize} lg={isFiveFilters ? 2 : colSize} style={isFiveFilters ? { flex: '0 0 20%', maxWidth: '20%' } : {}}>
                     <Form.Select

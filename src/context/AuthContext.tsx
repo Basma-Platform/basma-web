@@ -25,12 +25,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
-    // FIX (security + correctness): no more localStorage/sessionStorage
-    // snapshot to trust blindly on load. Ask the backend "who am I" — the
-    // httpOnly session cookie (sent automatically by the browser) is what
-    // answers this, not anything JavaScript stored itself. If there's no
-    // valid session, this 401s and we're simply logged out, no cleanup
-    // needed since nothing was ever stored client-side to begin with.
     const initializeAuth = async () => {
       try {
         const currentUser = await authService.getCurrentUser();
@@ -97,8 +91,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = useCallback(async (): Promise<void> => {
     setIsLoading(true);
     try {
-      // Destroys the real server-side session — a stolen cookie stops
-      // working immediately after this, not just "until it expires".
       await authService.logout();
     } catch (error) {
       console.error('Logout error:', error);
@@ -116,25 +108,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         await authService.verifyEmail(data);
 
-        // FIX (the old infinite-loop / stale-closure saga): instead of
-        // trying to read a locally-cached user object that may or may not
-        // have loaded yet, just ask the server who's authenticated right
-        // now. The session cookie (if this browser has one) is sent
-        // automatically regardless of React's render/effect timing — this
-        // sidesteps the entire class of race condition we kept working
-        // around before, rather than patching around it again.
         try {
           const currentUser = await authService.getCurrentUser();
           setUser(currentUser);
           setIsAuthenticated(true);
           redirectAfterAuth(currentUser);
         } catch {
-          // No active session on this device/browser — fine, it just means
-          // the link was opened somewhere they weren't already logged in.
           setUser(null);
           setIsAuthenticated(false);
           navigate('/login', {
-            state: { message: '✅ تم تفعيل حسابك بنجاح! يمكنك تسجيل الدخول الآن.' },
+            state: { message: 'تم تفعيل حسابك بنجاح! يمكنك تسجيل الدخول الآن.' },
           });
         }
       } catch (error) {
@@ -160,7 +143,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         await authService.resetPassword(data);
         navigate('/login', {
-          state: { message: '✅ تم تحديث كلمة المرور بنجاح! يمكنك تسجيل الدخول الآن.' },
+          state: { message: 'تم تحديث كلمة المرور بنجاح! يمكنك تسجيل الدخول الآن.' },
         });
       } catch (error) {
         throw error;
@@ -169,6 +152,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     },
     [navigate]
+  );
+
+  // ============================================
+  // Update User in Context
+  // ============================================
+  const updateUser = useCallback(
+    (userOrUpdater: User | ((prev: User | null) => User | null)) => {
+      if (typeof userOrUpdater === 'function') {
+        setUser((prev) => userOrUpdater(prev));
+      } else {
+        setUser(userOrUpdater);
+      }
+    },
+    []
   );
 
   const value: AuthContextType = {
@@ -182,6 +179,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     resendVerification,
     forgotPassword,
     resetPassword,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

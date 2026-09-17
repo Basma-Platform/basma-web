@@ -5,7 +5,7 @@ import type { User } from '../types';
  * use getPostAuthPath() for the full "where should this user land" logic.
  */
 export const getDashboardPath = (role?: User['role'] | null): string => {
-  return role === 'admin' ? '/admin/dashboard' : '/dashboard';
+  return role === 'admin' ? '/admin/dashboard' : '/user/dashboard';
 };
 
 /**

@@ -233,9 +233,6 @@ const RegisterPage = () => {
               style={{
                 marginTop: '1.5rem',
                 textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
               }}
             >
               <p
@@ -250,27 +247,6 @@ const RegisterPage = () => {
                   تسجيل الدخول
                 </Link>
               </p>
-              <Link
-                to="/forgot-password"
-                style={{
-                  color: 'var(--text-muted)',
-                  fontSize: '0.8rem',
-                  textDecoration: 'none',
-                  fontFamily: 'Cairo, sans-serif',
-                  opacity: 0.6,
-                  transition: 'opacity 0.3s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '1';
-                  e.currentTarget.style.color = 'var(--primary-orange)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '0.6';
-                  e.currentTarget.style.color = 'var(--text-muted)';
-                }}
-              >
-                نسيت كلمة المرور؟
-              </Link>
             </motion.div>
           </div>
 
