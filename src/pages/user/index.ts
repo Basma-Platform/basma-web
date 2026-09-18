@@ -17,3 +17,6 @@ export {
 
 // Profile
 export { default as UserProfilePage } from './UserProfilePage';
+
+// Verification
+export { VerifyIdentityPage } from './verification';

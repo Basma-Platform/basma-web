@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FaStar } from 'react-icons/fa';
 import { Card } from 'react-bootstrap';
 import { motion } from 'framer-motion';
@@ -12,6 +12,9 @@ interface FeaturedCarouselProps {
 
 const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselProps) => {
   const [isPaused, setIsPaused] = useState(false);
+  
+  // Ref for the scrollable container
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   if (!loading && (!announcements || announcements.length === 0)) {
     return null;
@@ -22,12 +25,37 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
       ? [...announcements, ...announcements, ...announcements]
       : announcements || [];
 
-  // =========================================================================
-  // SPEED FIX: Calculate dynamic duration based on item count.
-  // E.g., ~3.5 seconds per card ensures consistent speed whether 10 or 25 items.
-  // =========================================================================
   const itemCount = multipliedAnnouncements.length;
   const dynamicDuration = Math.max(25, itemCount * 3.5);
+
+  // Set initial scroll position to the middle group so users can swipe both ways infinitely
+  useEffect(() => {
+    if (!loading && scrollRef.current) {
+      const container = scrollRef.current;
+      const trackGroup = container.querySelector('.featured-marquee-group') as HTMLElement;
+      if (trackGroup) {
+        container.scrollLeft = trackGroup.offsetWidth;
+      }
+    }
+  }, [loading, multipliedAnnouncements]);
+
+  // Seamless infinite loop handler using native scroll position checking
+  const handleScroll = () => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const trackGroup = container.querySelector('.featured-marquee-group') as HTMLElement;
+    if (!trackGroup) return;
+
+    const groupWidth = trackGroup.offsetWidth;
+
+    // If scrolled too far left/right into the outer duplicate sets, instantly snap back to the middle
+    if (container.scrollLeft <= 10) {
+      container.scrollLeft += groupWidth;
+    } else if (container.scrollLeft >= groupWidth * 2 - 10) {
+      container.scrollLeft -= groupWidth;
+    }
+  };
 
   return (
     <div
@@ -260,11 +288,13 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
         </div>
       )}
 
-      {/* Infinite Track Container */}
+      {/* Interactive Track Container with Native Scroll Loop Support */}
       {!loading && (
         <div
+          ref={scrollRef}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
+          onScroll={handleScroll}
           className="featured-marquee-wrapper"
         >
           {/* Dynamically pass speed via inline CSS variable --scroll-duration */}
@@ -272,8 +302,8 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
             className={`featured-marquee-track ${isPaused ? 'paused' : ''}`}
             style={{ '--scroll-duration': `${dynamicDuration}s` } as React.CSSProperties}
           >
-            {/* First Set */}
-            <div className="featured-marquee-group">
+            {/* First Set (Duplicate for left buffer) */}
+            <div className="featured-marquee-group" aria-hidden="true">
               {multipliedAnnouncements.map((announcement, index) => (
                 <div key={`a-${announcement.id}-${index}`} className="featured-card-item">
                   <FeaturedCard announcement={announcement} />
@@ -281,10 +311,19 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
               ))}
             </div>
 
-            {/* Second Set (Duplicate) */}
-            <div className="featured-marquee-group" aria-hidden="true">
+            {/* Second Set (Primary view) */}
+            <div className="featured-marquee-group">
               {multipliedAnnouncements.map((announcement, index) => (
                 <div key={`b-${announcement.id}-${index}`} className="featured-card-item">
+                  <FeaturedCard announcement={announcement} />
+                </div>
+              ))}
+            </div>
+
+            {/* Third Set (Duplicate for right buffer) */}
+            <div className="featured-marquee-group" aria-hidden="true">
+              {multipliedAnnouncements.map((announcement, index) => (
+                <div key={`c-${announcement.id}-${index}`} className="featured-card-item">
                   <FeaturedCard announcement={announcement} />
                 </div>
               ))}
@@ -322,19 +361,30 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
       <style>{`
         .featured-marquee-wrapper {
           display: flex;
-          overflow: hidden;
+          overflow-x: auto;
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* IE/Edge */
           width: 100%;
           user-select: none;
           direction: ltr;
           padding: 16px 0;
           margin: -16px 0;
+          cursor: grab;
+          scroll-behavior: auto; /* Instant jump without smooth smooth-scrolling lag during resets */
+        }
+
+        .featured-marquee-wrapper:active {
+          cursor: grabbing;
+        }
+
+        .featured-marquee-wrapper::-webkit-scrollbar {
+          display: none; /* Chrome/Safari/Opera */
         }
 
         .featured-marquee-track {
           display: flex;
           flex-shrink: 0;
           gap: 20px;
-          /* Uses the dynamic CSS variable calculated from item count */
           animation: marquee-scroll var(--scroll-duration, 30s) linear infinite;
         }
 
@@ -357,8 +407,11 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
           transition: z-index 0.2s ease, transform 0.2s ease;
         }
 
-        .featured-card-item:hover {
-          z-index: 10;
+        @media (hover: hover) and (pointer: fine) {
+          .featured-card-item:hover {
+            z-index: 10;
+            transform: translateY(-5px);
+          }
         }
 
         /* Skeleton Animations */
@@ -407,7 +460,7 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
             transform: translateX(0%);
           }
           100% {
-            transform: translateX(calc(-50% - 10px));
+            transform: translateX(calc(-33.333% - 7px));
           }
         }
       `}</style>
