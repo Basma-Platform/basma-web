@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../context/ThemeContext';
 import { useUserAnnouncements } from '../../../hooks/useUserAnnouncements';
+import { useAdminVerifications } from '../../../hooks/useAdminVerifications';
 import logo from '../../../assets/logo.png';
 import { motion } from 'framer-motion';
 
@@ -46,6 +47,18 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
     }
   }, [stats]);
 
+  // Fetch number of Verification Request for Admin
+  const { stats: verificationStats, fetchRequests: fetchVerificationRequests } = useAdminVerifications();
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchVerificationRequests({ status: 'pending', per_page: 1 }).catch(() => {
+        /* silent */
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
   // ✅ Admin Links
   const adminNavItems = [
     {
@@ -78,8 +91,10 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
       icon: <FaShieldAlt />,
       label: 'طلبات التحقق',
       path: '/admin/verification',
-      isActive: location.pathname === '/admin/verification',
-      badge: 47,
+      isActive:
+        location.pathname === '/admin/verification' ||
+        location.pathname.startsWith('/admin/verification/'),
+      badge: verificationStats?.pending || undefined,
       badgeColor: '#17A2B8',
     },
     {

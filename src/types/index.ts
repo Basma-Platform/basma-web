@@ -840,3 +840,108 @@ export interface AnnouncementFormErrors {
   privacy_type?: string;
   images?: string;
 }
+
+
+// ============================================
+// SPRINT 04 - Verification (KYC) Types
+// ============================================
+
+export type VerificationStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * Response from GET /api/v1/user/verification/status
+ */
+export interface VerificationStatusResponse {
+  is_verified: boolean;
+  status: VerificationStatus | null;
+  request_date: string | null;
+  review_date: string | null;
+  rejection_reason: string | null;
+  can_upload: boolean;
+  can_reupload: boolean;
+}
+
+/**
+ * Response from POST /api/v1/user/verification/upload
+ */
+export interface UploadIdResponse {
+  message: string;
+  request: {
+    id: number;
+    status: VerificationStatus;
+    created_at: string;
+  };
+}
+
+/**
+ * Admin list item — from GET /api/v1/admin/verification-requests
+ */
+export interface AdminVerificationRequest {
+  id: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    whatsapp: string;
+    profile_image: string | null;
+    is_verified: boolean;
+  };
+  id_image: string;
+  id_image_url: string | null;
+  status: VerificationStatus;
+  admin_notes: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Admin detail — from GET /api/v1/admin/verification-requests/{id}
+ */
+export interface AdminVerificationDetail {
+  id: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    whatsapp: string;
+    profile_image: string | null;
+    is_verified: boolean;
+    governorate: { id: number; name: string } | null;
+    city: { id: number; name: string } | null;
+    created_at: string;
+  };
+  id_image: string;
+  id_image_url: string | null;
+  status: VerificationStatus;
+  admin_notes: string | null;
+  reviewed_by: { id: number; name: string } | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Paginated list from admin index
+ */
+export interface AdminVerificationsListResponse {
+  data: AdminVerificationRequest[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+  stats: {
+    pending: number;
+    approved: number;
+    rejected: number;
+    total: number;
+  };
+}
+
+/**
+ * Payload for approve/reject actions
+ */
+export interface VerificationActionPayload {
+  admin_notes?: string;
+}

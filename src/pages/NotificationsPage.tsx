@@ -1,13 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import {
-  FaBell,
-  FaCheck,
-  FaTrash,
-  FaChevronLeft,
-  FaChevronRight,
-} from 'react-icons/fa';
+import { FaBell, FaCheck, FaTrash, FaChevronLeft } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import SEO from '../components/SEO';
 import NotificationItem from '../components/shared/NotificationItem';
@@ -16,9 +10,12 @@ import NotificationsFilters, {
 } from '../components/notifications/NotificationsFilters';
 import NotificationsSkeleton from '../components/notifications/NotificationsSkeleton';
 import DeleteNotificationModal from '../components/notifications/DeleteNotificationModal';
+import Pagination from '../components/shared/Pagination';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from '../hooks/useAuth';
 import type { Notification } from '../types';
+
+const DEFAULT_PER_PAGE = 20;
 
 const NotificationsPage = () => {
   const { user } = useAuth();
@@ -41,15 +38,17 @@ const NotificationsPage = () => {
   // ============================================
   const [activeFilter, setActiveFilter] = useState<NotificationFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
   const [counts, setCounts] = useState({
     all: 0,
     unread: 0,
     read: 0,
   });
 
-  // ============================================
-  // Modal State Management
-  // ============================================
+  // ✅ Prevent double-fetching on mount + StrictMode
+  const hasFetchedOnce = useRef(false);
+
+  // Modal
   const [deleteModalState, setDeleteModalState] = useState<{
     isOpen: boolean;
     id: string | null;
@@ -62,78 +61,99 @@ const NotificationsPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // ============================================
-  // Fetch Notifications
+  // ✅ THE FIX: Single useEffect handles ALL fetches
+  //    No separate loadNotifications callback, no dependency chain.
   // ============================================
-  const loadNotifications = useCallback(
-    async (filter: NotificationFilter = activeFilter, page: number = 1) => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
       try {
         const response = await fetchNotifications({
-          filter,
-          page,
-          per_page: 20,
+          filter: activeFilter,
+          page: currentPage,
+          per_page: perPage,
         });
-
-        // Update counts (fallback using response if not provided separately)
-        setCounts((prev) => ({
-          ...prev,
-          [filter]: response.meta.total,
-        }));
+        if (!cancelled) {
+          setCounts((prev) => ({
+            ...prev,
+            [activeFilter]: response.meta.total,
+          }));
+        }
       } catch {
         // Toast handled in hook
       }
-    },
-    [activeFilter, fetchNotifications]
-  );
+    };
 
-  // Initial load
-  useEffect(() => {
-    loadNotifications(activeFilter, currentPage);
-  }, [activeFilter, currentPage, loadNotifications]);
+    load();
+    hasFetchedOnce.current = true;
+
+    return () => {
+      cancelled = true;
+    };
+    // ⚠️ DO NOT include `fetchNotifications` here — it re-creates every render
+    //    in the current useNotifications hook and will cause infinite loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilter, currentPage, perPage]);
 
   // ============================================
-  // Handle Filter Change
+  // Handlers
   // ============================================
   const handleFilterChange = (filter: NotificationFilter) => {
     setActiveFilter(filter);
+    setCurrentPage(1); // reset to page 1 on filter change
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // ✅ Per-page change → reset to page 1
+  //    The useEffect above will auto-fire because `perPage` changed.
+  const handlePerPageChange = (newPerPage: number) => {
+    setPerPage(newPerPage);
     setCurrentPage(1);
   };
 
-  // ============================================
-  // Handle Mark as Read (single)
-  // ============================================
   const handleMarkAsRead = async (notification: Notification) => {
     if (!notification.is_read) {
       await markAsRead(notification.id);
     }
   };
 
-  // ============================================
-  // Handle Delete Prompt (Triggers Custom Modal)
-  // ============================================
   const handleDeletePrompt = (id: string) => {
     setDeleteModalState({ isOpen: true, id, isBulk: false });
   };
 
-  // ============================================
-  // Handle Delete All Prompt (Triggers Custom Modal)
-  // ============================================
   const handleDeleteAllPrompt = () => {
     setDeleteModalState({ isOpen: true, id: null, isBulk: true });
   };
 
-  // ============================================
-  // Confirm Delete Action Handler
-  // ============================================
   const handleConfirmDelete = async () => {
     setIsDeleting(true);
     try {
       if (deleteModalState.isBulk) {
         await deleteAllNotifications();
         setCurrentPage(1);
-        loadNotifications(activeFilter, 1);
+        // If already on page 1, force a manual refetch
+        if (currentPage === 1) {
+          const response = await fetchNotifications({
+            filter: activeFilter,
+            page: 1,
+            per_page: perPage,
+          });
+          setCounts((prev) => ({ ...prev, [activeFilter]: response.meta.total }));
+        }
       } else if (deleteModalState.id) {
         await deleteNotification(deleteModalState.id);
-        loadNotifications(activeFilter, currentPage);
+        // Refetch current page to reflect the removal
+        const response = await fetchNotifications({
+          filter: activeFilter,
+          page: currentPage,
+          per_page: perPage,
+        });
+        setCounts((prev) => ({ ...prev, [activeFilter]: response.meta.total }));
       }
       setDeleteModalState({ isOpen: false, id: null, isBulk: false });
     } catch {
@@ -143,38 +163,27 @@ const NotificationsPage = () => {
     }
   };
 
-  // ============================================
-  // Handle Mark All as Read
-  // ============================================
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsRead();
-      loadNotifications(activeFilter, currentPage);
+      // Refetch current view to update all items' read state
+      const response = await fetchNotifications({
+        filter: activeFilter,
+        page: currentPage,
+        per_page: perPage,
+      });
+      setCounts((prev) => ({ ...prev, [activeFilter]: response.meta.total }));
     } catch {
       // Toast handled in hook
     }
   };
 
-  // ============================================
-  // Handle Page Change
-  // ============================================
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // ============================================
-  // Breadcrumb Link
-  // ============================================
   const backLink = isAdmin ? '/admin/dashboard' : '/user/dashboard';
   const backLabel = isAdmin ? 'لوحة الإدارة' : 'لوحة التحكم';
 
   return (
     <>
-      <SEO
-        title="الإشعارات"
-        description="جميع إشعاراتك على منصة بصمة"
-      />
+      <SEO title="الإشعارات" description="جميع إشعاراتك على منصة بصمة" />
 
       <div
         style={{
@@ -185,16 +194,13 @@ const NotificationsPage = () => {
         }}
       >
         <Container fluid="xl" className="px-3 px-md-4">
-          {/* ============================================ */}
-          {/* Breadcrumb + Page Title */}
-          {/* ============================================ */}
+          {/* Breadcrumb + Title */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
             style={{ marginBottom: '1.5rem' }}
           >
-            {/* Breadcrumb */}
             <div
               style={{
                 display: 'flex',
@@ -223,7 +229,6 @@ const NotificationsPage = () => {
               </span>
             </div>
 
-            {/* Page Title */}
             <div
               style={{
                 display: 'flex',
@@ -234,19 +239,14 @@ const NotificationsPage = () => {
               }}
             >
               <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
               >
                 <div
                   style={{
                     width: '48px',
                     height: '48px',
                     borderRadius: '14px',
-                    background:
-                      'linear-gradient(135deg, #E87A20, #F5A623)',
+                    background: 'linear-gradient(135deg, #E87A20, #F5A623)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -255,8 +255,6 @@ const NotificationsPage = () => {
                   }}
                 >
                   <FaBell size={22} color="#FFFFFF" />
-
-                  {/* Badge on Icon */}
                   {unreadCount > 0 && (
                     <span
                       style={{
@@ -275,7 +273,6 @@ const NotificationsPage = () => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         border: '2px solid var(--bg-body)',
-                        boxShadow: '0 2px 8px rgba(220,53,69,0.4)',
                       }}
                     >
                       {unreadCount > 99 ? '99+' : unreadCount}
@@ -309,14 +306,7 @@ const NotificationsPage = () => {
                 </div>
               </div>
 
-              {/* Actions */}
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  flexWrap: 'wrap',
-                }}
-              >
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {unreadCount > 0 && (
                   <Button
                     onClick={handleMarkAllAsRead}
@@ -332,16 +322,6 @@ const NotificationsPage = () => {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'var(--primary-orange)';
-                      e.currentTarget.style.color = '#FFFFFF';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.color = 'var(--primary-orange)';
                     }}
                   >
                     <FaCheck size={12} />
@@ -364,16 +344,6 @@ const NotificationsPage = () => {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'rgba(220,53,69,0.08)';
-                      e.currentTarget.style.borderColor = '#DC3545';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
                     }}
                   >
                     <FaTrash size={12} />
@@ -384,24 +354,17 @@ const NotificationsPage = () => {
             </div>
           </motion.div>
 
-          {/* ============================================ */}
-          {/* Filters */}
-          {/* ============================================ */}
           <NotificationsFilters
             activeFilter={activeFilter}
             onFilterChange={handleFilterChange}
             counts={counts}
           />
 
-          {/* ============================================ */}
-          {/* Content */}
-          {/* ============================================ */}
           <Row className="justify-content-center">
             <Col xs={12} lg={10} xl={9}>
               {loading && notifications.length === 0 ? (
                 <NotificationsSkeleton count={6} />
               ) : notifications.length === 0 ? (
-                /* Empty State */
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -457,12 +420,14 @@ const NotificationsPage = () => {
                   </div>
                 </motion.div>
               ) : (
-                /* Notifications List */
                 <div
                   style={{
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
+                    opacity: loading ? 0.5 : 1,
+                    pointerEvents: loading ? 'none' : 'auto',
+                    transition: 'opacity 0.2s ease',
                   }}
                 >
                   {notifications.map((notification) => (
@@ -477,105 +442,42 @@ const NotificationsPage = () => {
                 </div>
               )}
 
-              {/* ============================================ */}
               {/* Pagination */}
-              {/* ============================================ */}
               {!loading && meta && meta.last_page > 1 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginTop: '2rem',
-                  }}
-                >
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)',
-                      color:
-                        currentPage === 1
-                          ? 'var(--text-muted)'
-                          : 'var(--text-secondary)',
-                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                      opacity: currentPage === 1 ? 0.4 : 1,
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontFamily: 'Cairo, sans-serif',
-                      fontSize: '0.85rem',
-                    }}
-                  >
-                    <FaChevronRight size={10} />
-                    السابق
-                  </button>
-
-                  <span
-                    style={{
-                      fontFamily: 'Cairo, sans-serif',
-                      fontSize: '0.85rem',
-                      color: 'var(--text-secondary)',
-                      padding: '0 12px',
-                    }}
-                  >
-                    صفحة {currentPage} من {meta.last_page}
-                  </span>
-
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === meta.last_page}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: '10px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)',
-                      color:
-                        currentPage === meta.last_page
-                          ? 'var(--text-muted)'
-                          : 'var(--text-secondary)',
-                      cursor:
-                        currentPage === meta.last_page
-                          ? 'not-allowed'
-                          : 'pointer',
-                      opacity: currentPage === meta.last_page ? 0.4 : 1,
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontFamily: 'Cairo, sans-serif',
-                      fontSize: '0.85rem',
-                    }}
-                  >
-                    التالي
-                    <FaChevronLeft size={10} />
-                  </button>
-                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  lastPage={meta.last_page}
+                  total={meta.total}
+                  perPage={perPage}
+                  onPageChange={handlePageChange}
+                  onPerPageChange={handlePerPageChange}
+                  isLoading={loading}
+                  perPageOptions={[10, 20, 50, 100]}
+                  itemLabel="إشعار"
+                />
               )}
             </Col>
           </Row>
         </Container>
       </div>
 
-      {/* ============================================ */}
-      {/* Custom Confirmation Modal */}
-      {/* ============================================ */}
       <DeleteNotificationModal
         isOpen={deleteModalState.isOpen}
         isBulk={deleteModalState.isBulk}
-        title={deleteModalState.isBulk ? 'تأكيد حذف جميع الإشعارات' : 'تأكيد حذف الإشعار'}
+        title={
+          deleteModalState.isBulk
+            ? 'تأكيد حذف جميع الإشعارات'
+            : 'تأكيد حذف الإشعار'
+        }
         message={
           deleteModalState.isBulk
             ? 'هل أنت متأكد من حذف جميع الإشعارات؟ لا يمكن التراجع عن هذا الإجراء.'
             : 'هل أنت متأكد من حذف هذا الإشعار؟'
         }
         onConfirm={handleConfirmDelete}
-        onCancel={() => setDeleteModalState({ isOpen: false, id: null, isBulk: false })}
+        onCancel={() =>
+          setDeleteModalState({ isOpen: false, id: null, isBulk: false })
+        }
         isLoading={isDeleting}
       />
     </>
