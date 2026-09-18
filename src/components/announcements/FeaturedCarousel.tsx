@@ -265,6 +265,7 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
         <div
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
+          onClick={() => setIsPaused((prev) => !prev)} // Tap anywhere on mobile to pause/resume easily
           className="featured-marquee-wrapper"
         >
           {/* Dynamically pass speed via inline CSS variable --scroll-duration */}
@@ -328,6 +329,7 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
           direction: ltr;
           padding: 16px 0;
           margin: -16px 0;
+          cursor: pointer;
         }
 
         .featured-marquee-track {
@@ -357,8 +359,12 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
           transition: z-index 0.2s ease, transform 0.2s ease;
         }
 
-        .featured-card-item:hover {
-          z-index: 10;
+        /* DESKTOP ONLY HOVER EFFECT: Will not trigger jumpiness on touch screens */
+        @media (hover: hover) and (pointer: fine) {
+          .featured-card-item:hover {
+            z-index: 10;
+            transform: translateY(-5px);
+          }
         }
 
         /* Skeleton Animations */
