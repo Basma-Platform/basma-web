@@ -201,7 +201,28 @@ const NotificationsDropdown = () => {
         }}
         aria-label="الإشعارات"
       >
-        <FaBell />
+        <motion.div
+          animate={
+            unreadCount > 0
+              ? {
+                  rotate: [0, 15, -15, 12, -12, 7, -7, 0],
+                }
+              : { rotate: 0 }
+          }
+          transition={
+            unreadCount > 0
+              ? {
+                  duration: 1.2,
+                  repeat: Infinity,
+                  repeatDelay: 3,
+                  ease: 'easeInOut',
+                }
+              : {}
+          }
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <FaBell />
+        </motion.div>
 
         {/* Badge */}
         {unreadCount > 0 && (

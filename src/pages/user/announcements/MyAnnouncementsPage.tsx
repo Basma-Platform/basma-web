@@ -17,13 +17,13 @@ import {
   DeleteConfirmModal,
   DisableConfirmModal,
   MyAnnouncementsSkeleton,
-  MyAnnouncementsPagination,
   type AnnouncementStatusFilter,
   type AnnouncementSortOption,
 } from '../../../components/user/announcements';
+import Pagination from '../../../components/shared/Pagination';
 import type { Announcement } from '../../../types';
 
-const PER_PAGE = 12;
+const DEFAULT_PER_PAGE = 12;
 
 const MyAnnouncementsPage = () => {
   const {
@@ -40,11 +40,13 @@ const MyAnnouncementsPage = () => {
   // ============================================
   // Local State
   // ============================================
-  const [statusFilter, setStatusFilter] = useState<AnnouncementStatusFilter>('all');
+  const [statusFilter, setStatusFilter] =
+    useState<AnnouncementStatusFilter>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<AnnouncementSortOption>('newest');
   const [isSearching, setIsSearching] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
 
   const gridRef = useRef<HTMLDivElement | null>(null);
 
@@ -65,19 +67,23 @@ const MyAnnouncementsPage = () => {
   const [modalLoading, setModalLoading] = useState(false);
 
   // ============================================
-  // Fetch Wrapper (with page)
+  // Fetch Wrapper (with page + perPage)
   // ============================================
   const loadAnnouncements = useCallback(
-    async (page: number = 1) => {
+    async (
+      page: number = 1,
+      perPageOverride?: number
+    ) => {
+      const pp = perPageOverride ?? perPage;
       await fetchMyAnnouncements({
         status: statusFilter,
         search: search || undefined,
         sort,
         page,
-        per_page: PER_PAGE,
+        per_page: pp,
       });
     },
-    [fetchMyAnnouncements, statusFilter, search, sort]
+    [fetchMyAnnouncements, statusFilter, search, sort, perPage]
   );
 
   // ============================================
@@ -86,7 +92,8 @@ const MyAnnouncementsPage = () => {
   useEffect(() => {
     setCurrentPage(1);
     loadAnnouncements(1);
-  }, [statusFilter, sort]); // Note: search handled separately
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, sort]);
 
   // ============================================
   // Debounced Search
@@ -100,7 +107,7 @@ const MyAnnouncementsPage = () => {
         search: search || undefined,
         sort,
         page: 1,
-        per_page: PER_PAGE,
+        per_page: perPage,
       }).finally(() => setIsSearching(false));
     }, 450);
 
@@ -115,7 +122,6 @@ const MyAnnouncementsPage = () => {
     setCurrentPage(page);
     await loadAnnouncements(page);
 
-    // ✅ Scroll to top of grid (better UX)
     if (gridRef.current) {
       gridRef.current.scrollIntoView({
         behavior: 'smooth',
@@ -124,6 +130,15 @@ const MyAnnouncementsPage = () => {
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  // ============================================
+  // ✅ NEW: Per-Page Change Handler
+  // ============================================
+  const handlePerPageChange = async (newPerPage: number) => {
+    setPerPage(newPerPage);
+    setCurrentPage(1);
+    await loadAnnouncements(1, newPerPage);
   };
 
   // ============================================
@@ -144,7 +159,6 @@ const MyAnnouncementsPage = () => {
       await deleteAnnouncement(deleteModal.id);
       setDeleteModal({ open: false, id: null, title: '' });
 
-      // ✅ Refresh current page (or go back if empty)
       const targetPage =
         data.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
       setCurrentPage(targetPage);
@@ -208,10 +222,7 @@ const MyAnnouncementsPage = () => {
   if (showInitialSkeleton) {
     return (
       <>
-        <SEO
-          title="إعلاناتي"
-          description="إدارة جميع إعلاناتك في منصة بصمة"
-        />
+        <SEO title="إعلاناتي" description="إدارة جميع إعلاناتك في منصة بصمة" />
         <MyAnnouncementsSkeleton variant="page" count={6} />
       </>
     );
@@ -222,10 +233,7 @@ const MyAnnouncementsPage = () => {
   // ============================================
   return (
     <>
-      <SEO
-        title="إعلاناتي"
-        description="إدارة جميع إعلاناتك في منصة بصمة"
-      />
+      <SEO title="إعلاناتي" description="إدارة جميع إعلاناتك في منصة بصمة" />
 
       <div
         style={{
@@ -284,7 +292,9 @@ const MyAnnouncementsPage = () => {
                 flexWrap: 'wrap',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+              >
                 <div
                   style={{
                     width: '48px',
@@ -339,8 +349,7 @@ const MyAnnouncementsPage = () => {
                       padding: '11px 20px',
                       borderRadius: '12px',
                       border: 'none',
-                      background:
-                        'linear-gradient(135deg, #E87A20, #F5A623)',
+                      background: 'linear-gradient(135deg, #E87A20, #F5A623)',
                       color: '#FFFFFF',
                       fontFamily: 'Cairo, sans-serif',
                       fontSize: '0.85rem',
@@ -361,9 +370,7 @@ const MyAnnouncementsPage = () => {
             </div>
           </motion.div>
 
-          {/* ============================================ */}
           {/* Stats */}
-          {/* ============================================ */}
           {stats && (
             <MyAnnouncementStats
               stats={stats}
@@ -372,7 +379,6 @@ const MyAnnouncementsPage = () => {
             />
           )}
 
-          {/* ============================================ */}
           {/* Filters */}
           <MyAnnouncementFilters
             search={search}
@@ -386,9 +392,7 @@ const MyAnnouncementsPage = () => {
             resultsCount={data.length}
           />
 
-          {/* ============================================ */}
           {/* Announcements Grid */}
-          {/* ============================================ */}
           <div ref={gridRef}>
             <AnimatePresence mode="wait">
               {loading && data.length === 0 ? (
@@ -398,7 +402,7 @@ const MyAnnouncementsPage = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <MyAnnouncementsSkeleton variant="grid" count={PER_PAGE / 2} />
+                  <MyAnnouncementsSkeleton variant="grid" count={6} />
                 </motion.div>
               ) : data.length === 0 ? (
                 <motion.div
@@ -546,14 +550,19 @@ const MyAnnouncementsPage = () => {
                   </div>
 
                   {/* ============================================ */}
-                  {/* Pagination */}
+                  {/* ✅ NEW: Shared Pagination */}
                   {/* ============================================ */}
                   {meta && (
-                    <MyAnnouncementsPagination
+                    <Pagination
                       currentPage={meta.current_page}
                       lastPage={meta.last_page}
+                      total={meta.total}
+                      perPage={perPage}
                       onPageChange={handlePageChange}
+                      onPerPageChange={handlePerPageChange}
                       isLoading={loading}
+                      perPageOptions={[6, 12, 24, 48]}
+                      itemLabel="إعلان"
                     />
                   )}
                 </motion.div>
@@ -563,9 +572,7 @@ const MyAnnouncementsPage = () => {
         </Container>
       </div>
 
-      {/* ============================================ */}
       {/* Modals */}
-      {/* ============================================ */}
       <DeleteConfirmModal
         isOpen={deleteModal.open}
         announcementTitle={deleteModal.title}

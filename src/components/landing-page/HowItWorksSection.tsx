@@ -9,6 +9,9 @@ const HowItWorksSection = () => {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<'offer' | 'request'>('offer');
 
+  // Dynamically change the request color for dark mode (lighter beige / cream)
+  const requestColor = isDark ? '#EAD8C7' : '#A06533';
+
   const flows = {
     offer: {
       id: 'offer',
@@ -43,7 +46,7 @@ const HowItWorksSection = () => {
     request: {
       id: 'request',
       title: 'أبحث عن خدمة أو سلعة',
-      color: '#A06533', // Enhanced richer warm bronze/mocha tone
+      color: requestColor, // Uses lighter beige in dark mode and warm bronze in light mode
       badgeText: 'تحتاج إلى مساعدة أو تبحث عن شيء محدد؟',
       ctaText: 'تصفح الإعلانات الآن',
       ctaLink: '/announcements',
@@ -146,7 +149,7 @@ const HowItWorksSection = () => {
                 whileTap={{ scale: 0.96 }}
                 style={{
                   backgroundColor: isActive ? flow.color : 'var(--bg-card)',
-                  color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
+                  color: isActive && isDark && tabKey === 'request' ? '#121212' : isActive ? '#FFFFFF' : 'var(--text-secondary)',
                   border: `2px solid ${isActive ? flow.color : 'var(--border-color)'}`,
                   padding: '10px 20px',
                   borderRadius: '30px',
@@ -491,7 +494,7 @@ const HowItWorksSection = () => {
                     to={currentFlow.ctaLink}
                     style={{
                       backgroundColor: currentFlow.color,
-                      color: '#FFFFFF',
+                      color: isDark && activeTab === 'request' ? '#121212' : '#FFFFFF',
                       padding: '11px 28px',
                       borderRadius: '30px',
                       fontSize: '0.9rem',

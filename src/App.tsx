@@ -38,10 +38,15 @@ import {
   AnnouncementSuccessPage,
   RequestFeaturedPage,
   FeaturedRequestsHistoryPage,
+  VerifyIdentityPage,
 } from './pages/user';
 
 // Admin pages
-import { AdminProfilePage } from './pages/admin';
+import {
+  AdminProfilePage,
+  AdminVerificationListPage,
+  AdminVerificationDetailPage,
+} from './pages/admin';
 
 // Error Pages
 import NotAuthorizedPage from './pages/NotAuthorizedPage';
@@ -136,6 +141,8 @@ function App() {
               element={<FeaturedRequestsHistoryPage />}
             />
 
+            <Route path="/user/verify-identity" element={<VerifyIdentityPage />} />
+
             {/* Future user routes will go here */}
           </Route>
         </Route>
@@ -144,6 +151,10 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={<AdminProfilePage />} />
+
+            <Route path="/admin/verification" element={<AdminVerificationListPage />} />
+            <Route path="/admin/verification/:id" element={<AdminVerificationDetailPage />} />
+
             {/* Future admin routes will go here */}
           </Route>
         </Route>

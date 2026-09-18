@@ -58,8 +58,3 @@ export { default as MyAnnouncementsSkeleton } from './skeletons/MyAnnouncementsS
 export { default as MyAnnouncementDetailsSkeleton } from './skeletons/MyAnnouncementDetailsSkeleton';
 export { default as FeaturedRequestPageSkeleton } from './skeletons/FeaturedRequestPageSkeleton';
 export { default as FeaturedRequestsHistorySkeleton } from './skeletons/FeaturedRequestsHistorySkeleton';
-
-// ============================================
-// Pagination
-// ============================================
-export { default as MyAnnouncementsPagination } from './pagination/MyAnnouncementsPagination';
