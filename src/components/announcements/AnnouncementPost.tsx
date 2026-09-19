@@ -21,13 +21,20 @@ import { useTheme } from '../../context/ThemeContext';
 import type { Announcement } from '../../types';
 import { motion } from 'framer-motion';
 import LikeButton from './LikeButton';
-import { isOwnAnnouncement, getOwnBadgeStyle } from '../../utils/announcementHelpers';
+import {
+  isOwnAnnouncement,
+  getOwnBadgeStyle,
+} from '../../utils/announcementHelpers';
 
 interface AnnouncementPostProps {
   announcement: Announcement;
   isLoggedIn?: boolean;
   viewMode?: 'list' | 'grid';
 }
+
+// ✅ استخدام VITE_STORAGE_URL مع fallback للتطوير
+const STORAGE_URL =
+  import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
 
 const AnnouncementPost = ({
   announcement,
@@ -136,6 +143,7 @@ const AnnouncementPost = ({
     return type === 'offer' ? 'var(--success)' : 'var(--error)';
   };
 
+  // ✅ Privacy Labels
   const getPrivacyLabel = (privacyType: string) => {
     const map: Record<string, string> = {
       public: 'عام - للجميع',
@@ -146,6 +154,7 @@ const AnnouncementPost = ({
     return map[privacyType] || privacyType;
   };
 
+  // ✅ Privacy Colors
   const getPrivacyColor = (privacyType: string) => {
     const map: Record<string, string> = {
       public: 'var(--success)',
@@ -164,24 +173,29 @@ const AnnouncementPost = ({
     });
   };
 
+  // ✅ Use STORAGE_URL from env
   const coverImage =
     announcement.images && announcement.images.length > 0
-      ? `http://localhost:8000/storage/${announcement.images[0].image_path}`
+      ? `${STORAGE_URL}/${announcement.images[0].image_path}`
       : '/placeholder-image.png';
 
+  // ✅ Use STORAGE_URL in getUserAvatar
   const getUserAvatar = (): string | null => {
     const profileImage = announcement.user?.profile_image;
     if (!profileImage) return null;
-    if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
+    if (
+      profileImage.startsWith('http://') ||
+      profileImage.startsWith('https://')
+    ) {
       return profileImage;
     }
     if (profileImage.startsWith('storage/')) {
-      return `http://localhost:8000/${profileImage}`;
+      return `${STORAGE_URL}/${profileImage.replace('storage/', '')}`;
     }
     if (profileImage.startsWith('profile/')) {
-      return `http://localhost:8000/storage/${profileImage}`;
+      return `${STORAGE_URL}/${profileImage}`;
     }
-    return `http://localhost:8000/storage/${profileImage}`;
+    return `${STORAGE_URL}/${profileImage}`;
   };
 
   const userAvatar = getUserAvatar();
@@ -206,12 +220,17 @@ const AnnouncementPost = ({
           style={{
             backgroundColor: 'var(--bg-card)',
             border: isOwn
-              ? `1.5px solid ${isDark ? 'rgba(32,201,224,0.5)' : 'rgba(23,162,184,0.35)'}`
+              ? `1.5px solid ${
+                  isDark
+                    ? 'rgba(32,201,224,0.5)'
+                    : 'rgba(23,162,184,0.35)'
+                }`
               : '1px solid var(--border-color)',
             borderRadius: '16px',
             overflow: 'hidden',
             boxShadow: '0 2px 8px var(--shadow-sm)',
-            transition: 'box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease',
+            transition:
+              'box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease',
             display: 'flex',
             flexDirection: 'row',
             minHeight: '220px',
@@ -254,7 +273,7 @@ const AnnouncementPost = ({
               }}
             />
 
-            {/* ✅ NEW: "إعلانك" badge — top-left */}
+            {/* ✅ "إعلانك" badge — top-left */}
             {isOwn && (
               <div
                 style={{
@@ -286,7 +305,14 @@ const AnnouncementPost = ({
             )}
 
             {/* Privacy badge — top-right */}
-            <div style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 5 }}>
+            <div
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                zIndex: 5,
+              }}
+            >
               <span
                 style={{
                   backgroundColor: getPrivacyColor(announcement.privacy_type),
@@ -308,7 +334,14 @@ const AnnouncementPost = ({
             </div>
 
             {announcement.pinned_at && (
-              <div style={{ position: 'absolute', bottom: '8px', left: '8px', zIndex: 5 }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '8px',
+                  left: '8px',
+                  zIndex: 5,
+                }}
+              >
                 <span
                   style={{
                     backgroundColor: 'var(--primary-orange)',
@@ -363,8 +396,8 @@ const AnnouncementPost = ({
                     announcement.price_type === 'free'
                       ? 'var(--success)'
                       : announcement.price_type === 'paid'
-                      ? 'var(--primary-orange)'
-                      : '#9C27B0',
+                        ? 'var(--primary-orange)'
+                        : '#9C27B0',
                   color: '#FFFFFF',
                   padding: '3px 10px',
                   borderRadius: '6px',
@@ -445,7 +478,14 @@ const AnnouncementPost = ({
                 border: '1px solid var(--border-color)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  minWidth: 0,
+                }}
+              >
                 <div
                   style={{
                     width: '32px',
@@ -553,7 +593,8 @@ const AnnouncementPost = ({
                   flexShrink: 0,
                 }}
               >
-                {announcement.user?.total_ratings && announcement.user.total_ratings > 0 ? (
+                {announcement.user?.total_ratings &&
+                announcement.user.total_ratings > 0 ? (
                   <>
                     <FaStar size={12} color="#F5A623" />
                     <span
@@ -561,7 +602,7 @@ const AnnouncementPost = ({
                         color: 'var(--text-secondary)',
                         fontSize: '0.75rem',
                         fontWeight: 700,
-                        fontFamily: "system-ui, -apple-system, sans-serif",
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
                         fontVariantNumeric: 'tabular-nums',
                       }}
                     >
@@ -736,7 +777,8 @@ const AnnouncementPost = ({
                   justifyContent: 'center',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
+                  e.currentTarget.style.backgroundColor =
+                    'var(--primary-orange)';
                   e.currentTarget.style.borderColor = 'var(--primary-orange)';
                   e.currentTarget.style.color = '#FFFFFF';
                 }}
@@ -836,7 +878,8 @@ const AnnouncementPost = ({
                     fontSize: '0.65rem',
                     fontWeight: 600,
                     transition: 'all 0.3s ease',
-                    borderWidth: contactConfig.variant === 'warning' ? '0px' : '1.5px',
+                    borderWidth:
+                      contactConfig.variant === 'warning' ? '0px' : '1.5px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
@@ -847,8 +890,10 @@ const AnnouncementPost = ({
                     if (contactConfig.variant === 'warning') {
                       e.currentTarget.style.backgroundColor = '#E0A800';
                     } else {
-                      e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
-                      e.currentTarget.style.borderColor = 'var(--primary-orange)';
+                      e.currentTarget.style.backgroundColor =
+                        'var(--primary-orange)';
+                      e.currentTarget.style.borderColor =
+                        'var(--primary-orange)';
                       e.currentTarget.style.color = '#FFFFFF';
                     }
                   }}
@@ -887,12 +932,15 @@ const AnnouncementPost = ({
         style={{
           backgroundColor: 'var(--bg-card)',
           border: isOwn
-            ? `1.5px solid ${isDark ? 'rgba(32,201,224,0.5)' : 'rgba(23,162,184,0.35)'}`
+            ? `1.5px solid ${
+                isDark ? 'rgba(32,201,224,0.5)' : 'rgba(23,162,184,0.35)'
+              }`
             : '1px solid var(--border-color)',
           borderRadius: '16px',
           overflow: 'hidden',
           boxShadow: '0 2px 8px var(--shadow-sm)',
-          transition: 'box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease',
+          transition:
+            'box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -934,7 +982,7 @@ const AnnouncementPost = ({
             }}
           />
 
-          {/* ✅ NEW: "إعلانك" badge — top-left */}
+          {/* ✅ "إعلانك" badge — top-left */}
           {isOwn && (
             <div
               style={{
@@ -965,7 +1013,14 @@ const AnnouncementPost = ({
             </div>
           )}
 
-          <div style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 5 }}>
+          <div
+            style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              zIndex: 5,
+            }}
+          >
             <span
               style={{
                 backgroundColor: getPrivacyColor(announcement.privacy_type),
@@ -987,7 +1042,14 @@ const AnnouncementPost = ({
           </div>
 
           {announcement.pinned_at && (
-            <div style={{ position: 'absolute', bottom: '8px', left: '8px', zIndex: 5 }}>
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '8px',
+                left: '8px',
+                zIndex: 5,
+              }}
+            >
               <span
                 style={{
                   backgroundColor: 'var(--primary-orange)',
@@ -1042,8 +1104,8 @@ const AnnouncementPost = ({
                   announcement.price_type === 'free'
                     ? 'var(--success)'
                     : announcement.price_type === 'paid'
-                    ? 'var(--primary-orange)'
-                    : '#9C27B0',
+                      ? 'var(--primary-orange)'
+                      : '#9C27B0',
                 color: '#FFFFFF',
                 padding: '3px 10px',
                 borderRadius: '6px',
@@ -1228,7 +1290,8 @@ const AnnouncementPost = ({
                 flexShrink: 0,
               }}
             >
-              {announcement.user?.total_ratings && announcement.user.total_ratings > 0 ? (
+              {announcement.user?.total_ratings &&
+              announcement.user.total_ratings > 0 ? (
                 <>
                   <FaStar size={10} color="#F5A623" />
                   <span
@@ -1236,7 +1299,7 @@ const AnnouncementPost = ({
                       color: 'var(--text-secondary)',
                       fontSize: '0.65rem',
                       fontWeight: 700,
-                      fontFamily: "system-ui, sans-serif",
+                      fontFamily: 'system-ui, sans-serif',
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
@@ -1491,7 +1554,8 @@ const AnnouncementPost = ({
                   fontSize: '0.55rem',
                   fontWeight: 600,
                   transition: 'all 0.3s ease',
-                  borderWidth: contactConfig.variant === 'warning' ? '0px' : '1.5px',
+                  borderWidth:
+                    contactConfig.variant === 'warning' ? '0px' : '1.5px',
                   flex: 1,
                   display: 'flex',
                   alignItems: 'center',
@@ -1502,8 +1566,10 @@ const AnnouncementPost = ({
                   if (contactConfig.variant === 'warning') {
                     e.currentTarget.style.backgroundColor = '#E0A800';
                   } else {
-                    e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
-                    e.currentTarget.style.borderColor = 'var(--primary-orange)';
+                    e.currentTarget.style.backgroundColor =
+                      'var(--primary-orange)';
+                    e.currentTarget.style.borderColor =
+                      'var(--primary-orange)';
                     e.currentTarget.style.color = '#FFFFFF';
                   }
                 }}
