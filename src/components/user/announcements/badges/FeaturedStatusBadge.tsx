@@ -5,9 +5,10 @@ import {
   FaHourglassHalf,
 } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
+import type { FeaturedRequestStatus } from '../../../../types';
 
 interface FeaturedStatusBadgeProps {
-  status: 'pending' | 'approved' | 'rejected';
+  status: FeaturedRequestStatus;
   size?: 'sm' | 'md' | 'lg';
   animated?: boolean;
 }
@@ -30,9 +31,9 @@ const FeaturedStatusBadge = ({
       case 'pending':
         return {
           label: 'قيد المراجعة',
-          color: '#E87A20',
-          bg: 'rgba(232, 122, 32, 0.12)',
-          border: 'rgba(232, 122, 32, 0.3)',
+          color: '#FFB800',
+          bg: 'rgba(255, 184, 0, 0.15)',
+          border: 'rgba(255, 184, 0, 0.4)',
           Icon: FaHourglassHalf,
         };
       case 'approved':
@@ -40,7 +41,7 @@ const FeaturedStatusBadge = ({
           label: 'تمت الموافقة',
           color: '#28A745',
           bg: 'rgba(40, 167, 69, 0.12)',
-          border: 'rgba(40, 167, 69, 0.3)',
+          border: 'rgba(40, 167, 69, 0.35)',
           Icon: FaCheckCircle,
         };
       case 'rejected':
@@ -48,7 +49,7 @@ const FeaturedStatusBadge = ({
           label: 'مرفوض',
           color: '#DC3545',
           bg: 'rgba(220, 53, 69, 0.12)',
-          border: 'rgba(220, 53, 69, 0.3)',
+          border: 'rgba(220, 53, 69, 0.35)',
           Icon: FaTimesCircle,
         };
     }
@@ -59,39 +60,37 @@ const FeaturedStatusBadge = ({
 
   const sizes = {
     sm: {
-      padding: '3px 10px',
+      padding: '3px 9px',
       fontSize: '0.65rem',
       iconSize: 10,
       gap: '4px',
       borderRadius: '8px',
     },
     md: {
-      padding: '4px 12px',
-      fontSize: '0.72rem',
-      iconSize: 11,
-      gap: '5px',
+      padding: '5px 14px',
+      fontSize: '0.75rem',
+      iconSize: 12,
+      gap: '6px',
       borderRadius: '10px',
     },
     lg: {
-      padding: '6px 16px',
-      fontSize: '0.8rem',
-      iconSize: 13,
-      gap: '6px',
+      padding: '7px 18px',
+      fontSize: '0.82rem',
+      iconSize: 14,
+      gap: '8px',
       borderRadius: '12px',
     },
   };
 
   const sizeConfig = sizes[size];
-
-  // Animated pulse for pending status
   const shouldAnimate = animated && status === 'pending';
 
   return (
     <motion.span
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 0, scale: 0.95 }}
       animate={{
         opacity: 1,
-        scale: shouldAnimate ? [1, 1.03, 1] : 1,
+        scale: shouldAnimate ? [1, 1.02, 1] : 1,
       }}
       transition={{
         opacity: { duration: 0.2 },
@@ -109,13 +108,14 @@ const FeaturedStatusBadge = ({
         border: `1px solid ${config.border}`,
         borderRadius: sizeConfig.borderRadius,
         fontSize: sizeConfig.fontSize,
-        fontWeight: 700,
+        fontWeight: 800,
         fontFamily: 'Cairo, sans-serif',
         lineHeight: 1,
         whiteSpace: 'nowrap',
+        flexShrink: 0,
+        boxShadow: `0 2px 6px ${config.bg}`,
       }}
     >
-      {/* Hourglass icon spins for pending */}
       {shouldAnimate ? (
         <motion.span
           animate={{ rotate: 360 }}

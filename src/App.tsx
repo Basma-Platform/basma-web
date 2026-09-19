@@ -6,6 +6,7 @@ import AuthLayout from './components/layouts/AuthLayout';
 import MainLayout from './components/layouts/MainLayout';
 import PrivateRoute from './routes/PrivateRoute';
 import NotificationsPage from './pages/NotificationsPage';
+import PublicUserProfilePage from './pages/PublicUserProfilePage';
 
 // Public Pages
 import HomePage from './pages/HomePage';
@@ -39,6 +40,8 @@ import {
   RequestFeaturedPage,
   FeaturedRequestsHistoryPage,
   VerifyIdentityPage,
+  MyReviewsPage,
+  FeaturedRequestDetailPage,
 } from './pages/user';
 
 // Admin pages
@@ -46,6 +49,9 @@ import {
   AdminProfilePage,
   AdminVerificationListPage,
   AdminVerificationDetailPage,
+  AdminRatingsListPage,
+  AdminFeaturedRequestsPage,
+  AdminFeaturedRequestDetailPage,
 } from './pages/admin';
 
 // Error Pages
@@ -59,7 +65,7 @@ function App() {
       <ScrollToTop />
 
       {/* THE TOAST CONTAINER */}
-      <ToastContainer 
+      <ToastContainer
         position="bottom-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -72,41 +78,73 @@ function App() {
       />
 
       <Routes>
+        {/* ============================================ */}
         {/* Public Routes - مع Navbar + Footer */}
+        {/* ============================================ */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/announcements" element={<AnnouncementsPage />} />
-          <Route path="/announcements/:id" element={<AnnouncementDetailsPage />} />
+          <Route
+            path="/announcements/:id"
+            element={<AnnouncementDetailsPage />}
+          />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
         </Route>
 
+        {/* ============================================ */}
         {/* Auth Routes - بدون Navbar + Footer */}
+        {/* ============================================ */}
         <Route element={<AuthLayout />}>
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/verify-email/:id/:hash" element={<VerifyEmailPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+          <Route
+            path="/reset-password/:token"
+            element={<ResetPasswordPage />}
+          />
         </Route>
 
-        {/* Protected Routes - same for all roles */}
+        {/* ============================================ */}
+        {/* Public User Profile - logged-in users only, but with PublicLayout */}
+        {/* ============================================ */}
+        <Route element={<PrivateRoute roles={['user', 'admin']} />}>
+          <Route element={<PublicLayout />}>
+            <Route path="/users/:id" element={<PublicUserProfilePage />} />
+          </Route>
+        </Route>
+
+        {/* ============================================ */}
+        {/* Protected Routes - Notifications */}
+        {/* ============================================ */}
         <Route element={<PrivateRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/notifications" element={<NotificationsPage />} />
           </Route>
         </Route>
 
-        {/* Protected Routes - with MainLayout (Dashboard) */}
+        {/* ============================================ */}
+        {/* Protected Routes - User */}
+        {/* ============================================ */}
         <Route element={<PrivateRoute roles={['user']} />}>
           <Route element={<MainLayout />}>
             <Route path="/user/dashboard" element={<UserDashboard />} />
             <Route path="/user/profile" element={<UserProfilePage />} />
-            
+
+            {/* Verification (KYC) */}
+            <Route
+              path="/user/verify-identity"
+              element={<VerifyIdentityPage />}
+            />
+
+            {/* Reviews Management */}
+            <Route path="/user/my-reviews" element={<MyReviewsPage />} />
+
             {/* Announcements */}
             <Route
               path="/user/my-announcements"
@@ -132,34 +170,60 @@ function App() {
               path="/user/announcements/:id/feature"
               element={<RequestFeaturedPage />}
             />
-            <Route
-              path="/user/announcements/:id/featured-status"
-              element={<MyAnnouncementDetailsPage />}
-            />
+
+            {/* Featured Requests */}
             <Route
               path="/user/featured-requests"
               element={<FeaturedRequestsHistoryPage />}
             />
-
-            <Route path="/user/verify-identity" element={<VerifyIdentityPage />} />
-
-            {/* Future user routes will go here */}
+            <Route
+              path="/user/featured-requests/:id"
+              element={<FeaturedRequestDetailPage />}
+            />
           </Route>
         </Route>
 
+        {/* ============================================ */}
+        {/* Protected Routes - Admin */}
+        {/* ============================================ */}
         <Route element={<PrivateRoute roles={['admin']} />}>
           <Route element={<MainLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={<AdminProfilePage />} />
 
-            <Route path="/admin/verification" element={<AdminVerificationListPage />} />
-            <Route path="/admin/verification/:id" element={<AdminVerificationDetailPage />} />
+            {/* Verification Management (KYC) */}
+            <Route
+              path="/admin/verification"
+              element={<AdminVerificationListPage />}
+            />
+            <Route
+              path="/admin/verification/:id"
+              element={<AdminVerificationDetailPage />}
+            />
+
+            {/* Ratings Management */}
+            <Route
+              path="/admin/ratings"
+              element={<AdminRatingsListPage />}
+            />
+
+            {/* Featured Requests Management */}
+            <Route
+              path="/admin/featured-requests"
+              element={<AdminFeaturedRequestsPage />}
+            />
+            <Route
+              path="/admin/featured-requests/:id"
+              element={<AdminFeaturedRequestDetailPage />}
+            />
 
             {/* Future admin routes will go here */}
           </Route>
         </Route>
 
+        {/* ============================================ */}
         {/* Error Pages */}
+        {/* ============================================ */}
         <Route path="/403" element={<NotAuthorizedPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

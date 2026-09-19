@@ -391,3 +391,33 @@ select option:first-child {
   background-color: var(--primary-orange);
   color: #FFFFFF;
 }
+
+/* ============================================
+   Admin Ratings Grid — Responsive 3-column
+   ============================================ */
+.admin-ratings-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+  width: 100%;
+  min-width: 0;
+  align-items: stretch; /* ضمان تساوي الارتفاعات وعدم تداخل العناصر */
+}
+
+@media (min-width: 640px) {
+  .admin-ratings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-ratings-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1600px) {
+  .admin-ratings-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

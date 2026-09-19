@@ -1,16 +1,28 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  FaHome, FaBullhorn, FaStar,
-  FaUser, FaCog, FaSignOutAlt, FaShieldAlt,
-  FaThumbtack, FaFlag, FaUsers, FaChartBar,
-  FaCheckCircle, FaPlus, FaMoon, FaSun,
+  FaHome,
+  FaBullhorn,
+  FaStar,
+  FaUser,
+  FaCog,
+  FaSignOutAlt,
+  FaShieldAlt,
+  FaThumbtack,
+  FaFlag,
+  FaUsers,
+  FaChartBar,
+  FaCheckCircle,
+  FaPlus,
+  FaMoon,
+  FaSun,
   FaCommentDots,
 } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../context/ThemeContext';
 import { useUserAnnouncements } from '../../../hooks/useUserAnnouncements';
-import { useAdminVerifications } from '../../../hooks/useAdminVerifications';
+import { useAdminFeaturedRequests } from '../../../hooks/useAdminFeaturedRequests';
+import { getPendingBadgeCount } from '../../../utils/featuredHelpers';
 import logo from '../../../assets/logo.png';
 import { motion } from 'framer-motion';
 
@@ -20,7 +32,24 @@ interface DashboardSidebarProps {
   isMobile?: boolean;
 }
 
-const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSidebarProps) => {
+/**
+ * Helper: check if the current path should mark the given base path as active.
+ * - Exact match → active
+ * - Any sub-route (`base/anything`) → active
+ *
+ * This is what keeps sidebar items highlighted when a user navigates into
+ * any nested page (e.g. `/admin/featured-requests/42` keeps "طلبات التمييز" active).
+ */
+const isPathActive = (currentPath: string, basePath: string): boolean => {
+  if (currentPath === basePath) return true;
+  return currentPath.startsWith(basePath + '/');
+};
+
+const DashboardSidebar = ({
+  isOpen,
+  onClose,
+  isMobile = false,
+}: DashboardSidebarProps) => {
   const { user, logout } = useAuth();
   const { isDark, toggleDarkMode } = useTheme();
   const location = useLocation();
@@ -28,7 +57,7 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
   const isAdmin = user?.role === 'admin';
 
   // ============================================
-  // Fetch announcement count for badge
+  // Announcement count badge (user side)
   // ============================================
   const [announcementCount, setAnnouncementCount] = useState<number>(0);
   const { stats, fetchMyAnnouncements } = useUserAnnouncements();
@@ -36,7 +65,7 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
   useEffect(() => {
     if (!isAdmin && user) {
       fetchMyAnnouncements({ per_page: 1 }).catch(() => {
-        // Silent fail — badge will remain 0
+        // Silent fail — badge stays at 0
       });
     }
   }, [isAdmin, user, fetchMyAnnouncements]);
@@ -47,43 +76,47 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
     }
   }, [stats]);
 
-  // Fetch number of Verification Request for Admin
-  const { stats: verificationStats, fetchRequests: fetchVerificationRequests } = useAdminVerifications();
+  // ============================================
+  // Featured requests pending badge (admin side)
+  // ============================================
+  const { stats: featuredStats, fetchStats: fetchFeaturedStats } =
+    useAdminFeaturedRequests();
 
   useEffect(() => {
     if (isAdmin) {
-      fetchVerificationRequests({ status: 'pending', per_page: 1 }).catch(() => {
-        /* silent */
+      fetchFeaturedStats().catch(() => {
+        // Silent fail — badge is optional
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  }, [isAdmin, fetchFeaturedStats]);
 
-  // ✅ Admin Links
+  // ============================================
+  // Admin Links
+  // ============================================
   const adminNavItems = [
     {
       icon: <FaChartBar />,
       label: 'لوحة التحكم',
       path: '/admin/dashboard',
-      isActive: location.pathname === '/admin/dashboard',
+      isActive: isPathActive(location.pathname, '/admin/dashboard'),
     },
     {
       icon: <FaUsers />,
       label: 'المستخدمين',
       path: '/admin/users',
-      isActive: location.pathname === '/admin/users',
+      isActive: isPathActive(location.pathname, '/admin/users'),
     },
     {
       icon: <FaBullhorn />,
       label: 'الإعلانات',
       path: '/admin/announcements',
-      isActive: location.pathname === '/admin/announcements',
+      isActive: isPathActive(location.pathname, '/admin/announcements'),
     },
     {
       icon: <FaFlag />,
       label: 'البلاغات',
       path: '/admin/reports',
-      isActive: location.pathname === '/admin/reports',
+      isActive: isPathActive(location.pathname, '/admin/reports'),
       badge: 23,
       badgeColor: '#DC3545',
     },
@@ -91,50 +124,47 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
       icon: <FaShieldAlt />,
       label: 'طلبات التحقق',
       path: '/admin/verification',
-      isActive:
-        location.pathname === '/admin/verification' ||
-        location.pathname.startsWith('/admin/verification/'),
-      badge: verificationStats?.pending || undefined,
+      isActive: isPathActive(location.pathname, '/admin/verification'),
+      badge: 47,
       badgeColor: '#17A2B8',
     },
     {
       icon: <FaThumbtack />,
-      label: 'الإعلانات المميزة',
+      label: 'طلبات التمييز',
       path: '/admin/featured-requests',
-      isActive: location.pathname === '/admin/featured-requests',
+      isActive: isPathActive(location.pathname, '/admin/featured-requests'),
+      badge: getPendingBadgeCount(featuredStats),
+      badgeColor: '#FFC107',
     },
     {
       icon: <FaUser />,
       label: 'الملف الشخصي',
       path: '/admin/profile',
-      isActive: location.pathname === '/admin/profile',
+      isActive: isPathActive(location.pathname, '/admin/profile'),
     },
     {
       icon: <FaCog />,
       label: 'الإعدادات',
       path: '/admin/settings',
-      isActive: location.pathname === '/admin/settings',
+      isActive: isPathActive(location.pathname, '/admin/settings'),
     },
   ];
 
-  // ✅ User Links
-  // ✅ FIX 1: Separate "My Announcements" active state from "Add Announcement"
-  //    - "My Announcements" should be active ONLY on /user/my-announcements
-  //    - "Add Announcement" should be active ONLY on /user/announcements/create
-  //    - Both should NOT be highlighted at the same time
+  // ============================================
+  // User Links
+  // ============================================
   const userNavItems = [
     {
       icon: <FaHome />,
       label: 'لوحة التحكم',
       path: '/user/dashboard',
-      isActive: location.pathname === '/user/dashboard',
+      isActive: isPathActive(location.pathname, '/user/dashboard'),
     },
     {
       icon: <FaBullhorn />,
       label: 'إعلاناتي',
       path: '/user/my-announcements',
-      // ✅ Active ONLY on listing page
-      isActive: location.pathname === '/user/my-announcements',
+      isActive: isPathActive(location.pathname, '/user/my-announcements'),
       badge: announcementCount > 0 ? announcementCount : undefined,
       badgeColor: '#E87A20',
     },
@@ -142,39 +172,37 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
       icon: <FaPlus />,
       label: 'إضافة إعلان',
       path: '/user/announcements/create',
-      // ✅ Active ONLY on create page
-      isActive: location.pathname === '/user/announcements/create',
+      isActive: isPathActive(location.pathname, '/user/announcements/create'),
     },
     {
       icon: <FaStar />,
       label: 'طلبات التمييز',
       path: '/user/featured-requests',
-      isActive: location.pathname === '/user/featured-requests',
+      isActive: isPathActive(location.pathname, '/user/featured-requests'),
     },
-    // ✅ FIX 2: New link — My Reviews (under Featured Requests)
     {
       icon: <FaCommentDots />,
       label: 'تقييماتي',
       path: '/user/my-reviews',
-      isActive: location.pathname === '/user/my-reviews',
+      isActive: isPathActive(location.pathname, '/user/my-reviews'),
     },
     {
       icon: <FaShieldAlt />,
       label: 'التحقق من الهوية',
       path: '/user/verify-identity',
-      isActive: location.pathname === '/user/verify-identity',
+      isActive: isPathActive(location.pathname, '/user/verify-identity'),
     },
     {
       icon: <FaUser />,
       label: 'الملف الشخصي',
       path: '/user/profile',
-      isActive: location.pathname === '/user/profile',
+      isActive: isPathActive(location.pathname, '/user/profile'),
     },
     {
       icon: <FaCog />,
       label: 'الإعدادات',
       path: '/user/settings',
-      isActive: location.pathname === '/user/settings',
+      isActive: isPathActive(location.pathname, '/user/settings'),
     },
   ];
 
@@ -244,7 +272,12 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
       >
         <Link
           to="/"
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            textDecoration: 'none',
+          }}
         >
           <motion.img
             src={logo}
@@ -364,7 +397,14 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
           >
             {user?.name || 'مستخدم'}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'wrap',
+            }}
+          >
             <span
               style={{
                 color: 'var(--text-muted)',
@@ -406,9 +446,22 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '12px 12px', overflowY: 'auto', overflowX: 'hidden' }}>
+      <nav
+        style={{
+          flex: 1,
+          padding: '12px 12px',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+        }}
+      >
         {navItems.map((item, index) => (
-          <motion.div key={index} custom={index} initial="hidden" animate="visible" variants={itemVariants}>
+          <motion.div
+            key={index}
+            custom={index}
+            initial="hidden"
+            animate="visible"
+            variants={itemVariants}
+          >
             <Link
               to={item.path}
               onClick={onClose}
@@ -418,8 +471,12 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
                 gap: '12px',
                 padding: '10px 14px',
                 borderRadius: '10px',
-                backgroundColor: item.isActive ? 'rgba(232,122,32,0.12)' : 'transparent',
-                color: item.isActive ? 'var(--primary-orange)' : 'var(--text-muted)',
+                backgroundColor: item.isActive
+                  ? 'rgba(232,122,32,0.12)'
+                  : 'transparent',
+                color: item.isActive
+                  ? 'var(--primary-orange)'
+                  : 'var(--text-muted)',
                 textDecoration: 'none',
                 fontFamily: 'Cairo, sans-serif',
                 fontSize: '0.85rem',
@@ -427,11 +484,14 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
                 transition: 'all 0.2s ease',
                 marginBottom: '2px',
                 position: 'relative',
-                borderRight: item.isActive ? '3px solid var(--primary-orange)' : '3px solid transparent',
+                borderRight: item.isActive
+                  ? '3px solid var(--primary-orange)'
+                  : '3px solid transparent',
               }}
               onMouseEnter={(e) => {
                 if (!item.isActive) {
-                  e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.06)';
+                  e.currentTarget.style.backgroundColor =
+                    'rgba(232,122,32,0.06)';
                   e.currentTarget.style.color = 'var(--primary-orange)';
                 }
               }}
@@ -442,33 +502,48 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
                 }
               }}
             >
-              <span style={{ fontSize: '1rem', width: '20px', textAlign: 'center', flexShrink: 0 }}>
+              <span
+                style={{
+                  fontSize: '1rem',
+                  width: '20px',
+                  textAlign: 'center',
+                  flexShrink: 0,
+                }}
+              >
                 {item.icon}
               </span>
               <span style={{ flex: 1 }}>{item.label}</span>
-              {item.badge !== undefined && item.badge !== null && item.badge !== 0 && (
-                <span
-                  style={{
-                    backgroundColor: item.badgeColor,
-                    color: '#FFFFFF',
-                    fontSize: '0.6rem',
-                    padding: '1px 8px',
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    minWidth: '20px',
-                    textAlign: 'center',
-                  }}
-                >
-                  {item.badge}
-                </span>
-              )}
+              {item.badge !== undefined &&
+                item.badge !== null &&
+                item.badge !== 0 && (
+                  <span
+                    style={{
+                      backgroundColor: item.badgeColor,
+                      color: '#FFFFFF',
+                      fontSize: '0.6rem',
+                      padding: '1px 8px',
+                      borderRadius: '12px',
+                      fontWeight: 600,
+                      minWidth: '20px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
             </Link>
           </motion.div>
         ))}
       </nav>
 
       {/* Footer */}
-      <div style={{ padding: '12px 16px 16px', borderTop: '1px solid var(--border-color)', flexShrink: 0 }}>
+      <div
+        style={{
+          padding: '12px 16px 16px',
+          borderTop: '1px solid var(--border-color)',
+          flexShrink: 0,
+        }}
+      >
         <motion.button
           onClick={toggleDarkMode}
           whileHover={{ scale: 1.02 }}
@@ -497,7 +572,9 @@ const DashboardSidebar = ({ isOpen, onClose, isMobile = false }: DashboardSideba
             e.currentTarget.style.color = 'var(--text-muted)';
           }}
         >
-          <span style={{ fontSize: '1rem' }}>{isDark ? <FaSun /> : <FaMoon />}</span>
+          <span style={{ fontSize: '1rem' }}>
+            {isDark ? <FaSun /> : <FaMoon />}
+          </span>
           {isDark ? 'الوضع الفاتح' : 'الوضع الداكن'}
         </motion.button>
         <motion.button

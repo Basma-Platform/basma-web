@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
-import { FaEye, FaHeart, FaMapMarkerAlt, FaUserCheck, FaStar } from 'react-icons/fa';
+import { FaEye, FaHeart, FaMapMarkerAlt, FaUserCheck, FaStar, FaUser } from 'react-icons/fa';
+import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../context/ThemeContext';
 import type { Announcement } from '../../types';
+import { isOwnAnnouncement, getOwnBadgeStyle } from '../../utils/announcementHelpers';
 
 interface FeaturedCardProps {
   announcement: Announcement;
@@ -8,18 +11,35 @@ interface FeaturedCardProps {
 }
 
 const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
+  const { user } = useAuth();
+  const { isDark } = useTheme();
+
+  // ✅ Owner check
+  const isOwn = isOwnAnnouncement(announcement, user?.id);
+  const ownBadgeStyle = getOwnBadgeStyle(isDark);
+
+  // ✅ Real rating values
+  const ratingValue = announcement.user?.average_rating ?? 0;
+  const ratingCount = announcement.user?.total_ratings ?? 0;
+  const hasRating = ratingCount > 0;
+
   const getPriceLabel = () => {
     switch (announcement.price_type) {
-      case 'free': return 'مجاني';
-      case 'paid': return `${announcement.price} شيكل`;
-      case 'barter': return 'مقايضة';
-      default: return 'مجاني';
+      case 'free':
+        return 'مجاني';
+      case 'paid':
+        return `${announcement.price} شيكل`;
+      case 'barter':
+        return 'مقايضة';
+      default:
+        return 'مجاني';
     }
   };
 
-  const coverImage = announcement.images && announcement.images.length > 0
-    ? `http://localhost:8000/storage/${announcement.images[0].image_path}`
-    : '/placeholder-image.png';
+  const coverImage =
+    announcement.images && announcement.images.length > 0
+      ? `http://localhost:8000/storage/${announcement.images[0].image_path}`
+      : '/placeholder-image.png';
 
   return (
     <Link
@@ -39,7 +59,9 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
           borderRadius: '20px',
           overflow: 'hidden',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12)',
-          border: '1.5px solid rgba(255, 215, 0, 0.5)',
+          border: isOwn
+            ? `1.5px solid ${isDark ? 'rgba(32,201,224,0.6)' : 'rgba(23,162,184,0.45)'}`
+            : '1.5px solid rgba(255, 215, 0, 0.5)',
           transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
           position: 'relative',
           height: '100%',
@@ -50,16 +72,26 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-          e.currentTarget.style.boxShadow = '0 18px 45px rgba(232, 122, 32, 0.25)';
-          e.currentTarget.style.borderColor = '#E87A20';
+          e.currentTarget.style.boxShadow = isOwn
+            ? '0 18px 45px rgba(23, 162, 184, 0.3)'
+            : '0 18px 45px rgba(232, 122, 32, 0.25)';
+          e.currentTarget.style.borderColor = isOwn
+            ? isDark
+              ? '#20C9E0'
+              : '#17A2B8'
+            : '#E87A20';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(0) scale(1)';
           e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.12)';
-          e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.5)';
+          e.currentTarget.style.borderColor = isOwn
+            ? isDark
+              ? 'rgba(32,201,224,0.6)'
+              : 'rgba(23,162,184,0.45)'
+            : 'rgba(255, 215, 0, 0.5)';
         }}
       >
-        {/* Featured Badge */}
+        {/* Featured Badge — top-right */}
         <div
           style={{
             position: 'absolute',
@@ -83,7 +115,38 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
           <FaStar size={10} color="#FFFFFF" /> مميز
         </div>
 
-        {/* Image Container */}
+        {/* ✅ NEW: "إعلانك" badge — top-left */}
+        {isOwn && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '12px',
+              left: '12px',
+              zIndex: 6,
+            }}
+          >
+            <span
+              style={{
+                ...ownBadgeStyle,
+                padding: '4px 11px',
+                borderRadius: '8px',
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                fontFamily: 'Cairo, sans-serif',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              <FaUser size={8} />
+              إعلانك
+            </span>
+          </div>
+        )}
+
+        {/* Image */}
         <div
           style={{
             width: '100%',
@@ -119,7 +182,7 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
           />
         </div>
 
-        {/* Card Content */}
+        {/* Content */}
         <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
           {/* User Info */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -165,13 +228,37 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
+                flex: 1,
+                minWidth: 0,
               }}
             >
               {announcement.user?.name || 'مستخدم'}
               {announcement.user?.is_verified && (
-                <FaUserCheck size={11} color="#28A745" />
+                <FaUserCheck size={11} color="#28A745" style={{ flexShrink: 0 }} />
               )}
             </span>
+
+            {hasRating && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  color: '#F5A623',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  fontVariantNumeric: 'tabular-nums',
+                  flexShrink: 0,
+                  padding: '2px 6px',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(255, 193, 7, 0.12)',
+                }}
+              >
+                <FaStar size={10} />
+                {ratingValue.toFixed(1)}
+              </span>
+            )}
           </div>
 
           {/* Title */}
@@ -225,8 +312,14 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
           >
             <span
               style={{
-                backgroundColor: announcement.price_type === 'free' ? 'rgba(40, 167, 69, 0.12)' : 'rgba(232, 122, 32, 0.12)',
-                color: announcement.price_type === 'free' ? '#28A745' : 'var(--primary-orange)',
+                backgroundColor:
+                  announcement.price_type === 'free'
+                    ? 'rgba(40, 167, 69, 0.12)'
+                    : 'rgba(232, 122, 32, 0.12)',
+                color:
+                  announcement.price_type === 'free'
+                    ? '#28A745'
+                    : 'var(--primary-orange)',
                 padding: '3px 10px',
                 borderRadius: '8px',
                 fontSize: '0.75rem',

@@ -192,6 +192,9 @@ export interface AnnouncementUser {
   is_verified: boolean;
   profile_image: string | null;
   created_at?: string;
+  // NEW: Rating aggregates
+  average_rating?: number;
+  total_ratings?: number;
 }
 
 export interface AnnouncementUserAdmin extends AnnouncementUser {
@@ -753,19 +756,35 @@ export interface FeaturedRequestsHistoryResponse {
 // ============================================
 
 export type NotificationType =
+  // ============================================
+  // Sprint 03 - Featured
+  // ============================================
   | 'featured_request_received_user'
   | 'featured_request_received_admin'
   | 'featured_request_approved'
   | 'featured_request_rejected'
   | 'announcement_auto_deleted'
   | 'announcement_permanently_deleted'
+  // ============================================
+  // Sprint 04 - Verification (KYC)
+  // ============================================
+  | 'verification_submitted_user'
+  | 'verification_submitted_admin'
+  | 'verification_approved'
+  | 'verification_rejected'
+  // ============================================
+  // Sprint 04 - Ratings
+  // ============================================
+  | 'rating_received'
+  | 'rating_updated'
+  // ============================================
+  // Fallback
+  // ============================================
   | 'general';
 
 export interface NotificationMetadata {
+  // Featured
   request_id?: number;
-  announcement_id?: number;
-  user_id?: number;
-  user_name?: string;
   amount?: number;
   currency?: string;
   duration_days?: number;
@@ -773,6 +792,19 @@ export interface NotificationMetadata {
   featured_until?: string;
   rejection_reason?: string | null;
   deleted_at?: string;
+  // Verification
+  verification_request_id?: number;
+  // Ratings
+  rating_id?: number;
+  rater_id?: number;
+  rater_name?: string;
+  rating?: number;
+  comment?: string | null;
+  // Generic
+  announcement_id?: number;
+  announcement_title?: string;
+  user_id?: number;
+  user_name?: string;
   [key: string]: unknown;
 }
 
@@ -944,4 +976,284 @@ export interface AdminVerificationsListResponse {
  */
 export interface VerificationActionPayload {
   admin_notes?: string;
+}
+
+// ============================================
+// SPRINT 04 - Rating Types
+// ============================================
+
+export interface RatingUser {
+  id: number;
+  name: string;
+  is_verified: boolean;
+  profile_image: string | null;
+}
+
+export interface RatingAnnouncement {
+  id: number;
+  title: string;
+}
+
+export interface Rating {
+  id: number;
+  rating: number;
+  comment: string | null;
+  rater: RatingUser;
+  rated?: RatingUser;
+  announcement?: RatingAnnouncement;
+  created_at: string;
+  updated_at: string;
+  // Optional flags added by backend on `given` list
+  can_edit?: boolean;
+  can_delete?: boolean;
+  edit_deadline?: string;
+}
+
+export type ReviewBlockReason = 'own_announcement' | 'already_reviewed' | null;
+
+export interface ExistingRatingInfo {
+  id: number;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  can_edit: boolean;
+  can_delete: boolean;
+  edit_deadline: string;
+}
+
+export interface ReviewStatusResponse {
+  can_review: boolean;
+  reason: ReviewBlockReason;
+  reason_label: string | null;
+  existing_rating?: ExistingRatingInfo;
+  owner: RatingUser;
+}
+
+export interface CreateRatingPayload {
+  rated_id: number;
+  announcement_id: number;
+  rating: number;
+  comment?: string;
+}
+
+export interface UpdateRatingPayload {
+  rating?: number;
+  comment?: string;
+}
+
+export interface RatingDistribution {
+  '1': number;
+  '2': number;
+  '3': number;
+  '4': number;
+  '5': number;
+}
+
+export interface UserRatingSummary {
+  average_rating: number;
+  total_ratings: number;
+  rating_distribution: RatingDistribution;
+}
+
+export interface UserRatingsResponse {
+  summary: UserRatingSummary;
+  data: Rating[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+}
+
+export interface PublicUserProfile {
+  id: number;
+  name: string;
+  profile_image: string | null;
+  is_verified: boolean;
+  is_active: boolean;
+  governorate?: { id: number; name: string } | null;
+  city?: { id: number; name: string } | null;
+  whatsapp: string | null;
+  whatsapp_visible: boolean;
+  created_at: string;
+}
+
+export interface MyRatingStats {
+  average_rating: number;
+  total_received: number;
+  total_given: number;
+  ratings_with_comments_received: number;
+  rating_distribution: RatingDistribution;
+}
+
+export interface MyReviewsListResponse {
+  data: Rating[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+}
+
+export interface AdminRatingStats {
+  total_ratings: number;
+  average_rating: number;
+  ratings_with_comments: number;
+  distribution: RatingDistribution;
+}
+
+export interface AdminRatingsListResponse {
+  data: Rating[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+}
+
+// ============================================
+// SPRINT 04 - Featured Requests (Admin + User Detail)
+// ============================================
+
+export type FeaturedRequestStatus = 'pending' | 'approved' | 'rejected';
+
+// USER SIDE — Detail
+export interface UserFeaturedRequestDetail {
+  id: number;
+  announcement: {
+    id: number;
+    title: string;
+    cover_image: string | null;
+    status: 'active' | 'disabled' | 'deleted';
+    is_currently_featured: boolean;
+    featured_until: string | null;
+  } | null;
+  status: FeaturedRequestStatus;
+  status_label: string;
+  duration_days: number;
+  duration_label: string;
+  amount: number;
+  currency: string;
+  payment_method: 'palpay' | 'jawwal_pay' | 'bop';
+  payment_method_label: string;
+  transfer_image: string;
+  additional_notes: string | null;
+  admin_notes: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ADMIN SIDE — List Item
+export interface AdminFeaturedRequestListItem {
+  id: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    whatsapp: string;
+    is_verified: boolean;
+    profile_image: string | null;
+  };
+  announcement: {
+    id: number;
+    title: string;
+    cover_image: string | null;
+    status: 'active' | 'disabled' | 'deleted';
+  } | null;
+  status: FeaturedRequestStatus;
+  status_label: string;
+  duration_days: number;
+  duration_label: string;
+  amount: number;
+  currency: string;
+  payment_method: 'palpay' | 'jawwal_pay' | 'bop';
+  payment_method_label: string;
+  created_at: string;
+  reviewed_at: string | null;
+}
+
+// ADMIN SIDE — Stats
+export interface AdminFeaturedStats {
+  requests: {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+  revenue: {
+    total: number;
+    this_month: number;
+    currency: string;
+  };
+  today: {
+    new_requests: number;
+    reviewed: number;
+  };
+}
+
+// ADMIN SIDE — List Response
+export interface AdminFeaturedListResponse {
+  data: AdminFeaturedRequestListItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+  stats: AdminFeaturedStats;
+}
+
+// ADMIN SIDE — Full Detail
+export interface AdminFeaturedDetail {
+  id: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    whatsapp: string;
+    is_verified: boolean;
+    profile_image: string | null;
+    created_at: string;
+  };
+  announcement: {
+    id: number;
+    title: string;
+    description: string;
+    status: 'active' | 'disabled' | 'deleted';
+    is_featured: boolean;
+    featured_until: string | null;
+    images: Array<{ id: number; image_path: string; order: number }>;
+  } | null;
+  status: FeaturedRequestStatus;
+  status_label: string;
+  duration_days: number;
+  duration_label: string;
+  amount: number;
+  currency: string;
+  payment_method: 'palpay' | 'jawwal_pay' | 'bop';
+  payment_method_label: string;
+  transfer_image: string;
+  additional_notes: string | null;
+  admin_notes: string | null;
+  reviewed_by: { id: number; name: string } | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ADMIN SIDE — Actions
+export interface AdminFeaturedApprovePayload {
+  admin_notes?: string;
+}
+
+export interface AdminFeaturedRejectPayload {
+  admin_notes: string; // required
+}
+
+export interface AdminFeaturedDeletePayload {
+  reason?: string;
 }
