@@ -8,12 +8,22 @@ export const getNotificationIconName = (
   type: NotificationType
 ): string => {
   const map: Record<NotificationType, string> = {
+    // Sprint 03 — Featured
     featured_request_received_user: 'mail',
     featured_request_received_admin: 'bell',
     featured_request_approved: 'check-circle',
     featured_request_rejected: 'times-circle',
     announcement_auto_deleted: 'trash',
     announcement_permanently_deleted: 'ban',
+    // Sprint 04 — Verification
+    verification_submitted_user: 'shield-alt',
+    verification_submitted_admin: 'shield-alt',
+    verification_approved: 'user-check',
+    verification_rejected: 'user-times',
+    // Sprint 04 — Ratings
+    rating_received: 'star',
+    rating_updated: 'star-half-alt',
+    // Fallback
     general: 'info-circle',
   };
   return map[type] || 'info-circle';
@@ -24,12 +34,33 @@ export const getNotificationIconName = (
  */
 export const getNotificationColor = (type: NotificationType): string => {
   const map: Record<NotificationType, string> = {
+    // ============================================
+    // Sprint 03 — Featured
+    // ============================================
     featured_request_received_user: '#E87A20',
     featured_request_received_admin: '#E87A20',
     featured_request_approved: '#28A745',
     featured_request_rejected: '#DC3545',
     announcement_auto_deleted: '#D46A1A',
     announcement_permanently_deleted: '#6B4226',
+
+    // ============================================
+    // Sprint 04 — Verification (KYC)
+    // ============================================
+    verification_submitted_user: '#17A2B8',
+    verification_submitted_admin: '#17A2B8',
+    verification_approved: '#28A745',
+    verification_rejected: '#DC3545',
+
+    // ============================================
+    // Sprint 04 — Ratings
+    // ============================================
+    rating_received: '#F5A623',
+    rating_updated: '#FFC107',
+
+    // ============================================
+    // Fallback
+    // ============================================
     general: '#6B4226',
   };
   return map[type] || '#6B4226';

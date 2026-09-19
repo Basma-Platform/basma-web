@@ -61,7 +61,7 @@ interface FeaturedRequestFormProps {
 }
 
 // ============================================
-// Main Component
+// Component
 // ============================================
 const FeaturedRequestForm = ({
   announcement,
@@ -149,9 +149,6 @@ const FeaturedRequestForm = ({
     return null;
   };
 
-  // ============================================
-  // Handle File Selection
-  // ============================================
   const handleFileSelect = (file: File) => {
     const error = validateFile(file);
     if (error) {
@@ -202,20 +199,32 @@ const FeaturedRequestForm = ({
     }
 
     try {
-      await requestFeatured(announcement.id, {
+      const response = await requestFeatured(announcement.id, {
         duration_days: data.duration_days,
         payment_method: data.payment_method,
         transfer_image: transferImage,
         additional_notes: data.additional_notes || undefined,
       });
 
+      // ============================================
+      // ✅ FIXED NAVIGATION
+      // ============================================
+      // The backend returns the newly created featured request as
+      // `response.request`. Navigate directly to its detail page.
+      const newRequestId = (response as any)?.request?.id;
+
       if (onSuccess) {
         onSuccess();
+      }
+
+      if (newRequestId) {
+        navigate(`/user/featured-requests/${newRequestId}`, { replace: true });
       } else {
-        navigate(`/user/announcements/${announcement.id}/featured-status`);
+        // Fallback: no request id returned → go to the list
+        navigate('/user/featured-requests', { replace: true });
       }
     } catch {
-      // Errors handled by hook
+      // Errors handled in hook
     }
   };
 
@@ -254,7 +263,13 @@ const FeaturedRequestForm = ({
             height: '2.25rem',
           }}
         />
-        <p style={{ color: 'var(--text-muted)', marginTop: '0.85rem', fontSize: '0.82rem' }}>
+        <p
+          style={{
+            color: 'var(--text-muted)',
+            marginTop: '0.85rem',
+            fontSize: '0.82rem',
+          }}
+        >
           جاري تحميل بيانات التمييز...
         </p>
       </div>
@@ -278,7 +293,6 @@ const FeaturedRequestForm = ({
         overflowX: 'hidden',
       }}
     >
-      {/* Responsive Grid Media Query for Pricing Cards */}
       <style>{`
         @media (min-width: 768px) {
           .pricing-grid-container {
@@ -301,9 +315,9 @@ const FeaturedRequestForm = ({
             boxSizing: 'border-box',
           }}
         >
-          {/* ============================================ */}
-          {/* Announcement Summary */}
-          {/* ============================================ */}
+          {/* ============================================
+              Announcement Summary
+              ============================================ */}
           <div
             style={{
               display: 'flex',
@@ -396,7 +410,7 @@ const FeaturedRequestForm = ({
             </div>
           </div>
 
-          {/* Main Card Container */}
+          {/* Main Card */}
           <div
             style={{
               backgroundColor: 'var(--bg-card)',
@@ -413,9 +427,7 @@ const FeaturedRequestForm = ({
               overflow: 'hidden',
             }}
           >
-            {/* ============================================ */}
-            {/* Section 1: Choose Duration */}
-            {/* ============================================ */}
+            {/* Section 1: Duration */}
             <div style={{ width: '100%', boxSizing: 'border-box' }}>
               <div
                 style={{
@@ -474,7 +486,7 @@ const FeaturedRequestForm = ({
                     className="pricing-grid-container"
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr', // Mobile: 1 per line under each other
+                      gridTemplateColumns: '1fr',
                       gap: '8px',
                       width: '100%',
                       boxSizing: 'border-box',
@@ -514,9 +526,7 @@ const FeaturedRequestForm = ({
               )}
             </div>
 
-            {/* ============================================ */}
             {/* Section 2: Payment Methods */}
-            {/* ============================================ */}
             <div style={{ width: '100%', boxSizing: 'border-box' }}>
               <div
                 style={{
@@ -562,7 +572,7 @@ const FeaturedRequestForm = ({
                       marginTop: '1px',
                     }}
                   >
-                    اختر المحفظة وحوّل المبلغ بدقة (بال باي، جوال باي، أو بنك فلسطين)
+                    اختر المحفظة وحوّل المبلغ بدقة
                   </div>
                 </div>
               </div>
@@ -601,9 +611,7 @@ const FeaturedRequestForm = ({
               )}
             </div>
 
-            {/* ============================================ */}
             {/* Section 3: Upload Receipt */}
-            {/* ============================================ */}
             <div style={{ width: '100%', boxSizing: 'border-box' }}>
               <div
                 style={{
@@ -716,7 +724,9 @@ const FeaturedRequestForm = ({
                       marginBottom: '3px',
                     }}
                   >
-                    {isDragging ? 'أفلت الصورة هنا' : 'اضغط لاختيار صورة الإشعار'}
+                    {isDragging
+                      ? 'أفلت الصورة هنا'
+                      : 'اضغط لاختيار صورة الإشعار'}
                   </div>
                   <div
                     style={{
@@ -752,7 +762,6 @@ const FeaturedRequestForm = ({
                     boxSizing: 'border-box',
                   }}
                 >
-                  {/* Image Container with Success Tag */}
                   <div
                     style={{
                       position: 'relative',
@@ -787,7 +796,8 @@ const FeaturedRequestForm = ({
                         gap: '3px',
                         padding: '3px 8px',
                         borderRadius: '6px',
-                        background: 'linear-gradient(135deg, #28A745, #1e7e34)',
+                        background:
+                          'linear-gradient(135deg, #28A745, #1e7e34)',
                         color: '#FFFFFF',
                         fontSize: '0.65rem',
                         fontWeight: 800,
@@ -799,7 +809,6 @@ const FeaturedRequestForm = ({
                     </div>
                   </div>
 
-                  {/* Clean Action Bar Below Image */}
                   <div
                     style={{
                       display: 'flex',
@@ -827,7 +836,9 @@ const FeaturedRequestForm = ({
                       <button
                         type="button"
                         onClick={() =>
-                          document.getElementById('transfer-image-input')?.click()
+                          document
+                            .getElementById('transfer-image-input')
+                            ?.click()
                         }
                         disabled={loading}
                         style={{
@@ -898,9 +909,7 @@ const FeaturedRequestForm = ({
               )}
             </div>
 
-            {/* ============================================ */}
             {/* Section 4: Additional Notes */}
-            {/* ============================================ */}
             <div style={{ width: '100%', boxSizing: 'border-box' }}>
               <div
                 style={{
@@ -955,7 +964,13 @@ const FeaturedRequestForm = ({
                 name="additional_notes"
                 control={control}
                 render={({ field }) => (
-                  <div style={{ position: 'relative', width: '100%', boxSizing: 'border-box' }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                    }}
+                  >
                     <textarea
                       {...field}
                       value={field.value || ''}
@@ -1018,9 +1033,7 @@ const FeaturedRequestForm = ({
             </div>
           </div>
 
-          {/* ============================================ */}
           {/* Working Hours Info Box */}
-          {/* ============================================ */}
           <div
             style={{
               display: 'flex',
@@ -1038,7 +1051,7 @@ const FeaturedRequestForm = ({
             <FaClock
               size={13}
               color="#E87A20"
-              style={{ flexShrink: '0', marginTop: '2px' }}
+              style={{ flexShrink: 0, marginTop: '2px' }}
             />
             <div
               style={{
@@ -1053,15 +1066,19 @@ const FeaturedRequestForm = ({
               </strong>{' '}
               كحد أقصى.
               <br />
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--primary-orange)' }}>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  color: 'var(--primary-orange)',
+                }}
+              >
                 ساعات العمل: يومياً، 8:00 ص - 10:00 م
               </span>
             </div>
           </div>
 
-          {/* ============================================ */}
           {/* Actions */}
-          {/* ============================================ */}
           <div
             style={{
               display: 'flex',
@@ -1072,7 +1089,6 @@ const FeaturedRequestForm = ({
               boxSizing: 'border-box',
             }}
           >
-            {/* Cancel */}
             <motion.button
               type="button"
               onClick={handleCancel}
@@ -1100,7 +1116,6 @@ const FeaturedRequestForm = ({
               إلغاء
             </motion.button>
 
-            {/* Submit */}
             <motion.button
               type="submit"
               disabled={loading || !transferImage}

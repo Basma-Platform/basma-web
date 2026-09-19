@@ -6,6 +6,11 @@ import {
   FaTrash,
   FaBan,
   FaInfoCircle,
+  FaShieldAlt,
+  FaUserCheck,
+  FaUserTimes,
+  FaStar,
+  FaStarHalfAlt,
 } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
 import type { NotificationType } from '../../types';
@@ -29,12 +34,33 @@ const NotificationIcon = ({
   bgSize = 36,
 }: NotificationIconProps) => {
   const iconMap: Record<NotificationType, IconType> = {
+    // ============================================
+    // Sprint 03 — Featured
+    // ============================================
     featured_request_received_user: FaEnvelope,
     featured_request_received_admin: FaBell,
     featured_request_approved: FaCheckCircle,
     featured_request_rejected: FaTimesCircle,
     announcement_auto_deleted: FaTrash,
     announcement_permanently_deleted: FaBan,
+
+    // ============================================
+    // Sprint 04 — Verification (KYC)
+    // ============================================
+    verification_submitted_user: FaShieldAlt,
+    verification_submitted_admin: FaShieldAlt,
+    verification_approved: FaUserCheck,
+    verification_rejected: FaUserTimes,
+
+    // ============================================
+    // Sprint 04 — Ratings
+    // ============================================
+    rating_received: FaStar,
+    rating_updated: FaStarHalfAlt,
+
+    // ============================================
+    // Fallback
+    // ============================================
     general: FaInfoCircle,
   };
 

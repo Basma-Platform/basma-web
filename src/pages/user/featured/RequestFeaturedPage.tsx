@@ -9,6 +9,7 @@ import {
   FaCheckCircle,
   FaClock,
   FaHourglassHalf,
+  FaEye,
 } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useUserAnnouncement } from '../../../hooks/useUserAnnouncement';
@@ -27,7 +28,7 @@ const RequestFeaturedPage = () => {
   }, [id, fetchAnnouncement]);
 
   // ============================================
-  // Loading State (Using the new Skeleton to prevent flashes)
+  // Loading
   // ============================================
   if (loading && !announcement) {
     return (
@@ -39,7 +40,7 @@ const RequestFeaturedPage = () => {
   }
 
   // ============================================
-  // Not Found State
+  // Not Found
   // ============================================
   if (!announcement) {
     return (
@@ -110,7 +111,7 @@ const RequestFeaturedPage = () => {
   }
 
   // ============================================
-  // Already Featured State
+  // Already Featured
   // ============================================
   if (announcement.is_currently_featured) {
     return (
@@ -155,7 +156,7 @@ const RequestFeaturedPage = () => {
                 margin: '0.85rem 0 6px',
               }}
             >
-              الإعلان مميز بالفعل ⭐
+              الإعلان مميز بالفعل
             </h3>
             <p
               style={{
@@ -165,7 +166,8 @@ const RequestFeaturedPage = () => {
                 margin: '0 0 1.25rem',
               }}
             >
-              هذا الإعلان يتمتع بخاصية التمييز حالياً. يمكنك إعادة تمييزه بعد انتهاء الباقة النشطة.
+              هذا الإعلان يتمتع بخاصية التمييز حالياً. يمكنك إعادة تمييزه بعد
+              انتهاء الباقة النشطة.
             </p>
             <Link
               to={`/user/announcements/${announcement.id}`}
@@ -182,6 +184,7 @@ const RequestFeaturedPage = () => {
                 fontWeight: 700,
               }}
             >
+              <FaEye size={11} />
               عرض الإعلان
             </Link>
           </div>
@@ -191,7 +194,7 @@ const RequestFeaturedPage = () => {
   }
 
   // ============================================
-  // Pending Request State
+  // Pending Request Exists
   // ============================================
   if (announcement.featured_request_status === 'pending') {
     return (
@@ -244,7 +247,7 @@ const RequestFeaturedPage = () => {
               }}
             >
               <FaHourglassHalf size={10} className="fa-spin" />
-              طلب تمييز معلق (Pending)
+              طلب تمييز معلق
             </div>
 
             <div
@@ -283,12 +286,15 @@ const RequestFeaturedPage = () => {
                 margin: '0 0 1.5rem',
               }}
             >
-              تم استلام إيصال التحويل بنجاح، وطلبك الآن قيد التدقيق من قِبل الإدارة. سيتم تفعيل التمييز خلال أقل من 24 ساعة.
+              تم استلام إيصال التحويل بنجاح، وطلبك الآن قيد التدقيق من قِبل
+              الإدارة. سيتم تفعيل التمييز خلال أقل من 24 ساعة.
             </p>
 
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+            <div
+              style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}
+            >
               <Link
-                to={`/user/announcements/${announcement.id}/featured-status`}
+                to="/user/featured-requests"
                 style={{
                   flex: 1,
                   display: 'inline-flex',
@@ -305,7 +311,8 @@ const RequestFeaturedPage = () => {
                   boxShadow: '0 4px 12px rgba(232,122,32,0.3)',
                 }}
               >
-                عرض حالة الطلب التفصيلية
+                <FaEye size={11} />
+                عرض طلباتي
               </Link>
             </div>
           </motion.div>
@@ -358,7 +365,11 @@ const RequestFeaturedPage = () => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              style={{ marginBottom: '1.25rem', width: '100%', boxSizing: 'border-box' }}
+              style={{
+                marginBottom: '1.25rem',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
             >
               {/* Breadcrumb */}
               <div
@@ -468,9 +479,11 @@ const RequestFeaturedPage = () => {
             {/* Form Component */}
             <FeaturedRequestForm
               announcement={announcement as any}
-              onSuccess={() =>
-                navigate(`/user/announcements/${announcement.id}/featured-status`)
-              }
+              onSuccess={() => {
+                // Navigation handled inside FeaturedRequestForm
+                // Fallback: if for some reason onSuccess fires without navigation
+                // we go to the list.
+              }}
               onCancel={() => navigate(`/user/announcements/${announcement.id}`)}
             />
           </div>

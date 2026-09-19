@@ -203,3 +203,35 @@ export const canBeFeatured = (announcement: UserAnnouncementDetailResponse): boo
     announcement.featured_request_status !== 'pending'
   );
 };
+
+/**
+ * Check if the current user owns this announcement
+ * Used to show the "إعلانك" (Your Announcement) badge
+ */
+export const isOwnAnnouncement = (
+  announcement: { user_id: number } | null | undefined,
+  currentUserId: number | null | undefined
+): boolean => {
+  if (!announcement || !currentUserId) return false;
+  return announcement.user_id === currentUserId;
+};
+
+/**
+ * Get "إعلانك" badge styling (theme-aware)
+ */
+export const getOwnBadgeStyle = (isDark: boolean) => ({
+  backgroundColor: isDark
+    ? 'rgba(22, 78, 99, 0.75)'      // dark teal glass
+    : 'rgba(23, 162, 184, 0.82)',   // solid-ish teal glass
+  color: '#FFFFFF',
+  border: isDark
+    ? '1px solid rgba(32, 201, 224, 0.55)'
+    : '1px solid rgba(255, 255, 255, 0.35)',
+  // Frosted glass effect
+  backdropFilter: 'blur(12px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+  // Soft lift from background
+  boxShadow: isDark
+    ? '0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+    : '0 4px 14px rgba(23, 162, 184, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+});

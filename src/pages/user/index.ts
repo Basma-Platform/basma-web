@@ -11,8 +11,6 @@ export {
   CreateAnnouncementPage,
   EditAnnouncementPage,
   AnnouncementSuccessPage,
-  RequestFeaturedPage,
-  FeaturedRequestsHistoryPage,
 } from './announcements';
 
 // Profile
@@ -20,3 +18,13 @@ export { default as UserProfilePage } from './UserProfilePage';
 
 // Verification
 export { VerifyIdentityPage } from './verification';
+
+// Reviews
+export { MyReviewsPage } from './reviews';
+
+// Featured Requests Detail
+export { 
+  FeaturedRequestDetailPage,
+  RequestFeaturedPage,
+  FeaturedRequestsHistoryPage,
+} from './featured';

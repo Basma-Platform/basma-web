@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Container } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaChevronLeft,
@@ -17,6 +17,7 @@ import {
 } from '../../../components/user/announcements';
 
 const FeaturedRequestsHistoryPage = () => {
+  const navigate = useNavigate();
   const { loading, requests, fetchMyFeaturedRequests } = useFeaturedRequest();
 
   const [statusFilter, setStatusFilter] = useState<
@@ -25,16 +26,13 @@ const FeaturedRequestsHistoryPage = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ============================================
-  // Fetch Requests
-  // ============================================
   useEffect(() => {
     const load = async () => {
       try {
         setInitialLoading(true);
         setError(null);
         await fetchMyFeaturedRequests({ page: 1, per_page: 20 });
-      } catch (err) {
+      } catch {
         setError('حدث خطأ في تحميل طلبات التمييز');
       } finally {
         setInitialLoading(false);
@@ -43,9 +41,6 @@ const FeaturedRequestsHistoryPage = () => {
     load();
   }, [fetchMyFeaturedRequests]);
 
-  // ============================================
-  // Filter
-  // ============================================
   const filteredRequests =
     statusFilter === 'all'
       ? requests
@@ -58,8 +53,19 @@ const FeaturedRequestsHistoryPage = () => {
     rejected: requests.filter((r) => r.status === 'rejected').length,
   };
 
+  const tabTheme: Record<string, string> = {
+    all: 'var(--primary-orange)',
+    pending: '#FFB800',
+    approved: '#28A745',
+    rejected: '#DC3545',
+  };
+
+  const handleCardClick = (requestId: number) => {
+    navigate(`/user/featured-requests/${requestId}`);
+  };
+
   // ============================================
-  // Initial Skeleton
+  // Initial loading
   // ============================================
   if (initialLoading) {
     return (
@@ -74,7 +80,7 @@ const FeaturedRequestsHistoryPage = () => {
           }}
           dir="rtl"
         >
-          <Container fluid="xl" className="px-3 px-md-4">
+          <Container fluid="xl" className="px-2 px-md-4">
             <FeaturedRequestsHistorySkeleton count={4} />
           </Container>
         </div>
@@ -92,34 +98,29 @@ const FeaturedRequestsHistoryPage = () => {
         description="سجل جميع طلبات تمييز إعلاناتك"
       />
 
-      <div
-        style={{
-          backgroundColor: 'var(--bg-body)',
-          minHeight: '100vh',
-          paddingTop: '1rem',
-          paddingBottom: '3rem',
-        }}
-        dir="rtl"
-      >
-        <Container fluid="xl" className="px-3 px-md-4">
-          {/* ============================================ */}
-          {/* Header */}
-          {/* ============================================ */}
+      <div className="featured-history-page" dir="rtl">
+        <Container
+          fluid="xl"
+          className="px-2 px-md-4"
+          style={{ maxWidth: '100%', boxSizing: 'border-box' }}
+        >
+          {/* ============================================
+              Header
+              ============================================ */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            style={{ marginBottom: '1.5rem' }}
+            style={{ marginBottom: '1.25rem' }}
           >
-            {/* Breadcrumb */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                fontSize: '0.85rem',
+                gap: '6px',
+                fontSize: '0.8rem',
                 color: 'var(--text-muted)',
-                marginBottom: '0.75rem',
+                marginBottom: '0.7rem',
                 fontFamily: 'Cairo, sans-serif',
                 flexWrap: 'wrap',
               }}
@@ -134,34 +135,34 @@ const FeaturedRequestsHistoryPage = () => {
               >
                 لوحة التحكم
               </Link>
-              <FaChevronLeft size={10} style={{ opacity: 0.4 }} />
+              <FaChevronLeft size={9} style={{ opacity: 0.4 }} />
               <span style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                 طلبات التمييز
               </span>
             </div>
 
-            {/* Title */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div
                 style={{
-                  width: '48px',
-                  height: '48px',
+                  width: '46px',
+                  height: '46px',
                   borderRadius: '14px',
-                  background: 'linear-gradient(135deg, #F5A623, #E87A20)',
+                  background: 'linear-gradient(135deg, #FFC107, #F5A623)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#FFFFFF',
-                  boxShadow: '0 4px 16px rgba(245,166,35,0.35)',
+                  boxShadow: '0 4px 16px rgba(255,193,7,0.35)',
+                  flexShrink: 0,
                 }}
               >
-                <FaHistory size={22} />
+                <FaHistory size={19} />
               </div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <h1
                   style={{
                     color: 'var(--text-secondary)',
-                    fontSize: 'clamp(1.4rem, 2vw, 1.7rem)',
+                    fontSize: 'clamp(1.25rem, 4vw, 1.6rem)',
                     fontWeight: 900,
                     fontFamily: 'Cairo, sans-serif',
                     margin: 0,
@@ -173,9 +174,12 @@ const FeaturedRequestsHistoryPage = () => {
                 <p
                   style={{
                     color: 'var(--text-muted)',
-                    fontSize: '0.85rem',
+                    fontSize: '0.78rem',
                     fontFamily: 'Cairo, sans-serif',
                     margin: 0,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
                   سجل كامل لطلبات تمييز إعلاناتك
@@ -184,96 +188,90 @@ const FeaturedRequestsHistoryPage = () => {
             </div>
           </motion.div>
 
-          {/* ============================================ */}
-          {/* Status Filters */}
-          {/* ============================================ */}
+          {/* ============================================
+              Filters Tabs — evenly spread across full width
+              ============================================ */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            style={{
-              display: 'flex',
-              gap: '6px',
-              padding: '4px',
-              backgroundColor: 'var(--bg-input)',
-              borderRadius: '12px',
-              border: '1px solid var(--border-color)',
-              marginBottom: '1.5rem',
-              overflowX: 'auto',
-              flexWrap: 'wrap',
-            }}
+            className="featured-history-tabs"
+            role="tablist"
+            aria-label="فلترة طلبات التمييز"
           >
             {(
               [
                 { value: 'all', label: 'الكل', count: counts.all },
-                { value: 'pending', label: 'قيد المراجعة', count: counts.pending },
-                { value: 'approved', label: 'تمت الموافقة', count: counts.approved },
+                {
+                  value: 'pending',
+                  label: 'قيد المراجعة',
+                  count: counts.pending,
+                },
+                {
+                  value: 'approved',
+                  label: 'تمت الموافقة',
+                  count: counts.approved,
+                },
                 { value: 'rejected', label: 'مرفوض', count: counts.rejected },
               ] as const
             ).map((tab) => {
               const active = statusFilter === tab.value;
+              const color = tabTheme[tab.value];
               return (
-                <motion.button
+                <button
                   key={tab.value}
                   type="button"
-                  whileTap={{ scale: 0.96 }}
+                  role="tab"
+                  aria-selected={active}
                   onClick={() => setStatusFilter(tab.value)}
+                  className="featured-history-tab"
                   style={{
-                    flex: '1 1 auto',
-                    minWidth: 'fit-content',
-                    padding: '9px 16px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    backgroundColor: active ? 'var(--bg-card)' : 'transparent',
-                    color: active ? 'var(--primary-orange)' : 'var(--text-muted)',
-                    fontFamily: 'Cairo, sans-serif',
-                    fontSize: '0.8rem',
+                    color: active ? color : 'var(--text-muted)',
                     fontWeight: active ? 800 : 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    boxShadow: active ? '0 2px 8px var(--shadow-sm)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    justifyContent: 'center',
-                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {tab.label}
+                  {active && (
+                    <motion.span
+                      layoutId="featured-tab-highlight"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 400,
+                        damping: 32,
+                      }}
+                      className="featured-history-tab__highlight"
+                    />
+                  )}
+                  <span className="featured-history-tab__label">
+                    {tab.label}
+                  </span>
                   <span
+                    className="featured-history-tab__count"
                     style={{
-                      padding: '1px 7px',
-                      borderRadius: '6px',
                       backgroundColor: active
-                        ? 'rgba(232,122,32,0.15)'
-                        : 'rgba(0,0,0,0.05)',
-                      color: active ? 'var(--primary-orange)' : 'var(--text-muted)',
-                      fontSize: '0.65rem',
-                      fontWeight: 800,
-                      fontFamily: 'system-ui, sans-serif',
-                      minWidth: '20px',
-                      textAlign: 'center',
+                        ? `${color}20`
+                        : 'rgba(0,0,0,0.06)',
+                      color: active ? color : 'var(--text-muted)',
                     }}
                   >
                     {tab.count}
                   </span>
-                </motion.button>
+                </button>
               );
             })}
           </motion.div>
 
-          {/* ============================================ */}
-          {/* Error State */}
-          {/* ============================================ */}
+          {/* ============================================
+              Error
+              ============================================ */}
           {error && (
             <div
               style={{
-                padding: '12px 16px',
+                padding: '10px 14px',
                 backgroundColor: 'rgba(220,53,69,0.08)',
                 color: 'var(--error)',
-                borderRadius: '12px',
+                borderRadius: '10px',
                 fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.85rem',
+                fontSize: '0.8rem',
                 marginBottom: '1rem',
                 border: '1px solid rgba(220,53,69,0.2)',
                 display: 'flex',
@@ -281,14 +279,14 @@ const FeaturedRequestsHistoryPage = () => {
                 gap: '8px',
               }}
             >
-              <FaExclamationTriangle size={14} />
+              <FaExclamationTriangle size={13} />
               {error}
             </div>
           )}
 
-          {/* ============================================ */}
-          {/* Requests List */}
-          {/* ============================================ */}
+          {/* ============================================
+              List
+              ============================================ */}
           <AnimatePresence mode="wait">
             {loading ? (
               <motion.div
@@ -305,34 +303,35 @@ const FeaturedRequestsHistoryPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 style={{
-                  padding: '4rem 2rem',
+                  padding: 'clamp(2.25rem, 8vw, 3rem) 1.5rem',
                   textAlign: 'center',
                   backgroundColor: 'var(--bg-card)',
-                  borderRadius: '20px',
+                  borderRadius: '18px',
                   border: '1px dashed var(--border-color)',
                   fontFamily: 'Cairo, sans-serif',
                 }}
               >
                 <div
                   style={{
-                    width: '80px',
-                    height: '80px',
+                    width: '72px',
+                    height: '72px',
                     margin: '0 auto 1rem',
                     borderRadius: '50%',
-                    background: 'rgba(245,166,35,0.08)',
+                    background: 'rgba(255,193,7,0.1)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    color: '#FFC107',
                   }}
                 >
-                  <FaBoxOpen size={36} color="#F5A623" opacity={0.6} />
+                  <FaBoxOpen size={30} opacity={0.75} />
                 </div>
                 <h3
                   style={{
                     color: 'var(--text-secondary)',
-                    fontSize: '1.15rem',
+                    fontSize: '1.05rem',
                     fontWeight: 800,
-                    margin: '0 0 8px',
+                    margin: '0 0 6px',
                   }}
                 >
                   {statusFilter === 'all'
@@ -342,9 +341,11 @@ const FeaturedRequestsHistoryPage = () => {
                 <p
                   style={{
                     color: 'var(--text-muted)',
-                    fontSize: '0.85rem',
+                    fontSize: '0.8rem',
                     margin: '0 0 1.25rem',
                     lineHeight: 1.6,
+                    maxWidth: '320px',
+                    marginInline: 'auto',
                   }}
                 >
                   {statusFilter === 'all'
@@ -358,15 +359,16 @@ const FeaturedRequestsHistoryPage = () => {
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      padding: '11px 22px',
-                      borderRadius: '11px',
-                      background: 'linear-gradient(135deg, #F5A623, #E87A20)',
+                      gap: '7px',
+                      padding: '11px 20px',
+                      minHeight: '44px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #FFC107, #F5A623)',
                       color: '#FFFFFF',
                       textDecoration: 'none',
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                       fontWeight: 800,
-                      boxShadow: '0 4px 16px rgba(245,166,35,0.35)',
+                      boxShadow: '0 4px 16px rgba(255,193,7,0.32)',
                     }}
                   >
                     <FaStar size={13} />
@@ -377,12 +379,13 @@ const FeaturedRequestsHistoryPage = () => {
                     onClick={() => setStatusFilter('all')}
                     style={{
                       padding: '10px 20px',
-                      borderRadius: '10px',
+                      minHeight: '44px',
+                      borderRadius: '12px',
                       border: '1.5px solid var(--primary-orange)',
                       backgroundColor: 'transparent',
                       color: 'var(--primary-orange)',
                       fontFamily: 'Cairo, sans-serif',
-                      fontSize: '0.85rem',
+                      fontSize: '0.82rem',
                       fontWeight: 700,
                       cursor: 'pointer',
                     }}
@@ -396,19 +399,26 @@ const FeaturedRequestsHistoryPage = () => {
                 key="list"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
               >
                 {filteredRequests.map((request, index) => (
                   <motion.div
                     key={request.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{
-                      duration: 0.3,
-                      delay: Math.min(index * 0.05, 0.4),
+                      duration: 0.25,
+                      delay: Math.min(index * 0.04, 0.3),
                     }}
                   >
-                    <FeaturedRequestCard request={request} />
+                    <FeaturedRequestCard
+                      request={request}
+                      onClick={() => handleCardClick(request.id)}
+                    />
                   </motion.div>
                 ))}
               </motion.div>
@@ -416,6 +426,123 @@ const FeaturedRequestsHistoryPage = () => {
           </AnimatePresence>
         </Container>
       </div>
+
+      {/* ============================================
+          Page-scoped styles
+          ============================================ */}
+      <style>{`
+        .featured-history-page {
+          background-color: var(--bg-body);
+          min-height: 100vh;
+          padding-top: 1rem;
+          padding-bottom: 3rem;
+          overflow-x: hidden;
+        }
+
+        /* ============================================
+           Tabs — evenly spread across full container width
+           ============================================ */
+        .featured-history-tabs {
+          display: flex;
+          gap: 6px;
+          padding: 5px;
+          background-color: var(--bg-input);
+          border-radius: 14px;
+          border: 1px solid var(--border-color);
+          margin-bottom: 1.25rem;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .featured-history-tab {
+          position: relative;
+          flex: 1 1 0;               /* ✅ distribute equally */
+          min-width: 0;               /* ✅ prevent flex overflow */
+          padding: 10px 8px;
+          min-height: 40px;
+          border-radius: 11px;
+          border: none;
+          background: transparent;
+          font-family: 'Cairo', sans-serif;
+          font-size: 0.78rem;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          justify-content: center;
+          white-space: nowrap;
+          overflow: hidden;           /* ✅ prevent text overflow */
+          -webkit-tap-highlight-color: transparent;
+          transition: color 0.2s ease;
+        }
+
+        .featured-history-tab__highlight {
+          position: absolute;
+          inset: 0;
+          background-color: var(--bg-card);
+          border-radius: 11px;
+          box-shadow: 0 2px 10px var(--shadow-sm);
+          z-index: 0;
+        }
+
+        .featured-history-tab__label {
+          position: relative;
+          z-index: 1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .featured-history-tab__count {
+          position: relative;
+          z-index: 1;
+          padding: 1px 7px;
+          border-radius: 7px;
+          font-size: 0.65rem;
+          font-weight: 800;
+          font-family: system-ui, sans-serif;
+          min-width: 18px;
+          text-align: center;
+          flex-shrink: 0;
+        }
+
+        /* ============================================
+           Responsive — under 480px
+           ============================================ */
+        @media (max-width: 480px) {
+          .featured-history-tabs {
+            padding: 4px;
+            gap: 4px;
+            border-radius: 12px;
+          }
+
+          .featured-history-tab {
+            padding: 8px 4px;
+            min-height: 36px;
+            font-size: 0.72rem;
+            gap: 4px;
+          }
+
+          /* Hide count pill on the smallest screens if it crowds the label */
+          .featured-history-tab__count {
+            font-size: 0.6rem;
+            padding: 1px 5px;
+            min-width: 16px;
+          }
+        }
+
+        /* Extra small — under 380px */
+        @media (max-width: 380px) {
+          .featured-history-tab {
+            font-size: 0.68rem;
+            padding: 8px 2px;
+          }
+
+          /* Long labels like "قيد المراجعة" get truncated instead of wrapping */
+          .featured-history-tab__label {
+            max-width: 60px;
+          }
+        }
+      `}</style>
     </>
   );
 };
