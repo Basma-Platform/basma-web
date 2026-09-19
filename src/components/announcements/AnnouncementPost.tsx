@@ -1,15 +1,30 @@
 import { Card, Button, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { 
-  FaWhatsapp, FaEye, FaMapMarkerAlt, FaTag, 
-  FaLock, FaThumbtack, FaChevronLeft, FaEnvelope,
-  FaUserCheck, FaShieldAlt, FaExclamationTriangle,
-  FaClock, FaStar
+import {
+  FaWhatsapp,
+  FaEye,
+  FaMapMarkerAlt,
+  FaTag,
+  FaLock,
+  FaThumbtack,
+  FaChevronLeft,
+  FaEnvelope,
+  FaUserCheck,
+  FaShieldAlt,
+  FaExclamationTriangle,
+  FaClock,
+  FaStar,
+  FaUser,
 } from 'react-icons/fa';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../context/ThemeContext';
 import type { Announcement } from '../../types';
 import { motion } from 'framer-motion';
 import LikeButton from './LikeButton';
+import {
+  isOwnAnnouncement,
+  getOwnBadgeStyle,
+} from '../../utils/announcementHelpers';
 
 interface AnnouncementPostProps {
   announcement: Announcement;
@@ -17,32 +32,46 @@ interface AnnouncementPostProps {
   viewMode?: 'list' | 'grid';
 }
 
-// it's wmpty will be filled auto with domain from vercel.json
-const STORAGE_URL = '/storage';
+// ✅ استخدام VITE_STORAGE_URL مع fallback للتطوير
+const STORAGE_URL =
+  import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
 
-const AnnouncementPost = ({ 
-  announcement, 
+const AnnouncementPost = ({
+  announcement,
   isLoggedIn = false,
-  viewMode = 'list'
+  viewMode = 'list',
 }: AnnouncementPostProps) => {
   const { user } = useAuth();
-  
-  const isEmailVerified = user?.email_verified_at !== null && user?.email_verified_at !== undefined;
+  const { isDark } = useTheme();
+
+  const isEmailVerified =
+    user?.email_verified_at !== null && user?.email_verified_at !== undefined;
   const isVerifiedUser = user?.is_verified === true;
   const isGrid = viewMode === 'grid';
+
+  // ✅ Owner check — controls "إعلانك" badge
+  const isOwn = isOwnAnnouncement(announcement, user?.id);
+  const ownBadgeStyle = getOwnBadgeStyle(isDark);
 
   const canViewWhatsApp = (): boolean => {
     if (!isLoggedIn) return false;
     if (!isEmailVerified) return false;
-    
+
     switch (announcement.privacy_type) {
-      case 'public': return true;
-      case 'region_only': return user?.city_id === announcement.city_id;
-      case 'verified_only': return isVerifiedUser && announcement.user?.is_verified === true;
-      case 'verified_region': return isVerifiedUser && 
-             user?.city_id === announcement.city_id && 
-             announcement.user?.is_verified === true;
-      default: return false;
+      case 'public':
+        return true;
+      case 'region_only':
+        return user?.city_id === announcement.city_id;
+      case 'verified_only':
+        return isVerifiedUser && announcement.user?.is_verified === true;
+      case 'verified_region':
+        return (
+          isVerifiedUser &&
+          user?.city_id === announcement.city_id &&
+          announcement.user?.is_verified === true
+        );
+      default:
+        return false;
     }
   };
 
@@ -91,10 +120,14 @@ const AnnouncementPost = ({
 
   const getPriceLabel = () => {
     switch (announcement.price_type) {
-      case 'free': return 'مجاني';
-      case 'paid': return `${announcement.price} شيكل`;
-      case 'barter': return 'مقايضة';
-      default: return '';
+      case 'free':
+        return 'مجاني';
+      case 'paid':
+        return `${announcement.price} شيكل`;
+      case 'barter':
+        return 'مقايضة';
+      default:
+        return '';
     }
   };
 
@@ -110,24 +143,24 @@ const AnnouncementPost = ({
     return type === 'offer' ? 'var(--success)' : 'var(--error)';
   };
 
-  // ✅ Keep from develop - Privacy Labels
+  // ✅ Privacy Labels
   const getPrivacyLabel = (privacyType: string) => {
     const map: Record<string, string> = {
-      'public': 'عام - للجميع',
-      'region_only': 'نفس المنطقة فقط',
-      'verified_only': 'للموثقين الهوية فقط',
-      'verified_region': 'موثق الهوية + نفس المنطقة',
+      public: 'عام - للجميع',
+      region_only: 'نفس المنطقة فقط',
+      verified_only: 'للموثقين الهوية فقط',
+      verified_region: 'موثق الهوية + نفس المنطقة',
     };
     return map[privacyType] || privacyType;
   };
 
-  // ✅ Keep from develop - Privacy Colors
+  // ✅ Privacy Colors
   const getPrivacyColor = (privacyType: string) => {
     const map: Record<string, string> = {
-      'public': 'var(--success)',
-      'region_only': 'var(--info)',
-      'verified_only': 'var(--primary-orange)',
-      'verified_region': 'var(--warning)',
+      public: 'var(--success)',
+      region_only: 'var(--info)',
+      verified_only: 'var(--primary-orange)',
+      verified_region: 'var(--warning)',
     };
     return map[privacyType] || 'var(--text-muted)';
   };
@@ -141,15 +174,19 @@ const AnnouncementPost = ({
   };
 
   // ✅ Use STORAGE_URL from env
-  const coverImage = announcement.images && announcement.images.length > 0
-    ? `${STORAGE_URL}/${announcement.images[0].image_path}`
-    : '/placeholder-image.png';
+  const coverImage =
+    announcement.images && announcement.images.length > 0
+      ? `${STORAGE_URL}/${announcement.images[0].image_path}`
+      : '/placeholder-image.png';
 
   // ✅ Use STORAGE_URL in getUserAvatar
   const getUserAvatar = (): string | null => {
     const profileImage = announcement.user?.profile_image;
     if (!profileImage) return null;
-    if (profileImage.startsWith('http://') || profileImage.startsWith('https://')) {
+    if (
+      profileImage.startsWith('http://') ||
+      profileImage.startsWith('https://')
+    ) {
       return profileImage;
     }
     if (profileImage.startsWith('storage/')) {
@@ -162,7 +199,9 @@ const AnnouncementPost = ({
   };
 
   const userAvatar = getUserAvatar();
-  const userInitials = (announcement.user?.name || 'مستخدم').charAt(0).toUpperCase();
+  const userInitials = (announcement.user?.name || 'مستخدم')
+    .charAt(0)
+    .toUpperCase();
 
   const contactConfig = getContactButtonConfig();
 
@@ -180,11 +219,18 @@ const AnnouncementPost = ({
           className="announcement-card-list"
           style={{
             backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
+            border: isOwn
+              ? `1.5px solid ${
+                  isDark
+                    ? 'rgba(32,201,224,0.5)'
+                    : 'rgba(23,162,184,0.35)'
+                }`
+              : '1px solid var(--border-color)',
             borderRadius: '16px',
             overflow: 'hidden',
             boxShadow: '0 2px 8px var(--shadow-sm)',
-            transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+            transition:
+              'box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease',
             display: 'flex',
             flexDirection: 'row',
             minHeight: '220px',
@@ -196,7 +242,7 @@ const AnnouncementPost = ({
             e.currentTarget.style.boxShadow = '0 2px 8px var(--shadow-sm)';
           }}
         >
-          {/* IMAGE - Left Side (Clickable) */}
+          {/* IMAGE */}
           <Link
             to={`/announcements/${announcement.id}`}
             style={{
@@ -227,7 +273,38 @@ const AnnouncementPost = ({
               }}
             />
 
-            {/* BADGES */}
+            {/* ✅ "إعلانك" badge — top-left */}
+            {isOwn && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  left: '8px',
+                  zIndex: 10,
+                }}
+              >
+                <span
+                  style={{
+                    ...ownBadgeStyle,
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    fontSize: '0.6rem',
+                    fontWeight: 800,
+                    fontFamily: 'Cairo, sans-serif',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                >
+                  <FaUser size={8} />
+                  إعلانك
+                </span>
+              </div>
+            )}
+
+            {/* Privacy badge — top-right */}
             <div
               style={{
                 position: 'absolute',
@@ -260,7 +337,7 @@ const AnnouncementPost = ({
               <div
                 style={{
                   position: 'absolute',
-                  top: '8px',
+                  bottom: '8px',
                   left: '8px',
                   zIndex: 5,
                 }}
@@ -315,9 +392,12 @@ const AnnouncementPost = ({
 
               <span
                 style={{
-                  backgroundColor: announcement.price_type === 'free' ? 'var(--success)' :
-                               announcement.price_type === 'paid' ? 'var(--primary-orange)' :
-                               '#9C27B0',
+                  backgroundColor:
+                    announcement.price_type === 'free'
+                      ? 'var(--success)'
+                      : announcement.price_type === 'paid'
+                        ? 'var(--primary-orange)'
+                        : '#9C27B0',
                   color: '#FFFFFF',
                   padding: '3px 10px',
                   borderRadius: '6px',
@@ -376,15 +456,16 @@ const AnnouncementPost = ({
             </div>
           </Link>
 
-          {/* CONTENT - Right Side */}
-          <Card.Body style={{ 
-            padding: '1rem 1.2rem',
-            display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            minWidth: 0,
-          }}>
-            {/* User Info */}
+          {/* CONTENT */}
+          <Card.Body
+            style={{
+              padding: '1rem 1.2rem',
+              display: 'flex',
+              flexDirection: 'column',
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
             <div
               style={{
                 display: 'flex',
@@ -397,7 +478,14 @@ const AnnouncementPost = ({
                 border: '1px solid var(--border-color)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  minWidth: 0,
+                }}
+              >
                 <div
                   style={{
                     width: '32px',
@@ -497,13 +585,45 @@ const AnnouncementPost = ({
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                <FaStar size={12} color="#F5A623" />
-                <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700 }}>4.8</span>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  flexShrink: 0,
+                }}
+              >
+                {announcement.user?.total_ratings &&
+                announcement.user.total_ratings > 0 ? (
+                  <>
+                    <FaStar size={12} color="#F5A623" />
+                    <span
+                      style={{
+                        color: 'var(--text-secondary)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {(announcement.user.average_rating ?? 0).toFixed(1)}
+                    </span>
+                  </>
+                ) : (
+                  <span
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '0.65rem',
+                      fontFamily: 'Cairo, sans-serif',
+                      opacity: 0.7,
+                    }}
+                  >
+                    لا تقييم
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Title (Clickable) */}
             <Link
               to={`/announcements/${announcement.id}`}
               style={{
@@ -536,7 +656,6 @@ const AnnouncementPost = ({
               </h3>
             </Link>
 
-            {/* Description */}
             <p
               style={{
                 color: 'var(--text-muted)',
@@ -554,8 +673,15 @@ const AnnouncementPost = ({
               {announcement.description}
             </p>
 
-            {/* Tags & Location */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginBottom: '0.3rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '4px',
+                alignItems: 'center',
+                marginBottom: '0.3rem',
+              }}
+            >
               <span
                 style={{
                   backgroundColor: 'var(--bg-input)',
@@ -609,17 +735,18 @@ const AnnouncementPost = ({
               </span>
             </div>
 
-            {/* ACTIONS */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              marginTop: 'auto',
-              paddingTop: '0.5rem',
-              borderTop: '1px solid var(--border-color)',
-              width: '100%',
-              flexWrap: 'wrap',
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: 'auto',
+                paddingTop: '0.5rem',
+                borderTop: '1px solid var(--border-color)',
+                width: '100%',
+                flexWrap: 'wrap',
+              }}
+            >
               <LikeButton
                 announcementId={announcement.id}
                 initialLiked={announcement.is_liked_by_user || false}
@@ -650,7 +777,8 @@ const AnnouncementPost = ({
                   justifyContent: 'center',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
+                  e.currentTarget.style.backgroundColor =
+                    'var(--primary-orange)';
                   e.currentTarget.style.borderColor = 'var(--primary-orange)';
                   e.currentTarget.style.color = '#FFFFFF';
                 }}
@@ -732,16 +860,26 @@ const AnnouncementPost = ({
                   to={contactConfig.to}
                   size="sm"
                   style={{
-                    backgroundColor: contactConfig.variant === 'warning' ? 'var(--warning)' : 'transparent',
-                    borderColor: contactConfig.variant === 'warning' ? 'var(--warning)' : 'var(--border-color)',
-                    color: contactConfig.variant === 'warning' ? '#856404' : 'var(--text-secondary)',
+                    backgroundColor:
+                      contactConfig.variant === 'warning'
+                        ? 'var(--warning)'
+                        : 'transparent',
+                    borderColor:
+                      contactConfig.variant === 'warning'
+                        ? 'var(--warning)'
+                        : 'var(--border-color)',
+                    color:
+                      contactConfig.variant === 'warning'
+                        ? '#856404'
+                        : 'var(--text-secondary)',
                     borderRadius: '8px',
                     padding: '5px 12px',
                     fontFamily: 'Cairo, sans-serif',
                     fontSize: '0.65rem',
                     fontWeight: 600,
                     transition: 'all 0.3s ease',
-                    borderWidth: contactConfig.variant === 'warning' ? '0px' : '1.5px',
+                    borderWidth:
+                      contactConfig.variant === 'warning' ? '0px' : '1.5px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
@@ -752,8 +890,10 @@ const AnnouncementPost = ({
                     if (contactConfig.variant === 'warning') {
                       e.currentTarget.style.backgroundColor = '#E0A800';
                     } else {
-                      e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
-                      e.currentTarget.style.borderColor = 'var(--primary-orange)';
+                      e.currentTarget.style.backgroundColor =
+                        'var(--primary-orange)';
+                      e.currentTarget.style.borderColor =
+                        'var(--primary-orange)';
                       e.currentTarget.style.color = '#FFFFFF';
                     }
                   }}
@@ -791,11 +931,16 @@ const AnnouncementPost = ({
         className="announcement-card-grid"
         style={{
           backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
+          border: isOwn
+            ? `1.5px solid ${
+                isDark ? 'rgba(32,201,224,0.5)' : 'rgba(23,162,184,0.35)'
+              }`
+            : '1px solid var(--border-color)',
           borderRadius: '16px',
           overflow: 'hidden',
           boxShadow: '0 2px 8px var(--shadow-sm)',
-          transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+          transition:
+            'box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -807,7 +952,6 @@ const AnnouncementPost = ({
           e.currentTarget.style.boxShadow = '0 2px 8px var(--shadow-sm)';
         }}
       >
-        {/* IMAGE - Top (Clickable) */}
         <Link
           to={`/announcements/${announcement.id}`}
           style={{
@@ -837,6 +981,37 @@ const AnnouncementPost = ({
               e.currentTarget.style.transform = 'scale(1)';
             }}
           />
+
+          {/* ✅ "إعلانك" badge — top-left */}
+          {isOwn && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '8px',
+                left: '8px',
+                zIndex: 10,
+              }}
+            >
+              <span
+                style={{
+                  ...ownBadgeStyle,
+                  padding: '3px 9px',
+                  borderRadius: '7px',
+                  fontSize: '0.58rem',
+                  fontWeight: 800,
+                  fontFamily: 'Cairo, sans-serif',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
+                <FaUser size={7} />
+                إعلانك
+              </span>
+            </div>
+          )}
 
           <div
             style={{
@@ -870,7 +1045,7 @@ const AnnouncementPost = ({
             <div
               style={{
                 position: 'absolute',
-                top: '8px',
+                bottom: '8px',
                 left: '8px',
                 zIndex: 5,
               }}
@@ -925,9 +1100,12 @@ const AnnouncementPost = ({
 
             <span
               style={{
-                backgroundColor: announcement.price_type === 'free' ? 'var(--success)' :
-                               announcement.price_type === 'paid' ? 'var(--primary-orange)' :
-                               '#9C27B0',
+                backgroundColor:
+                  announcement.price_type === 'free'
+                    ? 'var(--success)'
+                    : announcement.price_type === 'paid'
+                      ? 'var(--primary-orange)'
+                      : '#9C27B0',
                 color: '#FFFFFF',
                 padding: '3px 10px',
                 borderRadius: '6px',
@@ -986,14 +1164,14 @@ const AnnouncementPost = ({
           </div>
         </Link>
 
-        {/* CONTENT - Bottom */}
-        <Card.Body style={{ 
-          padding: '0.8rem 0.9rem 0.9rem',
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1,
-        }}>
-          {/* User Info */}
+        <Card.Body
+          style={{
+            padding: '0.8rem 0.9rem 0.9rem',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+          }}
+        >
           <div
             style={{
               display: 'flex',
@@ -1103,13 +1281,46 @@ const AnnouncementPost = ({
                 {formatDate(announcement.created_at)}
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
-              <FaStar size={10} color="#F5A623" />
-              <span style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', fontWeight: 700 }}>4.8</span>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px',
+                flexShrink: 0,
+              }}
+            >
+              {announcement.user?.total_ratings &&
+              announcement.user.total_ratings > 0 ? (
+                <>
+                  <FaStar size={10} color="#F5A623" />
+                  <span
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.65rem',
+                      fontWeight: 700,
+                      fontFamily: 'system-ui, sans-serif',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {(announcement.user.average_rating ?? 0).toFixed(1)}
+                  </span>
+                </>
+              ) : (
+                <span
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.55rem',
+                    fontFamily: 'Cairo, sans-serif',
+                    opacity: 0.7,
+                  }}
+                >
+                  لا تقييم
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Title (Clickable) */}
           <Link
             to={`/announcements/${announcement.id}`}
             style={{
@@ -1142,8 +1353,16 @@ const AnnouncementPost = ({
             </h3>
           </Link>
 
-          {/* Tags & Location */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', alignItems: 'center', marginBottom: '0.3rem', marginTop: 'auto' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '3px',
+              alignItems: 'center',
+              marginBottom: '0.3rem',
+              marginTop: 'auto',
+            }}
+          >
             <span
               style={{
                 backgroundColor: 'var(--bg-input)',
@@ -1197,15 +1416,16 @@ const AnnouncementPost = ({
             </span>
           </div>
 
-          {/* ACTIONS */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '4px', 
-            paddingTop: '0.4rem',
-            borderTop: '1px solid var(--border-color)',
-            flexWrap: 'wrap',
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              paddingTop: '0.4rem',
+              borderTop: '1px solid var(--border-color)',
+              flexWrap: 'wrap',
+            }}
+          >
             <LikeButton
               announcementId={announcement.id}
               initialLiked={announcement.is_liked_by_user || false}
@@ -1316,16 +1536,26 @@ const AnnouncementPost = ({
                 to={contactConfig.to}
                 size="sm"
                 style={{
-                  backgroundColor: contactConfig.variant === 'warning' ? 'var(--warning)' : 'transparent',
-                  borderColor: contactConfig.variant === 'warning' ? 'var(--warning)' : 'var(--border-color)',
-                  color: contactConfig.variant === 'warning' ? '#856404' : 'var(--text-secondary)',
+                  backgroundColor:
+                    contactConfig.variant === 'warning'
+                      ? 'var(--warning)'
+                      : 'transparent',
+                  borderColor:
+                    contactConfig.variant === 'warning'
+                      ? 'var(--warning)'
+                      : 'var(--border-color)',
+                  color:
+                    contactConfig.variant === 'warning'
+                      ? '#856404'
+                      : 'var(--text-secondary)',
                   borderRadius: '6px',
                   padding: '4px 8px',
                   fontFamily: 'Cairo, sans-serif',
                   fontSize: '0.55rem',
                   fontWeight: 600,
                   transition: 'all 0.3s ease',
-                  borderWidth: contactConfig.variant === 'warning' ? '0px' : '1.5px',
+                  borderWidth:
+                    contactConfig.variant === 'warning' ? '0px' : '1.5px',
                   flex: 1,
                   display: 'flex',
                   alignItems: 'center',
@@ -1336,8 +1566,10 @@ const AnnouncementPost = ({
                   if (contactConfig.variant === 'warning') {
                     e.currentTarget.style.backgroundColor = '#E0A800';
                   } else {
-                    e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
-                    e.currentTarget.style.borderColor = 'var(--primary-orange)';
+                    e.currentTarget.style.backgroundColor =
+                      'var(--primary-orange)';
+                    e.currentTarget.style.borderColor =
+                      'var(--primary-orange)';
                     e.currentTarget.style.color = '#FFFFFF';
                   }
                 }}

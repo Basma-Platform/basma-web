@@ -5,3 +5,12 @@ export {
   AdminVerificationListPage,
   AdminVerificationDetailPage,
 } from './verification';
+
+// Ratings
+export { AdminRatingsListPage } from './ratings';
+
+// Featured Requests
+export {
+  AdminFeaturedRequestsPage,
+  AdminFeaturedRequestDetailPage,
+} from './featured';
