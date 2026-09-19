@@ -12,6 +12,9 @@ interface DashboardRecentAnnouncementsProps {
   announcements: DashboardRecentAnnouncement[];
 }
 
+// ✅ Storage URL - مسار نسبي (Vercel Rewrite يتولى الباقي)
+const STORAGE_URL = '/storage';
+
 const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnouncementsProps) => {
   const navigate = useNavigate();
 
@@ -117,6 +120,13 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
     });
   };
 
+  // ✅ دالة للحصول على صورة الغلاف
+  const getCoverImage = (coverImage: string | null): string | null => {
+    if (!coverImage) return null;
+    if (coverImage.startsWith('http')) return coverImage;
+    return `${STORAGE_URL}${coverImage.startsWith('/') ? '' : '/'}${coverImage}`;
+  };
+
   return (
     <Card
       style={{
@@ -218,11 +228,21 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
                       justifyContent: 'center',
                     }}
                   >
-                    {item.cover_image ? (
+                    {getCoverImage(item.cover_image) ? (
                       <img
-                        src={`http://localhost:8000${item.cover_image}`}
+                        src={getCoverImage(item.cover_image)!}
                         alt={item.title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('span');
+                            fallback.innerHTML = '🖼️';
+                            fallback.style.fontSize = '1.2rem';
+                            parent.appendChild(fallback);
+                          }
+                        }}
                       />
                     ) : (
                       <FaImage color="var(--text-muted)" size={18} />
@@ -290,11 +310,21 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
                       justifyContent: 'center',
                     }}
                   >
-                    {item.cover_image ? (
+                    {getCoverImage(item.cover_image) ? (
                       <img
-                        src={`http://localhost:8000${item.cover_image}`}
+                        src={getCoverImage(item.cover_image)!}
                         alt={item.title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('span');
+                            fallback.innerHTML = '🖼️';
+                            fallback.style.fontSize = '1rem';
+                            parent.appendChild(fallback);
+                          }
+                        }}
                       />
                     ) : (
                       <FaImage color="var(--text-muted)" size={16} />
