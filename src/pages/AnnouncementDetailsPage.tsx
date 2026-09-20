@@ -16,7 +16,6 @@ import {
   FaEnvelope,
   FaShieldAlt,
   FaStar,
-  FaUser,
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -29,7 +28,7 @@ import AnnouncementSecurityTips from '../components/announcements/AnnouncementSe
 import AnnouncementContactButton from '../components/announcements/AnnouncementContactButton';
 import FeaturedDetailsBanner from '../components/announcements/FeaturedDetailsBanner';
 import AnnouncementReviewSection from '../components/announcements/AnnouncementReviewSection';
-import { isOwnAnnouncement, getOwnBadgeStyle } from '../utils/announcementHelpers';
+import { getStorageUrl } from '../utils/storageHelpers';
 import type { Announcement } from '../types';
 import type { ContactButtonConfig } from '../components/announcements/AnnouncementContactButton';
 
@@ -40,18 +39,15 @@ const AnnouncementDetailsPage = () => {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasAttempted, setHasAttempted] = useState(false);
 
   const cancelTokenSource = useRef<any>(null);
+
+  // Guard to prevent double-incrementing views during React strict mode / double renders
   const hasIncrementedView = useRef(false);
 
   const isEmailVerified =
     user?.email_verified_at !== null && user?.email_verified_at !== undefined;
   const isVerifiedUser = user?.is_verified === true;
-
-  // ✅ Owner check
-  const isOwn = isOwnAnnouncement(announcement, user?.id);
-  const ownBadgeStyle = getOwnBadgeStyle(isDark);
 
   // ============================================
   // PRIVACY & CONTACT LOGIC
@@ -154,7 +150,6 @@ const AnnouncementDetailsPage = () => {
     const fetchAnnouncement = async () => {
       if (!id) {
         setLoading(false);
-        setHasAttempted(true);
         return;
       }
 
@@ -163,7 +158,6 @@ const AnnouncementDetailsPage = () => {
 
       setLoading(true);
       setError(null);
-      setHasAttempted(false);
 
       try {
         const data = await announcementService.getAnnouncement(Number(id));
@@ -175,8 +169,6 @@ const AnnouncementDetailsPage = () => {
         }
         setError('حدث خطأ في تحميل الإعلان. يرجى المحاولة مرة أخرى.');
         setLoading(false);
-      } finally {
-        setHasAttempted(true);
       }
     };
 
@@ -244,11 +236,9 @@ const AnnouncementDetailsPage = () => {
     }
   };
 
+  // ✅ Uses global storage helper — environment-aware
   const getOwnerAvatar = (): string | null => {
-    const profileImage = announcement?.user?.profile_image;
-    if (!profileImage) return null;
-    if (profileImage.startsWith('http')) return profileImage;
-    return `http://localhost:8000/storage/${profileImage}`;
+    return getStorageUrl(announcement?.user?.profile_image);
   };
 
   const contactConfig = getContactButtonConfig();
@@ -260,7 +250,7 @@ const AnnouncementDetailsPage = () => {
   // LOADING & ERROR STATES
   // ============================================
 
-  if (loading || !hasAttempted) {
+  if (loading) {
     return (
       <div
         style={{
@@ -384,30 +374,18 @@ const AnnouncementDetailsPage = () => {
           >
             <Link
               to="/"
-              style={{
-                color: 'var(--primary-orange)',
-                textDecoration: 'none',
-              }}
+              style={{ color: 'var(--primary-orange)', textDecoration: 'none' }}
             >
               الرئيسية
             </Link>
-            <FaChevronRight
-              size={10}
-              style={{ color: 'var(--text-muted)', opacity: 0.4 }}
-            />
+            <FaChevronRight size={10} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
             <Link
               to="/announcements"
-              style={{
-                color: 'var(--primary-orange)',
-                textDecoration: 'none',
-              }}
+              style={{ color: 'var(--primary-orange)', textDecoration: 'none' }}
             >
               الإعلانات
             </Link>
-            <FaChevronRight
-              size={10}
-              style={{ color: 'var(--text-muted)', opacity: 0.4 }}
-            />
+            <FaChevronRight size={10} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
             <span style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
               {announcement.title.length > 30
                 ? announcement.title.slice(0, 30) + '...'
@@ -419,18 +397,22 @@ const AnnouncementDetailsPage = () => {
           {isFeatured && <FeaturedDetailsBanner />}
 
           <Row className="g-4">
+            {/* ============================================ */}
             {/* LEFT COLUMN - Main Content */}
+            {/* ============================================ */}
             <Col xs={12} lg={8}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
               >
+                {/* Image Carousel */}
                 <AnnouncementImageCarousel
                   images={announcement.images || []}
                   title={announcement.title}
                 />
 
+                {/* Actions Bar */}
                 <AnnouncementDetailsActions
                   announcementId={announcement.id}
                   isLiked={announcement.is_liked_by_user || false}
@@ -439,14 +421,14 @@ const AnnouncementDetailsPage = () => {
                   isEmailVerified={isEmailVerified}
                 />
 
-                {/* Mobile: Owner Info */}
+                {/* 📱 MOBILE OPTIMIZATION: Owner Info Card placed right under Actions Bar for mobile view */}
                 <div className="d-block d-lg-none my-3">
                   <AnnouncementOwnerInfo
                     ownerName={announcement.user?.name || 'مستخدم'}
                     isVerified={announcement.user?.is_verified || false}
                     avatarUrl={getOwnerAvatar()}
-                    rating={announcement.user?.average_rating ?? 0}
-                    ratingCount={announcement.user?.total_ratings ?? 0}
+                    rating={4.8}
+                    ratingCount={12}
                     memberSince={announcement.user?.created_at}
                     userId={announcement.user?.id}
                   />
@@ -468,11 +450,7 @@ const AnnouncementDetailsPage = () => {
                         ? '0 8px 30px rgba(232, 122, 32, 0.15)'
                         : '0 8px 30px rgba(255, 193, 7, 0.2)'
                       : '0 2px 12px var(--shadow-sm)',
-                    border: isOwn
-                      ? isDark
-                        ? '1.5px solid rgba(32,201,224,0.4)'
-                        : '1.5px solid rgba(23,162,184,0.35)'
-                      : isFeatured
+                    border: isFeatured
                       ? isDark
                         ? '1.5px solid rgba(232, 122, 32, 0.4)'
                         : '1.5px solid #FFC107'
@@ -482,7 +460,7 @@ const AnnouncementDetailsPage = () => {
                     overflow: 'hidden',
                   }}
                 >
-                  {/* Featured Glow Line */}
+                  {/* Special Featured Glow Line */}
                   {isFeatured && (
                     <div
                       style={{
@@ -509,7 +487,6 @@ const AnnouncementDetailsPage = () => {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      flexWrap: 'wrap',
                     }}
                   >
                     {announcement.title}
@@ -524,27 +501,6 @@ const AnnouncementDetailsPage = () => {
                       marginBottom: '1rem',
                     }}
                   >
-                    {/* ✅ NEW: "إعلانك" badge — first in list */}
-                    {isOwn && (
-                      <span
-                        style={{
-                          ...ownBadgeStyle,
-                          padding: '4px 12px',
-                          borderRadius: '10px',
-                          fontSize: '0.75rem',
-                          fontWeight: 800,
-                          fontFamily: 'Cairo, sans-serif',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          boxShadow: '0 2px 8px rgba(23,162,184,0.25)',
-                        }}
-                      >
-                        <FaUser size={11} />
-                        إعلانك
-                      </span>
-                    )}
-
                     {isFeatured && (
                       <span
                         style={{
@@ -580,8 +536,7 @@ const AnnouncementDetailsPage = () => {
                         gap: '4px',
                       }}
                     >
-                      <FaTag size={10} />{' '}
-                      {getCategoryLabel(announcement.category)}
+                      <FaTag size={10} /> {getCategoryLabel(announcement.category)}
                     </span>
 
                     {announcement.sub_category && (
@@ -606,8 +561,7 @@ const AnnouncementDetailsPage = () => {
 
                     <span
                       style={{
-                        backgroundColor:
-                          getTypeColor(announcement.type) + '15',
+                        backgroundColor: getTypeColor(announcement.type) + '15',
                         color: getTypeColor(announcement.type),
                         padding: '4px 12px',
                         borderRadius: '10px',
@@ -627,14 +581,14 @@ const AnnouncementDetailsPage = () => {
                           announcement.price_type === 'free'
                             ? '#28A74515'
                             : announcement.price_type === 'paid'
-                            ? 'rgba(232,122,32,0.15)'
-                            : '#9C27B015',
+                              ? 'rgba(232,122,32,0.15)'
+                              : '#9C27B015',
                         color:
                           announcement.price_type === 'free'
                             ? '#28A745'
                             : announcement.price_type === 'paid'
-                            ? 'var(--primary-orange)'
-                            : '#9C27B0',
+                              ? 'var(--primary-orange)'
+                              : '#9C27B0',
                         padding: '4px 12px',
                         borderRadius: '10px',
                         fontSize: '0.75rem',
@@ -682,8 +636,7 @@ const AnnouncementDetailsPage = () => {
                         )}40`,
                       }}
                     >
-                      <FaLock size={9} />{' '}
-                      {getPrivacyLabel(announcement.privacy_type)}
+                      <FaLock size={9} /> {getPrivacyLabel(announcement.privacy_type)}
                     </span>
 
                     {announcement.sub_category?.is_high_risk && (
@@ -734,8 +687,7 @@ const AnnouncementDetailsPage = () => {
                       }}
                     >
                       {announcement.governorate?.name || 'غير محدد'}
-                      {announcement.city?.name &&
-                        ` - ${announcement.city.name}`}
+                      {announcement.city?.name && ` - ${announcement.city.name}`}
                     </span>
                   </div>
 
@@ -754,20 +706,25 @@ const AnnouncementDetailsPage = () => {
                     </div>
                   </div>
 
+                  {/* Contact Button */}
                   <AnnouncementContactButton config={contactConfig} />
                 </div>
 
+                {/* Info Cards */}
                 <AnnouncementInfoCards
                   views={announcement.views}
                   likes={announcement.likes_count || 0}
                   createdAt={announcement.created_at}
                 />
 
+                {/* Review Section */}
                 <AnnouncementReviewSection announcementId={announcement.id} />
               </motion.div>
             </Col>
 
+            {/* ============================================ */}
             {/* RIGHT COLUMN - Sidebar */}
+            {/* ============================================ */}
             <Col xs={12} lg={4}>
               <div
                 style={{
@@ -778,18 +735,20 @@ const AnnouncementDetailsPage = () => {
                   gap: '1.25rem',
                 }}
               >
+                {/* 💻 DESKTOP OPTIMIZATION: Owner Info stays in the right sidebar on desktop screens (hidden on mobile) */}
                 <div className="d-none d-lg-block">
                   <AnnouncementOwnerInfo
                     ownerName={announcement.user?.name || 'مستخدم'}
                     isVerified={announcement.user?.is_verified || false}
                     avatarUrl={getOwnerAvatar()}
-                    rating={announcement.user?.average_rating ?? 0}
-                    ratingCount={announcement.user?.total_ratings ?? 0}
+                    rating={4.8}
+                    ratingCount={12}
                     memberSince={announcement.user?.created_at}
                     userId={announcement.user?.id}
                   />
                 </div>
 
+                {/* Security Tips */}
                 <AnnouncementSecurityTips />
               </div>
             </Col>

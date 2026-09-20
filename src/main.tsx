@@ -18,6 +18,11 @@ if (savedTheme === 'dark') {
   document.documentElement.setAttribute('data-theme', 'dark');
 }
 
+import { getStorageUrl, STORAGE_BASE_URL } from './utils/storageHelpers';
+
+console.log('🔧 STORAGE_BASE_URL:', STORAGE_BASE_URL);
+console.log('🔧 Test:', getStorageUrl('profile_images/avatar.jpeg'));
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HelmetProvider>
