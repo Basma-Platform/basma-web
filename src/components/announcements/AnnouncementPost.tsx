@@ -21,6 +21,7 @@ import { useTheme } from '../../context/ThemeContext';
 import type { Announcement } from '../../types';
 import { motion } from 'framer-motion';
 import LikeButton from './LikeButton';
+import { getStorageUrl } from '../../utils/storageHelpers';
 import {
   isOwnAnnouncement,
   getOwnBadgeStyle,
@@ -173,32 +174,16 @@ const AnnouncementPost = ({
     });
   };
 
-  // ✅ Use STORAGE_URL from env
+  // ✅ Use getStorageUrl for cover image
   const coverImage =
     announcement.images && announcement.images.length > 0
-      ? `${STORAGE_URL}/${announcement.images[0].image_path}`
+      ? getStorageUrl(announcement.images[0].image_path, '/placeholder-image.png') ||
+        '/placeholder-image.png'
       : '/placeholder-image.png';
 
-  // ✅ Use STORAGE_URL in getUserAvatar
-  const getUserAvatar = (): string | null => {
-    const profileImage = announcement.user?.profile_image;
-    if (!profileImage) return null;
-    if (
-      profileImage.startsWith('http://') ||
-      profileImage.startsWith('https://')
-    ) {
-      return profileImage;
-    }
-    if (profileImage.startsWith('storage/')) {
-      return `${STORAGE_URL}/${profileImage.replace('storage/', '')}`;
-    }
-    if (profileImage.startsWith('profile/')) {
-      return `${STORAGE_URL}/${profileImage}`;
-    }
-    return `${STORAGE_URL}/${profileImage}`;
-  };
+  // ✅ Use getStorageUrl for user avatar
+  const userAvatar = getStorageUrl(announcement.user?.profile_image);
 
-  const userAvatar = getUserAvatar();
   const userInitials = (announcement.user?.name || 'مستخدم')
     .charAt(0)
     .toUpperCase();
@@ -273,7 +258,7 @@ const AnnouncementPost = ({
               }}
             />
 
-            {/* ✅ "إعلانك" badge — top-left */}
+            {/* "إعلانك" badge — top-left */}
             {isOwn && (
               <div
                 style={{
@@ -982,7 +967,6 @@ const AnnouncementPost = ({
             }}
           />
 
-          {/* ✅ "إعلانك" badge — top-left */}
           {isOwn && (
             <div
               style={{

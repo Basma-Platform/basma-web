@@ -2,6 +2,11 @@ import type {
   UserAnnouncementDetailResponse,
   Announcement,
 } from '../types';
+import { getStorageUrl } from './storageHelpers';
+
+// ============================================
+// Status helpers
+// ============================================
 
 /**
  * Get Arabic label for announcement status
@@ -60,6 +65,10 @@ export const getAvailableActions = (
   };
 };
 
+// ============================================
+// Date helpers
+// ============================================
+
 /**
  * Format date in Arabic (long format)
  */
@@ -81,6 +90,10 @@ export const formatAnnouncementDateShort = (date: string): string => {
     day: 'numeric',
   });
 };
+
+// ============================================
+// Label helpers
+// ============================================
 
 /**
  * Get category label in Arabic
@@ -145,6 +158,10 @@ export const getPrivacyColor = (
   return map[privacy];
 };
 
+// ============================================
+// Featured helpers
+// ============================================
+
 /**
  * Get featured badge label
  */
@@ -169,23 +186,39 @@ export const getFeaturedBadgeColor = (
   return null;
 };
 
+// ============================================
+// Image helpers — uses global storage helper
+// ============================================
+
 /**
  * Get cover image URL from images array
+ * Uses the environment-aware storage helper
  */
-export const getCoverImageUrl = (announcement: Announcement): string => {
+export const getCoverImageUrl = (
+  announcement: Announcement,
+  fallback: string = '/placeholder-image.png'
+): string => {
   if (announcement.images && announcement.images.length > 0) {
-    const firstImage = announcement.images.sort((a, b) => a.order - b.order)[0];
-    return `http://localhost:8000/storage/${firstImage.image_path}`;
+    const firstImage = [...announcement.images].sort(
+      (a, b) => a.order - b.order
+    )[0];
+    return (
+      getStorageUrl(firstImage.image_path, fallback) ?? fallback
+    );
   }
-  return '/placeholder-image.png';
+  return fallback;
 };
+
+// ============================================
+// Misc helpers
+// ============================================
 
 /**
  * Calculate remaining days until permanent deletion
  */
-export const getDaysUntilPermanentDeletion = (
-  deletionInfo: { days_remaining: number }
-): string => {
+export const getDaysUntilPermanentDeletion = (deletionInfo: {
+  days_remaining: number;
+}): string => {
   const days = deletionInfo.days_remaining;
   if (days <= 0) return 'سيتم الحذف قريباً';
   if (days === 1) return 'يوم واحد متبقٍ';
@@ -196,7 +229,9 @@ export const getDaysUntilPermanentDeletion = (
 /**
  * Check if announcement can be featured
  */
-export const canBeFeatured = (announcement: UserAnnouncementDetailResponse): boolean => {
+export const canBeFeatured = (
+  announcement: UserAnnouncementDetailResponse
+): boolean => {
   return (
     announcement.status === 'active' &&
     !announcement.is_currently_featured &&

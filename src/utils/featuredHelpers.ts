@@ -1,4 +1,5 @@
 import type { AdminFeaturedStats } from '../types';
+import { getStorageUrl } from './storageHelpers';
 
 // ============================================
 // STATUS
@@ -188,16 +189,18 @@ export const getInitials = (name: string): string => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return 'U';
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  return (
+    parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
+  ).toUpperCase();
 };
 
 /**
- * Resolve storage URL for a file path
+ * Resolve storage URL for a file path.
+ * Kept for backward compatibility — delegates to the global storage helper.
  */
 export const resolveStorageUrl = (path: string | null): string | null => {
   if (!path) return null;
-  if (path.startsWith('http')) return path;
-  return `http://localhost:8000/storage/${path}`;
+  return getStorageUrl(path);
 };
 
 /**

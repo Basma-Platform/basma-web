@@ -1,6 +1,8 @@
-/**
- * Helper functions for Profile
- */
+import { getStorageUrl } from './storageHelpers';
+
+// ============================================
+// Date helpers
+// ============================================
 
 /**
  * Format date to Arabic
@@ -14,6 +16,10 @@ export const formatProfileDate = (date: string | null): string => {
   });
 };
 
+// ============================================
+// Verification helpers
+// ============================================
+
 /**
  * Get verification status label in Arabic
  */
@@ -21,9 +27,9 @@ export const getVerificationStatusLabel = (
   status: 'pending' | 'approved' | 'rejected' | null
 ): string => {
   const map: Record<string, string> = {
-    'pending': 'قيد المراجعة',
-    'approved': 'موثق',
-    'rejected': 'مرفوض',
+    pending: 'قيد المراجعة',
+    approved: 'موثق',
+    rejected: 'مرفوض',
   };
   return status ? map[status] || status : 'غير موثق';
 };
@@ -35,12 +41,16 @@ export const getVerificationStatusColor = (
   status: 'pending' | 'approved' | 'rejected' | null
 ): string => {
   const map: Record<string, string> = {
-    'pending': '#FFC107',
-    'approved': '#28A745',
-    'rejected': '#DC3545',
+    pending: '#FFC107',
+    approved: '#28A745',
+    rejected: '#DC3545',
   };
   return status ? map[status] || 'var(--text-muted)' : 'var(--text-muted)';
 };
+
+// ============================================
+// Monthly limit helpers
+// ============================================
 
 /**
  * Check if monthly limit is unlimited
@@ -52,7 +62,10 @@ export const isUnlimited = (limit: number): boolean => {
 /**
  * Get monthly usage percentage
  */
-export const getMonthlyUsagePercentage = (used: number, limit: number): number => {
+export const getMonthlyUsagePercentage = (
+  used: number,
+  limit: number
+): number => {
   if (isUnlimited(limit)) return 0;
   return Math.min((used / limit) * 100, 100);
 };
@@ -66,6 +79,10 @@ export const getMonthlyUsageColor = (percentage: number): string => {
   return '#28A745';
 };
 
+// ============================================
+// User helpers
+// ============================================
+
 /**
  * Get user initials from name
  */
@@ -78,17 +95,25 @@ export const getUserInitials = (name: string): string => {
 
 /**
  * Get profile image URL
+ * Uses the environment-aware storage helper
  */
-export const getProfileImageUrl = (imagePath: string | null): string | null => {
+export const getProfileImageUrl = (
+  imagePath: string | null
+): string | null => {
   if (!imagePath) return null;
-  if (imagePath.startsWith('http')) return imagePath;
-  return `http://localhost:8000/storage/${imagePath}`;
+  return getStorageUrl(imagePath);
 };
+
+// ============================================
+// File validation
+// ============================================
 
 /**
  * Validate image file
  */
-export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
+export const validateImageFile = (
+  file: File
+): { valid: boolean; error?: string } => {
   const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
   const maxSize = 2 * 1024 * 1024; // 2MB
 
