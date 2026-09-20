@@ -23,6 +23,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { useUserAnnouncements } from '../../../hooks/useUserAnnouncements';
 import { useAdminFeaturedRequests } from '../../../hooks/useAdminFeaturedRequests';
 import { getPendingBadgeCount } from '../../../utils/featuredHelpers';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 import logo from '../../../assets/logo.png';
 import { motion } from 'framer-motion';
 
@@ -36,9 +37,6 @@ interface DashboardSidebarProps {
  * Helper: check if the current path should mark the given base path as active.
  * - Exact match → active
  * - Any sub-route (`base/anything`) → active
- *
- * This is what keeps sidebar items highlighted when a user navigates into
- * any nested page (e.g. `/admin/featured-requests/42` keeps "طلبات التمييز" active).
  */
 const isPathActive = (currentPath: string, basePath: string): boolean => {
   if (currentPath === basePath) return true;
@@ -217,17 +215,13 @@ const DashboardSidebar = ({
     if (!user?.name) return 'U';
     const names = user.name.split(' ');
     if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    return (
+      names[0].charAt(0) + names[names.length - 1].charAt(0)
+    ).toUpperCase();
   };
 
   const getUserAvatar = (): string | null => {
-    if (user?.profile_image) {
-      if (user.profile_image.startsWith('http')) {
-        return user.profile_image;
-      }
-      return `http://localhost:8000/storage/${user.profile_image}`;
-    }
-    return null;
+    return getStorageUrl(user?.profile_image);
   };
 
   const userAvatar = getUserAvatar();
@@ -344,8 +338,8 @@ const DashboardSidebar = ({
             background: userAvatar
               ? 'transparent'
               : isDark
-                ? 'linear-gradient(135deg, #2a3a5a, #1a2a4a)'
-                : 'linear-gradient(135deg, #e0d8d0, #d0c8c0)',
+              ? 'linear-gradient(135deg, #2a3a5a, #1a2a4a)'
+              : 'linear-gradient(135deg, #e0d8d0, #d0c8c0)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

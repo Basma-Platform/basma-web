@@ -18,16 +18,19 @@ import {
 const HeroSection = () => {
   const { isDark } = useTheme();
   const { isAuthenticated, user } = useAuth();
-  const { stats } = usePublicStats();
+  const { stats, loading: statsLoading } = usePublicStats();
   const authedLink = user ? getPostAuthPath(user) : '/register';
 
-  // ✅ Trust points with real user count
-  const usersLabel = stats?.users.display_format
-    ? `${stats.users.display_format} مستخدم`
-    : '+10,000 مستخدم'; // Fallback
-
+  // ✅ Trust points — user count shows shimmer while loading
   const trustPoints = [
-    { icon: <FaUsers size={12} />, label: usersLabel },
+    {
+      icon: <FaUsers size={12} />,
+      label: 'مستخدم',
+      // Show the number only when stats loaded; otherwise null
+      number: !statsLoading && stats?.users.display_format
+        ? stats.users.display_format
+        : null,
+    },
     { icon: <FaCheckCircle size={12} />, label: 'هوية موثّقة' },
     { icon: <FaWhatsapp size={12} />, label: 'واتساب مباشر' },
   ];
@@ -98,13 +101,12 @@ const HeroSection = () => {
                   maxWidth: '550px',
                 }}
               >
-                منصة بصمة تهدف إلى تعزيز التكافل الاجتماعي وتسهيل تبادل الموارد والخدمات داخل المجتمع بروح التعاون والمحبة.
+                منصة بصمة تهدف إلى تعزيز التكافل الاجتماعي وتسهيل تبادل الموارد
+                والخدمات داخل المجتمع بروح التعاون والمحبة.
               </p>
 
               {/* CTA Buttons */}
-              <div
-                className="hero-cta-group d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start"
-              >
+              <div className="hero-cta-group d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
                 <Button
                   as={Link as any}
                   to={isAuthenticated ? authedLink : '/register'}
@@ -122,12 +124,14 @@ const HeroSection = () => {
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#D46A1A';
                     e.currentTarget.style.transform = 'translateY(-3px)';
-                    e.currentTarget.style.boxShadow = '0 6px 24px rgba(232, 122, 32, 0.4)';
+                    e.currentTarget.style.boxShadow =
+                      '0 6px 24px rgba(232, 122, 32, 0.4)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '#E87A20';
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(232, 122, 32, 0.3)';
+                    e.currentTarget.style.boxShadow =
+                      '0 4px 16px rgba(232, 122, 32, 0.3)';
                   }}
                 >
                   {isAuthenticated ? 'لوحة التحكم' : 'انضم إلينا الآن'}
@@ -205,7 +209,50 @@ const HeroSection = () => {
                     >
                       {point.icon}
                     </span>
-                    {point.label}
+
+                    {/* ✅ Number + label with shimmer while loading */}
+                    {point.number !== undefined ? (
+                      point.number ? (
+                        <>
+                          <span
+                            style={{
+                              fontFamily:
+                                "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+                              fontVariantNumeric: 'lining-nums tabular-nums',
+                              fontWeight: 800,
+                              color: 'var(--text-secondary)',
+                              direction: 'ltr',
+                              display: 'inline-block',
+                            }}
+                          >
+                            {point.number}
+                          </span>
+                          <span>{point.label}</span>
+                        </>
+                      ) : (
+                        <>
+                          {/* Shimmer placeholder while stats load */}
+                          <span
+                            className="hero-trust-shimmer"
+                            aria-label="جاري التحميل"
+                            style={{
+                              display: 'inline-block',
+                              width: '42px',
+                              height: '10px',
+                              borderRadius: '4px',
+                              backgroundColor: isDark
+                                ? 'rgba(196,168,138,0.15)'
+                                : 'rgba(139,90,43,0.08)',
+                              position: 'relative',
+                              overflow: 'hidden',
+                            }}
+                          />
+                          <span>{point.label}</span>
+                        </>
+                      )
+                    ) : (
+                      <span>{point.label}</span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -226,52 +273,151 @@ const HeroSection = () => {
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <defs>
-                    <marker id="basma-arrow-1" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#E87A20" /></marker>
-                    <marker id="basma-arrow-2" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#8B5A2B" /></marker>
-                    <marker id="basma-arrow-3" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#28A745" /></marker>
+                    <marker
+                      id="basma-arrow-1"
+                      markerWidth="9"
+                      markerHeight="9"
+                      refX="5"
+                      refY="4.5"
+                      orient="auto"
+                    >
+                      <path d="M0,0 L9,4.5 L0,9 Z" fill="#E87A20" />
+                    </marker>
+                    <marker
+                      id="basma-arrow-2"
+                      markerWidth="9"
+                      markerHeight="9"
+                      refX="5"
+                      refY="4.5"
+                      orient="auto"
+                    >
+                      <path d="M0,0 L9,4.5 L0,9 Z" fill="#8B5A2B" />
+                    </marker>
+                    <marker
+                      id="basma-arrow-3"
+                      markerWidth="9"
+                      markerHeight="9"
+                      refX="5"
+                      refY="4.5"
+                      orient="auto"
+                    >
+                      <path d="M0,0 L9,4.5 L0,9 Z" fill="#28A745" />
+                    </marker>
                   </defs>
 
-                  <path id="basma-path-1" className="hero-arrow-path path-1" d="M265,138 Q350,180 345,272" fill="none" stroke="#E87A20" strokeWidth="3" strokeLinecap="round" markerEnd="url(#basma-arrow-1)" />
-                  <path id="basma-path-2" className="hero-arrow-path path-2" d="M312,330 Q230,380 148,330" fill="none" stroke="#8B5A2B" strokeWidth="3" strokeLinecap="round" markerEnd="url(#basma-arrow-2)" />
-                  <path id="basma-path-3" className="hero-arrow-path path-3" d="M115,272 Q110,180 195,138" fill="none" stroke="#28A745" strokeWidth="3" strokeLinecap="round" markerEnd="url(#basma-arrow-3)" />
+                  <path
+                    id="basma-path-1"
+                    className="hero-arrow-path path-1"
+                    d="M265,138 Q350,180 345,272"
+                    fill="none"
+                    stroke="#E87A20"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    markerEnd="url(#basma-arrow-1)"
+                  />
+                  <path
+                    id="basma-path-2"
+                    className="hero-arrow-path path-2"
+                    d="M312,330 Q230,380 148,330"
+                    fill="none"
+                    stroke="#8B5A2B"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    markerEnd="url(#basma-arrow-2)"
+                  />
+                  <path
+                    id="basma-path-3"
+                    className="hero-arrow-path path-3"
+                    d="M115,272 Q110,180 195,138"
+                    fill="none"
+                    stroke="#28A745"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    markerEnd="url(#basma-arrow-3)"
+                  />
 
                   <circle r="5" fill="#E87A20" opacity="0">
-                    <animate attributeName="opacity" from="0" to="1" dur="0.01s" begin="1.7s" fill="freeze" />
-                    <animateMotion dur="3s" repeatCount="indefinite" begin="1.7s"><mpath href="#basma-path-1" /></animateMotion>
+                    <animate
+                      attributeName="opacity"
+                      from="0"
+                      to="1"
+                      dur="0.01s"
+                      begin="1.7s"
+                      fill="freeze"
+                    />
+                    <animateMotion dur="3s" repeatCount="indefinite" begin="1.7s">
+                      <mpath href="#basma-path-1" />
+                    </animateMotion>
                   </circle>
                   <circle r="5" fill="#8B5A2B" opacity="0">
-                    <animate attributeName="opacity" from="0" to="1" dur="0.01s" begin="1.95s" fill="freeze" />
-                    <animateMotion dur="3s" repeatCount="indefinite" begin="1.95s"><mpath href="#basma-path-2" /></animateMotion>
+                    <animate
+                      attributeName="opacity"
+                      from="0"
+                      to="1"
+                      dur="0.01s"
+                      begin="1.95s"
+                      fill="freeze"
+                    />
+                    <animateMotion dur="3s" repeatCount="indefinite" begin="1.95s">
+                      <mpath href="#basma-path-2" />
+                    </animateMotion>
                   </circle>
                   <circle r="5" fill="#28A745" opacity="0">
-                    <animate attributeName="opacity" from="0" to="1" dur="0.01s" begin="2.2s" fill="freeze" />
-                    <animateMotion dur="3s" repeatCount="indefinite" begin="2.2s"><mpath href="#basma-path-3" /></animateMotion>
+                    <animate
+                      attributeName="opacity"
+                      from="0"
+                      to="1"
+                      dur="0.01s"
+                      begin="2.2s"
+                      fill="freeze"
+                    />
+                    <animateMotion dur="3s" repeatCount="indefinite" begin="2.2s">
+                      <mpath href="#basma-path-3" />
+                    </animateMotion>
                   </circle>
                 </svg>
 
                 <div className="hero-bubble-wrap bubble-1">
-                  <div className="hero-bubble" style={{ background: 'linear-gradient(135deg, #E87A20, #F5A623)' }}>
+                  <div
+                    className="hero-bubble"
+                    style={{
+                      background: 'linear-gradient(135deg, #E87A20, #F5A623)',
+                    }}
+                  >
                     <FaHandshake size={30} color="#FFFFFF" />
                     <span className="hero-bubble-label">تعاون</span>
                   </div>
                 </div>
 
                 <div className="hero-bubble-wrap bubble-2">
-                  <div className="hero-bubble" style={{ background: 'linear-gradient(135deg, #8B5A2B, #C49A6C)' }}>
+                  <div
+                    className="hero-bubble"
+                    style={{
+                      background: 'linear-gradient(135deg, #8B5A2B, #C49A6C)',
+                    }}
+                  >
                     <FaExchangeAlt size={28} color="#FFFFFF" />
                     <span className="hero-bubble-label">تبادل</span>
                   </div>
                 </div>
 
                 <div className="hero-bubble-wrap bubble-3">
-                  <div className="hero-bubble" style={{ background: 'linear-gradient(135deg, #28A745, #4FCB6E)' }}>
+                  <div
+                    className="hero-bubble"
+                    style={{
+                      background: 'linear-gradient(135deg, #28A745, #4FCB6E)',
+                    }}
+                  >
                     <FaShieldAlt size={28} color="#FFFFFF" />
                     <span className="hero-bubble-label">ثقة</span>
                   </div>
                 </div>
               </div>
 
-              <p className="hero-triangle-caption" style={{ color: 'var(--text-muted)' }}>
+              <p
+                className="hero-triangle-caption"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 <TypeAnimation
                   sequence={[
                     'من التعاون يبدأ التبادل،',
@@ -339,7 +485,15 @@ const HeroSection = () => {
                 >
                   <FaHandshake size={15} />
                 </div>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>تعاون</span>
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  تعاون
+                </span>
               </div>
 
               {/* Connecting Link Arrow 1 */}
@@ -384,7 +538,15 @@ const HeroSection = () => {
                 >
                   <FaExchangeAlt size={14} />
                 </div>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>تبادل</span>
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  تبادل
+                </span>
               </div>
 
               {/* Connecting Link Arrow 2 */}
@@ -429,7 +591,15 @@ const HeroSection = () => {
                 >
                   <FaShieldAlt size={14} />
                 </div>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-secondary)' }}>ثقة</span>
+                <span
+                  style={{
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  ثقة
+                </span>
               </div>
             </div>
 
@@ -592,6 +762,37 @@ const HeroSection = () => {
           animation: blink 0.8s step-end 3, hideCursor 0s 5s forwards;
         }
 
+        /* ✅ Shimmer for the user-count placeholder */
+        .hero-section .hero-trust-shimmer::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(232, 122, 32, 0.15) 50%,
+            transparent 100%
+          );
+          animation: hero-shimmer 1.6s infinite;
+        }
+
+        [data-theme="dark"] .hero-section .hero-trust-shimmer::after {
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(196, 168, 138, 0.15) 50%,
+            transparent 100%
+          );
+        }
+
+        @keyframes hero-shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+
         @keyframes blink {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
@@ -640,7 +841,7 @@ const HeroSection = () => {
             font-size: 0.88rem !important;
             min-width: 0 !important;
           }
-          
+
           .trust-points-container {
             justify-content: center !important;
             gap: 12px !important;

@@ -4,6 +4,7 @@ import { FaBars, FaTimes, FaSun, FaMoon, FaCog, FaSignOutAlt, FaChevronDown } fr
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { getDashboardPath } from '../utils/authRedirect';
+import { getStorageUrl } from '../utils/storageHelpers';
 import logo from '../assets/logo.png';
 
 const NAV_LINKS = [
@@ -22,7 +23,7 @@ const Navbar = () => {
   const { isAuthenticated, user, logout, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -58,13 +59,7 @@ const Navbar = () => {
   };
 
   const getUserAvatar = () => {
-    if (user?.profile_image) {
-      if (user.profile_image.startsWith('http')) {
-        return user.profile_image;
-      }
-      return `http://localhost:8000/storage/${user.profile_image}`;
-    }
-    return null;
+    return getStorageUrl(user?.profile_image);
   };
 
   const userAvatar = getUserAvatar();
@@ -784,7 +779,7 @@ const Navbar = () => {
         }
 
         /* ============================================ */
-        /* LOADING STATES - ✅ NEW */
+        /* LOADING STATES */
         /* ============================================ */
         .site-navbar__auth-loading {
           display: flex;

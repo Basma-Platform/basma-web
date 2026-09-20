@@ -7,6 +7,7 @@ import {
   FaTimes,
   FaImage,
 } from 'react-icons/fa';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 
 interface AdminVerificationImageModalProps {
   isOpen: boolean;
@@ -26,11 +27,8 @@ const AdminVerificationImageModal = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  const resolvedImageUrl = imageUrl
-    ? imageUrl.startsWith('http')
-      ? imageUrl
-      : `http://localhost:8000/storage/${imageUrl}`
-    : '';
+  // ✅ Use storage helper for the image URL
+  const resolvedImageUrl = getStorageUrl(imageUrl) ?? '';
 
   // ============================================
   // Handlers
@@ -242,9 +240,9 @@ const AdminVerificationImageModal = ({
             }}
           >
             {resolvedImageUrl ? (
-              /* ✅ FIXED: Plain <img> instead of <motion.img>
-                 motion.img overrides style.transform with its own animation,
-                 so our manual scale() was silently ignored. */
+              /* Plain <img> instead of <motion.img> — motion.img overrides
+                 style.transform with its own animation, so our manual scale()
+                 was silently ignored. */
               <img
                 src={resolvedImageUrl}
                 alt={title}

@@ -25,8 +25,8 @@ import {
   formatFeaturedTimeAgo,
   getPaymentMethodColor,
   getInitials,
-  resolveStorageUrl,
 } from '../../../utils/featuredHelpers';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 
 interface AdminFeaturedDetailContentProps {
   detail: AdminFeaturedDetail;
@@ -74,11 +74,12 @@ const AdminFeaturedDetailContent = ({
   const StatusIcon = statusConfig.Icon;
   const paymentColor = getPaymentMethodColor(detail.payment_method);
 
-  const userImageUrl = resolveStorageUrl(detail.user.profile_image);
-  const transferUrl = resolveStorageUrl(detail.transfer_image);
-  const announcementCoverUrl = detail.announcement?.images?.[0]?.image_path
-    ? resolveStorageUrl(detail.announcement.images[0].image_path)
-    : null;
+  // ✅ Storage URLs via global helper
+  const userImageUrl = getStorageUrl(detail.user.profile_image);
+  const transferUrl = getStorageUrl(detail.transfer_image);
+  const announcementCoverUrl = getStorageUrl(
+    detail.announcement?.images?.[0]?.image_path
+  );
 
   const userInitials = getInitials(detail.user.name);
 

@@ -41,6 +41,7 @@ import {
 import { regionService } from '../../../../services/regionService';
 import { userAnnouncementService } from '../../../../services/userAnnouncementService';
 import { announcementService } from '../../../../services/announcementService';
+import { getStorageUrl } from '../../../../utils/storageHelpers';
 import { toast } from 'react-toastify';
 import type {
   Governorate,
@@ -134,6 +135,7 @@ const EditAnnouncementForm = ({
     }
   }, [watchedCategory, announcement.category, setValue]);
 
+  // ✅ Use getStorageUrl for existing image previews
   useEffect(() => {
     if (announcement.images && announcement.images.length > 0) {
       const existing: LocalAnnouncementImage[] = announcement.images
@@ -142,7 +144,7 @@ const EditAnnouncementForm = ({
         .map((img) => ({
           id: `existing-${img.id}`,
           file: new File([], ''),
-          preview: `http://localhost:8000/storage/${img.image_path}`,
+          preview: getStorageUrl(img.image_path) ?? '',
           existingPath: img.image_path,
           existingId: img.id,
         }));
@@ -175,7 +177,9 @@ const EditAnnouncementForm = ({
   useEffect(() => {
     if (initialSubCategoryId && subCategories) {
       const categoryList = subCategories[watchedCategory] || [];
-      const exists = categoryList.some((sub) => sub.id === initialSubCategoryId);
+      const exists = categoryList.some(
+        (sub) => sub.id === initialSubCategoryId
+      );
       if (exists) {
         setValue('sub_category_id', initialSubCategoryId);
       }
@@ -250,7 +254,10 @@ const EditAnnouncementForm = ({
     try {
       setSubmitting(true);
       const formData = buildFormData(data);
-      await userAnnouncementService.updateAnnouncement(announcement.id, formData);
+      await userAnnouncementService.updateAnnouncement(
+        announcement.id,
+        formData
+      );
 
       toast.success('تم تحديث الإعلان بنجاح');
 
@@ -262,7 +269,8 @@ const EditAnnouncementForm = ({
     } catch (error: any) {
       console.error('Submit error:', error);
       const responseData = error.response?.data;
-      const message = responseData?.message || 'حدث خطأ أثناء تحديث الإعلان';
+      const message =
+        responseData?.message || 'حدث خطأ أثناء تحديث الإعلان';
 
       if (error.response?.status === 422 && responseData?.errors) {
         const serverErrors = responseData.errors;
@@ -333,7 +341,10 @@ const EditAnnouncementForm = ({
           }}
         >
           {/* SECTION 1: Basic Info */}
-          <FormSection title="المعلومات الأساسية" icon={<FaBullhorn size={14} />}>
+          <FormSection
+            title="المعلومات الأساسية"
+            icon={<FaBullhorn size={14} />}
+          >
             <FieldWrapper
               label="نوع الإعلان"
               required
@@ -467,8 +478,8 @@ const EditAnnouncementForm = ({
                       {!watchedCategory
                         ? 'اختر الفئة الرئيسية أولاً'
                         : availableSubCategories.length === 0
-                          ? 'لا توجد فئات فرعية'
-                          : 'اختر الفئة الفرعية'}
+                        ? 'لا توجد فئات فرعية'
+                        : 'اختر الفئة الفرعية'}
                     </option>
                     {availableSubCategories.map((sub) => (
                       <option key={sub.id} value={sub.id}>
@@ -483,7 +494,10 @@ const EditAnnouncementForm = ({
           </FormSection>
 
           {/* SECTION 2: Content */}
-          <FormSection title="تفاصيل الإعلان" icon={<FaHeading size={14} />}>
+          <FormSection
+            title="تفاصيل الإعلان"
+            icon={<FaHeading size={14} />}
+          >
             <FieldWrapper
               label="العنوان"
               required
@@ -705,7 +719,9 @@ const EditAnnouncementForm = ({
                       disabled={!watchedGovernorate || loadingCities}
                       style={{
                         ...inputBaseStyle(!!errors.city_id),
-                        cursor: watchedGovernorate ? 'pointer' : 'not-allowed',
+                        cursor: watchedGovernorate
+                          ? 'pointer'
+                          : 'not-allowed',
                         opacity: watchedGovernorate ? 1 : 0.6,
                         appearance: 'none',
                       }}
@@ -714,8 +730,8 @@ const EditAnnouncementForm = ({
                         {loadingCities
                           ? 'جاري التحميل...'
                           : !watchedGovernorate
-                            ? 'اختر المحافظة أولاً'
-                            : 'اختر المدينة'}
+                          ? 'اختر المحافظة أولاً'
+                          : 'اختر المدينة'}
                       </option>
                       {cities.map((city) => (
                         <option key={city.id} value={city.id}>
@@ -835,7 +851,9 @@ const EditAnnouncementForm = ({
                       <IconComp
                         size={16}
                         color={
-                          active ? 'var(--primary-orange)' : 'var(--text-muted)'
+                          active
+                            ? 'var(--primary-orange)'
+                            : 'var(--text-muted)'
                         }
                       />
                       <div style={{ flex: 1, minWidth: 0 }}>

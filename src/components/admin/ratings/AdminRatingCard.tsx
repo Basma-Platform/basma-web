@@ -8,6 +8,7 @@ import {
   FaStar,
 } from 'react-icons/fa';
 import { formatRatingTime } from '../../../utils/ratingHelpers';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 import type { Rating } from '../../../types';
 
 interface AdminRatingCardProps {
@@ -29,17 +30,9 @@ const AdminRatingCard = ({ rating, onDelete }: AdminRatingCardProps) => {
   const raterInitials = getUserInitials(rating.rater?.name || '');
   const ratedInitials = getUserInitials(rating.rated?.name || '');
 
-  const raterImage = rating.rater?.profile_image
-    ? rating.rater.profile_image.startsWith('http')
-      ? rating.rater.profile_image
-      : `http://localhost:8000/storage/${rating.rater.profile_image}`
-    : null;
-
-  const ratedImage = rating.rated?.profile_image
-    ? rating.rated.profile_image.startsWith('http')
-      ? rating.rated.profile_image
-      : `http://localhost:8000/storage/${rating.rated.profile_image}`
-    : null;
+  // ✅ Use storage helper for both avatars
+  const raterImage = getStorageUrl(rating.rater?.profile_image);
+  const ratedImage = getStorageUrl(rating.rated?.profile_image);
 
   // Get rating color based on value
   const ratingColor =

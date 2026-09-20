@@ -15,6 +15,7 @@ import {
   getDurationLabel,
   formatFeaturedDate,
 } from '../../../../utils/featuredHelpers';
+import { getStorageUrl } from '../../../../utils/storageHelpers';
 import type { FeaturedRequest } from '../../../../types';
 
 interface FeaturedRequestCardProps {
@@ -49,6 +50,9 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
 
   const theme = getStatusTheme();
   const isClickable = !!onClick;
+
+  // ✅ Cover image via global storage helper
+  const coverUrl = getStorageUrl(request.announcement?.cover_image);
 
   return (
     <motion.div
@@ -103,10 +107,10 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
         <div className="featured-request-card__top">
           {/* Cover Image */}
           <div className="featured-request-card__thumb">
-            {request.announcement?.cover_image ? (
+            {coverUrl ? (
               <img
-                src={`http://localhost:8000/storage/${request.announcement.cover_image}`}
-                alt={request.announcement.title}
+                src={coverUrl}
+                alt={request.announcement?.title}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -397,9 +401,6 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
           box-sizing: border-box;
         }
 
-        /* ============================================
-           Responsive — under 480px
-           ============================================ */
         @media (max-width: 480px) {
           .featured-request-card__body {
             padding: 0.85rem;
@@ -425,14 +426,12 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
             display: none;
           }
 
-          /* Keep 3-col grid but tighten gap + cell padding */
           .featured-request-card__meta {
             gap: 6px;
             padding: 8px;
           }
         }
 
-        /* Extra small phones — under 380px */
         @media (max-width: 380px) {
           .featured-request-card__body {
             padding: 0.75rem;
@@ -443,7 +442,6 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
             gap: 8px;
           }
 
-          /* The 3rd item (date) goes on its own row, full width */
           .featured-request-card__meta > *:nth-child(3) {
             grid-column: 1 / -1;
           }
