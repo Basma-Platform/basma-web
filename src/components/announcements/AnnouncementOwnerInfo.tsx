@@ -9,7 +9,6 @@ import {
   FaShieldAlt,
   FaArrowLeft,
 } from 'react-icons/fa';
-import { useTheme } from '../../context/ThemeContext';
 import { motion } from 'framer-motion';
 
 interface AnnouncementOwnerInfoProps {
@@ -23,6 +22,15 @@ interface AnnouncementOwnerInfoProps {
   onViewProfile?: () => void;
 }
 
+// Extract up to 2 initials (Arabic + English friendly)
+const getUserInitials = (name: string): string => {
+  if (!name || !name.trim()) return 'U';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'U';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+
 const AnnouncementOwnerInfo = ({
   ownerName,
   isVerified,
@@ -33,7 +41,6 @@ const AnnouncementOwnerInfo = ({
   userId,
   onViewProfile,
 }: AnnouncementOwnerInfoProps) => {
-  const { isDark } = useTheme();
   const navigate = useNavigate();
   const [imgError, setImgError] = useState(false);
 
@@ -50,22 +57,15 @@ const AnnouncementOwnerInfo = ({
     }
   };
 
-  const userInitials = ownerName
-    ? ownerName.trim().charAt(0).toUpperCase()
-    : 'U';
+  const userInitials = getUserInitials(ownerName);
 
   const handleViewProfile = () => {
-    if (onViewProfile) {
-      onViewProfile();
-    } else if (userId) {
-      navigate(`/users/${userId}`);
-    }
+    if (onViewProfile) onViewProfile();
+    else if (userId) navigate(`/users/${userId}`);
   };
 
   const clickable = !!userId || !!onViewProfile;
-
-  // ✅ Rating display state
-  const hasRating = ratingCount > 0;
+  const showImage = !!avatarUrl && !imgError;
 
   return (
     <motion.div
@@ -91,6 +91,7 @@ const AnnouncementOwnerInfo = ({
         e.currentTarget.style.borderColor = 'var(--border-color)';
       }}
     >
+      {/* Header */}
       <h4
         style={{
           color: 'var(--text-secondary)',
@@ -122,12 +123,9 @@ const AnnouncementOwnerInfo = ({
               height: '52px',
               borderRadius: '50%',
               overflow: 'hidden',
-              background:
-                !avatarUrl || imgError
-                  ? 'linear-gradient(135deg, #E87A20, #F5A623)'
-                  : isDark
-                  ? '#2a3a5a'
-                  : '#f0e6dd',
+              background: showImage
+                ? 'var(--bg-input)'
+                : 'linear-gradient(135deg, #E87A20, #F5A623)',
               border: '2px solid var(--border-color)',
               display: 'flex',
               alignItems: 'center',
@@ -135,9 +133,9 @@ const AnnouncementOwnerInfo = ({
               transition: 'border-color 0.3s ease',
             }}
           >
-            {avatarUrl && !imgError ? (
+            {showImage ? (
               <img
-                src={avatarUrl}
+                src={avatarUrl!}
                 alt={ownerName}
                 onError={() => setImgError(true)}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -231,52 +229,30 @@ const AnnouncementOwnerInfo = ({
             )}
           </div>
 
-          {/* ✅ Rating — real value or empty state */}
-          {hasRating ? (
+          <div
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.8rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
             <div
               style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.8rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '4px',
+                color: '#F5A623',
+                fontWeight: 700,
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  color: '#F5A623',
-                  fontWeight: 700,
-                  fontFamily:
-                    "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                <FaStar size={12} />
-                <span>{rating.toFixed(1)}</span>
-              </div>
-              <span style={{ opacity: 0.5 }}>•</span>
-              <span>
-                ({ratingCount} {ratingCount === 1 ? 'تقييم' : 'تقييم'})
-              </span>
+              <FaStar size={12} />
+              <span>{rating.toFixed(1)}</span>
             </div>
-          ) : (
-            <div
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                opacity: 0.75,
-              }}
-            >
-              <FaStar size={11} style={{ opacity: 0.5 }} />
-              <span>لا توجد تقييمات بعد</span>
-            </div>
-          )}
+            <span style={{ opacity: 0.5 }}>•</span>
+            <span>({ratingCount} تقييم)</span>
+          </div>
         </div>
       </div>
 
