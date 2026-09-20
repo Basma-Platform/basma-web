@@ -33,6 +33,10 @@ interface AnnouncementPostProps {
   viewMode?: 'list' | 'grid';
 }
 
+// ✅ استخدام VITE_STORAGE_URL مع fallback للتطوير
+const STORAGE_URL =
+  import.meta.env.VITE_STORAGE_URL || 'http://localhost:8000/storage';
+
 const AnnouncementPost = ({
   announcement,
   isLoggedIn = false,
