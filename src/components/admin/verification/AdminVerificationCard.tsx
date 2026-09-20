@@ -14,12 +14,13 @@ import {
   getVerificationStatusBg,
   formatVerificationDate,
 } from '../../../utils/verificationHelpers';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 
 interface AdminVerificationCardProps {
   request: AdminVerificationRequest;
 }
 
-// ✅ Extract up to 2 initials from full name (supports Arabic & English)
+// Extract up to 2 initials from full name (supports Arabic & English)
 const getUserInitials = (name: string): string => {
   if (!name || !name.trim()) return 'U';
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -31,22 +32,18 @@ const getUserInitials = (name: string): string => {
 };
 
 const AdminVerificationCard = ({ request }: AdminVerificationCardProps) => {
-  // ✅ Track whether the profile image failed to load
+  // Track whether the profile image failed to load
   const [imageError, setImageError] = useState(false);
 
   const statusColor = getVerificationStatusColor(request.status);
   const statusBg = getVerificationStatusBg(request.status);
   const statusLabel = getVerificationStatusLabel(request.status);
 
-  const profileImageUrl = request.user.profile_image
-    ? request.user.profile_image.startsWith('http')
-      ? request.user.profile_image
-      : `http://localhost:8000/storage/${request.user.profile_image}`
-    : null;
-
+  // Profile image via global storage helper
+  const profileImageUrl = getStorageUrl(request.user.profile_image);
+  const idImageUrl = getStorageUrl(request.id_image_url);
   const userInitials = getUserInitials(request.user.name);
 
-  // ✅ Decide what to render in the avatar circle
   const shouldShowImage = !!profileImageUrl && !imageError;
 
   return (
@@ -102,7 +99,7 @@ const AdminVerificationCard = ({ request }: AdminVerificationCardProps) => {
             borderBottom: '1px solid var(--border-color)',
           }}
         >
-          {/* ✅ Avatar with proper fallback */}
+          {/* Avatar with proper fallback */}
           <div
             style={{
               width: '46px',
@@ -209,9 +206,9 @@ const AdminVerificationCard = ({ request }: AdminVerificationCardProps) => {
             minHeight: '160px',
           }}
         >
-          {request.id_image_url ? (
+          {idImageUrl ? (
             <img
-              src={request.id_image_url}
+              src={idImageUrl}
               alt={`ID of ${request.user.name}`}
               style={{
                 width: '100%',

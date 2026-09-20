@@ -6,6 +6,7 @@ import {
   FaCalendarAlt,
 } from 'react-icons/fa';
 import { formatProfileDate } from '../../utils/profileHelpers';
+import { getStorageUrl } from '../../utils/storageHelpers';
 import StarRating from '../ratings/StarRating';
 
 interface PublicUserHeaderProps {
@@ -39,11 +40,8 @@ const PublicUserHeader = ({
 }: PublicUserHeaderProps) => {
   const [imageError, setImageError] = useState(false);
 
-  const profileImageUrl = user.profile_image
-    ? user.profile_image.startsWith('http')
-      ? user.profile_image
-      : `http://localhost:8000/storage/${user.profile_image}`
-    : null;
+  // ✅ Profile image via global storage helper
+  const profileImageUrl = getStorageUrl(user.profile_image);
 
   const shouldShowImage = !!profileImageUrl && !imageError;
   const userInitials = getUserInitials(user.name);

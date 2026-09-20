@@ -17,6 +17,7 @@ import {
   getVerificationStatusBg,
   formatVerificationDate,
 } from '../../../utils/verificationHelpers';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 
 interface AdminVerificationDetailCardProps {
   request: AdminVerificationDetail;
@@ -44,11 +45,10 @@ const AdminVerificationDetailCard = ({
   const statusBg = getVerificationStatusBg(request.status);
   const statusLabel = getVerificationStatusLabel(request.status);
 
-  const profileImageUrl = request.user?.profile_image
-    ? request.user.profile_image.startsWith('http')
-      ? request.user.profile_image
-      : `http://localhost:8000/storage/${request.user.profile_image}`
-    : null;
+  // ✅ Profile image via global storage helper
+  const profileImageUrl = getStorageUrl(request.user?.profile_image);
+
+  const idImageUrl = getStorageUrl(request.id_image_url);
 
   const userInitials = getUserInitials(request.user?.name || '');
   const shouldShowImage = !!profileImageUrl && !profileImageError;
@@ -283,9 +283,9 @@ const AdminVerificationDetailCard = ({
               justifyContent: 'center',
             }}
           >
-            {request.id_image_url ? (
+            {idImageUrl ? (
               <img
-                src={request.id_image_url}
+                src={idImageUrl}
                 alt="ID Document"
                 style={{
                   width: '100%',

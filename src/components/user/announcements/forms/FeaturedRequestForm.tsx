@@ -19,6 +19,7 @@ import {
 import FeaturedPricingCard from '../featured/FeaturedPricingCard';
 import FeaturedPaymentMethods from './FeaturedPaymentMethods';
 import { useFeaturedRequest } from '../../../../hooks/useFeaturedRequest';
+import { getStorageUrl } from '../../../../utils/storageHelpers';
 import type { Announcement } from '../../../../types';
 
 // ============================================
@@ -346,7 +347,7 @@ const FeaturedRequestForm = ({
             >
               {announcement.images?.[0] ? (
                 <img
-                  src={`http://localhost:8000/storage/${announcement.images[0].image_path}`}
+                  src={getStorageUrl(announcement.images[0].image_path) ?? ''}
                   alt={announcement.title}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
