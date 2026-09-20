@@ -12,12 +12,15 @@ import {
 import SEO from '../../../components/SEO';
 import { useUserAnnouncement } from '../../../hooks/useUserAnnouncement';
 import { FeaturedCTACard } from '../../../components/user/announcements';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 import type { CreateAnnouncementResponse } from '../../../types';
 
 const AnnouncementSuccessPage = () => {
   const { id } = useParams<{ id: string }>();
   const { announcement, loading, fetchAnnouncement } = useUserAnnouncement();
-  const [suggestion, setSuggestion] = useState<CreateAnnouncementResponse['suggestion'] | null>(null);
+  const [suggestion, setSuggestion] = useState<
+    CreateAnnouncementResponse['suggestion'] | null
+  >(null);
 
   // ============================================
   // Load Announcement + Suggestion
@@ -65,7 +68,11 @@ const AnnouncementSuccessPage = () => {
       >
         <div
           className="spinner-border"
-          style={{ color: 'var(--primary-orange)', width: '3rem', height: '3rem' }}
+          style={{
+            color: 'var(--primary-orange)',
+            width: '3rem',
+            height: '3rem',
+          }}
         />
       </div>
     );
@@ -80,12 +87,21 @@ const AnnouncementSuccessPage = () => {
         <SEO title="تم النشر بنجاح" />
         <Container className="py-5">
           <div className="text-center py-5">
-            <p style={{ color: 'var(--text-muted)', fontFamily: 'Cairo, sans-serif' }}>
+            <p
+              style={{
+                color: 'var(--text-muted)',
+                fontFamily: 'Cairo, sans-serif',
+              }}
+            >
               لم يتم العثور على الإعلان.
             </p>
             <Link
               to="/user/my-announcements"
-              style={{ color: 'var(--primary-orange)', fontFamily: 'Cairo, sans-serif', fontWeight: 700 }}
+              style={{
+                color: 'var(--primary-orange)',
+                fontFamily: 'Cairo, sans-serif',
+                fontWeight: 700,
+              }}
             >
               العودة إلى إعلاناتي
             </Link>
@@ -94,6 +110,11 @@ const AnnouncementSuccessPage = () => {
       </>
     );
   }
+
+  // ✅ Resolve cover image
+  const coverImage = announcement.images?.[0]
+    ? getStorageUrl(announcement.images[0].image_path)
+    : null;
 
   // ============================================
   // Render
@@ -139,7 +160,12 @@ const AnnouncementSuccessPage = () => {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 18 }}
+                transition={{
+                  delay: 0.2,
+                  type: 'spring',
+                  stiffness: 260,
+                  damping: 18,
+                }}
                 style={{
                   width: '96px',
                   height: '96px',
@@ -155,17 +181,17 @@ const AnnouncementSuccessPage = () => {
                 }}
               >
                 <FaCheckCircle size={44} />
-                
+
                 {/* Smooth, continuous breathing pulse */}
                 <motion.div
-                  animate={{ 
-                    scale: [1, 1.35, 1], 
-                    opacity: [0.7, 0, 0.7] 
+                  animate={{
+                    scale: [1, 1.35, 1],
+                    opacity: [0.7, 0, 0.7],
                   }}
-                  transition={{ 
-                    duration: 2.5, 
-                    repeat: Infinity, 
-                    ease: 'easeInOut' 
+                  transition={{
+                    duration: 2.5,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
                   }}
                   style={{
                     position: 'absolute',
@@ -201,8 +227,8 @@ const AnnouncementSuccessPage = () => {
                   marginRight: 'auto',
                 }}
               >
-                إعلانك الآن مرئي للمستخدمين حسب إعدادات الخصوصية.
-                يمكنك التواصل مع المهتمين عبر واتساب.
+                إعلانك الآن مرئي للمستخدمين حسب إعدادات الخصوصية. يمكنك التواصل
+                مع المهتمين عبر واتساب.
               </p>
             </motion.div>
 
@@ -236,9 +262,9 @@ const AnnouncementSuccessPage = () => {
                   border: '1px solid var(--border-color)',
                 }}
               >
-                {announcement.images?.[0] ? (
+                {coverImage ? (
                   <img
-                    src={`http://localhost:8000/storage/${announcement.images[0].image_path}`}
+                    src={coverImage}
                     alt={announcement.title}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
@@ -320,7 +346,8 @@ const AnnouncementSuccessPage = () => {
                     transition: 'all 0.2s ease',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
+                    e.currentTarget.style.backgroundColor =
+                      'var(--primary-orange)';
                     e.currentTarget.style.color = '#FFFFFF';
                   }}
                   onMouseLeave={(e) => {

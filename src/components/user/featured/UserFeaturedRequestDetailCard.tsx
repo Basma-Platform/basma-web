@@ -23,6 +23,7 @@ import {
   formatFeaturedTimeAgo,
   getPaymentMethodColor,
 } from '../../../utils/featuredHelpers';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 
 interface UserFeaturedRequestDetailCardProps {
   detail: UserFeaturedRequestDetail;
@@ -87,17 +88,11 @@ const UserFeaturedRequestDetailCard = ({
   const StatusIcon = statusConfig.Icon;
   const paymentColor = getPaymentMethodColor(detail.payment_method);
 
-  const coverUrl = detail.announcement?.cover_image
-    ? detail.announcement.cover_image.startsWith('http')
-      ? detail.announcement.cover_image
-      : `http://localhost:8000/storage/${detail.announcement.cover_image}`
-    : null;
+  // ✅ Cover image via global storage helper
+  const coverUrl = getStorageUrl(detail.announcement?.cover_image);
 
-  const transferUrl = detail.transfer_image
-    ? detail.transfer_image.startsWith('http')
-      ? detail.transfer_image
-      : `http://localhost:8000/storage/${detail.transfer_image}`
-    : null;
+  // ✅ Transfer image via global storage helper
+  const transferUrl = getStorageUrl(detail.transfer_image);
 
   const isFeatured =
     detail.announcement?.is_currently_featured &&
@@ -339,9 +334,6 @@ const UserFeaturedRequestDetailCard = ({
           Component-scoped responsive styles
           ============================================ */}
       <style>{`
-        /* ============================================
-           BASE (mobile-first)
-           ============================================ */
         .u-frd {
           display: flex;
           flex-direction: column;
@@ -352,7 +344,6 @@ const UserFeaturedRequestDetailCard = ({
           box-sizing: border-box;
         }
 
-        /* ---------- Status ---------- */
         .u-frd__status {
           display: flex;
           align-items: center;
@@ -403,7 +394,6 @@ const UserFeaturedRequestDetailCard = ({
           flex-shrink: 0;
         }
 
-        /* ---------- Sections ---------- */
         .u-frd__section {
           padding: 1rem;
           border-radius: 14px;
@@ -421,7 +411,6 @@ const UserFeaturedRequestDetailCard = ({
           background-color: var(--bg-card);
         }
 
-        /* ---------- Announcement ---------- */
         .u-frd__announcement {
           display: flex;
           gap: 12px;
@@ -515,7 +504,6 @@ const UserFeaturedRequestDetailCard = ({
           word-break: break-word;
         }
 
-        /* ---------- Details Grid ---------- */
         .u-frd__details {
           display: grid;
           grid-template-columns: 1fr;
@@ -524,7 +512,6 @@ const UserFeaturedRequestDetailCard = ({
           box-sizing: border-box;
         }
 
-        /* ---------- Notes ---------- */
         .u-frd__note-box {
           font-size: 0.82rem;
           color: var(--text-secondary);
@@ -539,7 +526,6 @@ const UserFeaturedRequestDetailCard = ({
           box-sizing: border-box;
         }
 
-        /* ---------- Transfer ---------- */
         .u-frd__transfer-link {
           display: block;
           border-radius: 12px;
@@ -576,7 +562,6 @@ const UserFeaturedRequestDetailCard = ({
           backdrop-filter: blur(4px);
         }
 
-        /* ---------- Admin Reply ---------- */
         .u-frd__admin-date {
           font-size: 0.72rem;
           color: var(--text-muted);
@@ -586,7 +571,6 @@ const UserFeaturedRequestDetailCard = ({
           margin-top: 8px;
         }
 
-        /* ---------- Timeline ---------- */
         .u-frd__timeline {
           display: flex;
           flex-direction: column;
@@ -594,11 +578,6 @@ const UserFeaturedRequestDetailCard = ({
           width: 100%;
         }
 
-        /* ============================================
-           RESPONSIVE: Tablet ≥ 480px
-           - Details grid → 2 columns
-           - Announcement row → inline title + badge
-           ============================================ */
         @media (min-width: 480px) {
           .u-frd__details {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -625,22 +604,12 @@ const UserFeaturedRequestDetailCard = ({
           }
         }
 
-        /* ============================================
-           RESPONSIVE: Desktop ≥ 640px
-           - Details grid → 3 columns
-           ============================================ */
         @media (min-width: 640px) {
           .u-frd__details {
             grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
 
-        /* ============================================
-           EXTRA SMALL: Under 380px
-           - Tighter paddings
-           - Cover shrinks slightly
-           - Status stacks if needed
-           ============================================ */
         @media (max-width: 380px) {
           .u-frd__section {
             padding: 0.75rem;

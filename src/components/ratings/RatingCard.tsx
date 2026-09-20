@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaUserCheck, FaEdit, FaTrash, FaClock } from 'react-icons/fa';
 import StarRating from './StarRating';
 import { formatRatingTime, formatRemainingEditTime } from '../../utils/ratingHelpers';
+import { getStorageUrl } from '../../utils/storageHelpers';
 import type { Rating } from '../../types';
 
 interface RatingCardProps {
@@ -41,11 +42,8 @@ const RatingCard = ({
   const hasEdit = variant === 'given' && rating.can_edit && onEdit;
   const hasDelete = variant === 'given' && rating.can_delete && onDelete;
 
-  const profileImageUrl = displayedUser?.profile_image
-    ? displayedUser.profile_image.startsWith('http')
-      ? displayedUser.profile_image
-      : `http://localhost:8000/storage/${displayedUser.profile_image}`
-    : null;
+  // ✅ Profile image via global storage helper
+  const profileImageUrl = getStorageUrl(displayedUser?.profile_image);
 
   const initials = displayedUser ? getUserInitials(displayedUser.name) : 'U';
 

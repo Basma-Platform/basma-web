@@ -19,8 +19,8 @@ import {
   formatFeaturedTimeAgo,
   getPaymentMethodColor,
   getInitials,
-  resolveStorageUrl,
 } from '../../../utils/featuredHelpers';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 
 interface AdminFeaturedRequestCardProps {
   request: AdminFeaturedRequestListItem;
@@ -84,10 +84,10 @@ const AdminFeaturedRequestCard = ({
 
   const StatusIcon = statusConfig.Icon;
 
-  const userImageUrl = resolveStorageUrl(request.user.profile_image);
-  const coverUrl = resolveStorageUrl(
-    request.announcement?.cover_image || null
-  );
+  // ✅ Storage URLs via global helper
+  const userImageUrl = getStorageUrl(request.user.profile_image);
+  const coverUrl = getStorageUrl(request.announcement?.cover_image);
+
   const paymentColor = getPaymentMethodColor(request.payment_method);
   const initials = getInitials(request.user.name);
 

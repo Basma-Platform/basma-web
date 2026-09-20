@@ -1,34 +1,45 @@
 import { Card, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  FaEye, FaCalendarAlt, FaImage, FaHeart, 
-  FaChevronLeft, FaClipboardList, FaStar, 
-  FaClock, FaTimesCircle 
+import {
+  FaEye,
+  FaCalendarAlt,
+  FaImage,
+  FaHeart,
+  FaChevronLeft,
+  FaClipboardList,
+  FaStar,
+  FaClock,
+  FaTimesCircle,
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { getStorageUrl } from '../../../utils/storageHelpers';
 import type { DashboardRecentAnnouncement } from '../../../types';
 
 interface DashboardRecentAnnouncementsProps {
   announcements: DashboardRecentAnnouncement[];
 }
 
-// ✅ Storage URL - مسار نسبي (Vercel Rewrite يتولى الباقي)
-const STORAGE_URL = '/storage';
-
-const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnouncementsProps) => {
+const DashboardRecentAnnouncements = ({
+  announcements,
+}: DashboardRecentAnnouncementsProps) => {
   const navigate = useNavigate();
 
   // ============================================
   // Status Badge (Basic)
   // ============================================
   const getStatusBadge = (status: string, isDisabled: boolean) => {
-    if (isDisabled) return <Badge bg="warning" className="text-dark">معطل</Badge>;
+    if (isDisabled)
+      return (
+        <Badge bg="warning" className="text-dark">
+          معطل
+        </Badge>
+      );
     if (status === 'active') return <Badge bg="success">نشط</Badge>;
     return <Badge bg="danger">محذوف</Badge>;
   };
 
   // ============================================
-  // ✅ Featured Badge
+  // Featured Badge
   // ============================================
   const getFeaturedBadge = (item: DashboardRecentAnnouncement) => {
     // If currently featured (active + not expired)
@@ -105,10 +116,14 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
 
   const getPriceLabel = (priceType: string, price: number | null) => {
     switch (priceType) {
-      case 'free': return 'مجاني';
-      case 'paid': return `${price} شيكل`;
-      case 'barter': return 'مقايضة';
-      default: return '';
+      case 'free':
+        return 'مجاني';
+      case 'paid':
+        return `${price} شيكل`;
+      case 'barter':
+        return 'مقايضة';
+      default:
+        return '';
     }
   };
 
@@ -120,11 +135,9 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
     });
   };
 
-  // ✅ دالة للحصول على صورة الغلاف
+  // ✅ Resolve cover image URL via storage helper
   const getCoverImage = (coverImage: string | null): string | null => {
-    if (!coverImage) return null;
-    if (coverImage.startsWith('http')) return coverImage;
-    return `${STORAGE_URL}${coverImage.startsWith('/') ? '' : '/'}${coverImage}`;
+    return getStorageUrl(coverImage);
   };
 
   return (
@@ -152,7 +165,8 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
             gap: '8px',
           }}
         >
-          <FaClipboardList style={{ color: 'var(--primary-orange)' }} /> أحدث إعلاناتي
+          <FaClipboardList style={{ color: 'var(--primary-orange)' }} /> أحدث
+          إعلاناتي
         </h5>
         <Link
           to="/user/my-announcements"
@@ -172,7 +186,10 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
       </div>
 
       {announcements.length === 0 ? (
-        <div className="text-center py-4" style={{ color: 'var(--text-muted)' }}>
+        <div
+          className="text-center py-4"
+          style={{ color: 'var(--text-muted)' }}
+        >
           <p className="mb-2" style={{ fontFamily: 'Cairo, sans-serif' }}>
             لا توجد إعلانات حالياً
           </p>
@@ -200,8 +217,8 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
               onClick={() => navigate(`/user/announcements/${item.id}`)}
               style={{
                 backgroundColor: 'var(--bg-input)',
-                border: item.is_featured 
-                  ? '2px solid #FFD700' 
+                border: item.is_featured
+                  ? '2px solid #FFD700'
                   : '1px solid var(--border-color)',
                 borderRadius: '12px',
                 padding: '12px',
@@ -213,7 +230,10 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
             >
               {/* Desktop View */}
               <div className="d-none d-md-flex align-items-center justify-content-between gap-3">
-                <div className="d-flex align-items-center gap-3" style={{ minWidth: 0, flex: 1 }}>
+                <div
+                  className="d-flex align-items-center gap-3"
+                  style={{ minWidth: 0, flex: 1 }}
+                >
                   <div
                     style={{
                       width: '60px',
@@ -232,16 +252,10 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
                       <img
                         src={getCoverImage(item.cover_image)!}
                         alt={item.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            const fallback = document.createElement('span');
-                            fallback.innerHTML = '🖼️';
-                            fallback.style.fontSize = '1.2rem';
-                            parent.appendChild(fallback);
-                          }
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
                         }}
                       />
                     ) : (
@@ -267,21 +281,36 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
                       {getStatusBadge(item.status, item.is_disabled)}
                     </div>
 
-                    <div className="d-flex align-items-center gap-2" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    <div
+                      className="d-flex align-items-center gap-2"
+                      style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}
+                    >
                       {item.sub_category && (
-                        <span className="text-truncate" style={{ fontFamily: 'Cairo, sans-serif' }}>
+                        <span
+                          className="text-truncate"
+                          style={{ fontFamily: 'Cairo, sans-serif' }}
+                        >
                           {item.sub_category.name}
                         </span>
                       )}
                       <span>•</span>
-                      <span className="fw-semibold" style={{ color: 'var(--primary-orange)', fontFamily: 'Cairo, sans-serif' }}>
+                      <span
+                        className="fw-semibold"
+                        style={{
+                          color: 'var(--primary-orange)',
+                          fontFamily: 'Cairo, sans-serif',
+                        }}
+                      >
                         {getPriceLabel(item.price_type, item.price)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="d-flex align-items-center gap-3 flex-shrink-0" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <div
+                  className="d-flex align-items-center gap-3 flex-shrink-0"
+                  style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}
+                >
                   <span className="d-flex align-items-center gap-1">
                     <FaEye size={12} /> {item.views}
                   </span>
@@ -295,8 +324,14 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
               </div>
 
               {/* Mobile View */}
-              <div className="d-flex d-md-none flex-column gap-2" style={{ width: '100%', overflow: 'hidden' }}>
-                <div className="d-flex align-items-center gap-2" style={{ width: '100%', overflow: 'hidden' }}>
+              <div
+                className="d-flex d-md-none flex-column gap-2"
+                style={{ width: '100%', overflow: 'hidden' }}
+              >
+                <div
+                  className="d-flex align-items-center gap-2"
+                  style={{ width: '100%', overflow: 'hidden' }}
+                >
                   <div
                     style={{
                       width: '48px',
@@ -314,16 +349,10 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
                       <img
                         src={getCoverImage(item.cover_image)!}
                         alt={item.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            const fallback = document.createElement('span');
-                            fallback.innerHTML = '🖼️';
-                            fallback.style.fontSize = '1rem';
-                            parent.appendChild(fallback);
-                          }
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
                         }}
                       />
                     ) : (
@@ -349,7 +378,14 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
                     </div>
 
                     <div className="d-flex align-items-center gap-2 flex-wrap">
-                      <span style={{ fontSize: '0.75rem', color: 'var(--primary-orange)', fontWeight: 600, fontFamily: 'Cairo, sans-serif' }}>
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--primary-orange)',
+                          fontWeight: 600,
+                          fontFamily: 'Cairo, sans-serif',
+                        }}
+                      >
                         {getPriceLabel(item.price_type, item.price)}
                       </span>
                       {getStatusBadge(item.status, item.is_disabled)}
@@ -359,7 +395,11 @@ const DashboardRecentAnnouncements = ({ announcements }: DashboardRecentAnnounce
 
                 <div
                   className="d-flex align-items-center justify-content-between pt-2 mt-1"
-                  style={{ borderTop: '1px solid var(--border-color)', fontSize: '0.72rem', color: 'var(--text-muted)' }}
+                  style={{
+                    borderTop: '1px solid var(--border-color)',
+                    fontSize: '0.72rem',
+                    color: 'var(--text-muted)',
+                  }}
                 >
                   <span className="d-flex align-items-center gap-1">
                     <FaEye size={10} /> {item.views}
