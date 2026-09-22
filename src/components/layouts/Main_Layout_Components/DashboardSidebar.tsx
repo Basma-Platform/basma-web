@@ -17,13 +17,18 @@ import {
   FaMoon,
   FaSun,
   FaCommentDots,
+  FaTimes,
 } from 'react-icons/fa';
 import { useAuth } from '../../../hooks/useAuth';
 import { useTheme } from '../../../context/ThemeContext';
 import { useUserAnnouncements } from '../../../hooks/useUserAnnouncements';
 import { useAdminFeaturedRequests } from '../../../hooks/useAdminFeaturedRequests';
-import { getPendingBadgeCount } from '../../../utils/featuredHelpers';
+import { useAdminVerifications } from '../../../hooks/useAdminVerifications';
+import { useAdminReports } from '../../../hooks/useAdminReports';
+import { getPendingBadgeCount as getFeaturedPendingBadgeCount } from '../../../utils/featuredHelpers';
+import { getPendingBadgeCount as getReportsPendingBadgeCount } from '../../../utils/reportHelpers';
 import { getStorageUrl } from '../../../utils/storageHelpers';
+import WarningBadge from '../../shared/WarningBadge';
 import logo from '../../../assets/logo.png';
 import { motion } from 'framer-motion';
 
@@ -35,8 +40,6 @@ interface DashboardSidebarProps {
 
 /**
  * Helper: check if the current path should mark the given base path as active.
- * - Exact match → active
- * - Any sub-route (`base/anything`) → active
  */
 const isPathActive = (currentPath: string, basePath: string): boolean => {
   if (currentPath === basePath) return true;
@@ -48,25 +51,24 @@ const DashboardSidebar = ({
   onClose,
   isMobile = false,
 }: DashboardSidebarProps) => {
-  const { user, logout } = useAuth();
+  // ✅ Added isAuthenticated to guard badge fetches
+  const { user, logout, isAuthenticated } = useAuth();
   const { isDark, toggleDarkMode } = useTheme();
   const location = useLocation();
 
   const isAdmin = user?.role === 'admin';
 
   // ============================================
-  // Announcement count badge (user side)
+  // Badge: User announcements count
   // ============================================
   const [announcementCount, setAnnouncementCount] = useState<number>(0);
   const { stats, fetchMyAnnouncements } = useUserAnnouncements();
 
   useEffect(() => {
-    if (!isAdmin && user) {
-      fetchMyAnnouncements({ per_page: 1 }).catch(() => {
-        // Silent fail — badge stays at 0
-      });
-    }
-  }, [isAdmin, user, fetchMyAnnouncements]);
+    // ✅ Skip if not authenticated — prevents 401 during transitions
+    if (isAdmin || !user || !isAuthenticated) return;
+    fetchMyAnnouncements({ per_page: 1 }).catch(() => {});
+  }, [isAdmin, user, isAuthenticated, fetchMyAnnouncements]);
 
   useEffect(() => {
     if (stats) {
@@ -75,21 +77,60 @@ const DashboardSidebar = ({
   }, [stats]);
 
   // ============================================
-  // Featured requests pending badge (admin side)
+  // Badge: Admin featured requests pending count
   // ============================================
   const { stats: featuredStats, fetchStats: fetchFeaturedStats } =
     useAdminFeaturedRequests();
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchFeaturedStats().catch(() => {
-        // Silent fail — badge is optional
-      });
-    }
-  }, [isAdmin, fetchFeaturedStats]);
+    // ✅ Skip if not authenticated
+    if (!isAdmin || !isAuthenticated) return;
+    fetchFeaturedStats().catch(() => {});
+  }, [isAdmin, isAuthenticated, fetchFeaturedStats]);
 
   // ============================================
-  // Admin Links
+  // Badge: Admin verification requests pending count
+  // ============================================
+  const { stats: verificationStats, fetchRequests: fetchVerificationRequests } =
+    useAdminVerifications();
+
+  useEffect(() => {
+    // ✅ Skip if not authenticated
+    if (!isAdmin || !isAuthenticated) return;
+    fetchVerificationRequests({ status: 'pending', per_page: 1 }).catch(
+      () => {}
+    );
+  }, [isAdmin, isAuthenticated, fetchVerificationRequests]);
+
+  // ============================================
+  // Badge: Admin reports pending count
+  // ============================================
+  const { stats: reportsStats, fetchStats: fetchReportsStats } =
+    useAdminReports();
+
+  useEffect(() => {
+    // ✅ Skip if not authenticated
+    if (!isAdmin || !isAuthenticated) return;
+    fetchReportsStats().catch(() => {});
+  }, [isAdmin, isAuthenticated, fetchReportsStats]);
+
+  // ============================================
+  // Escape key closes sidebar on mobile
+  // ============================================
+  useEffect(() => {
+    if (!isMobile || !isOpen) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMobile, isOpen, onClose]);
+
+  // ============================================
+  // Admin nav items
   // ============================================
   const adminNavItems = [
     {
@@ -115,7 +156,7 @@ const DashboardSidebar = ({
       label: 'البلاغات',
       path: '/admin/reports',
       isActive: isPathActive(location.pathname, '/admin/reports'),
-      badge: 23,
+      badge: getReportsPendingBadgeCount(reportsStats),
       badgeColor: '#DC3545',
     },
     {
@@ -123,7 +164,10 @@ const DashboardSidebar = ({
       label: 'طلبات التحقق',
       path: '/admin/verification',
       isActive: isPathActive(location.pathname, '/admin/verification'),
-      badge: 47,
+      badge:
+        verificationStats && verificationStats.pending > 0
+          ? verificationStats.pending
+          : undefined,
       badgeColor: '#17A2B8',
     },
     {
@@ -131,7 +175,7 @@ const DashboardSidebar = ({
       label: 'طلبات التمييز',
       path: '/admin/featured-requests',
       isActive: isPathActive(location.pathname, '/admin/featured-requests'),
-      badge: getPendingBadgeCount(featuredStats),
+      badge: getFeaturedPendingBadgeCount(featuredStats),
       badgeColor: '#FFC107',
     },
     {
@@ -149,7 +193,7 @@ const DashboardSidebar = ({
   ];
 
   // ============================================
-  // User Links
+  // User nav items
   // ============================================
   const userNavItems = [
     {
@@ -294,24 +338,29 @@ const DashboardSidebar = ({
         {isMobile && (
           <button
             onClick={onClose}
+            aria-label="إغلاق القائمة"
             style={{
               background: 'none',
               border: 'none',
               color: 'var(--text-muted)',
-              fontSize: '1.2rem',
               cursor: 'pointer',
-              padding: '4px 8px',
+              padding: '6px',
               borderRadius: '8px',
               transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
+              e.currentTarget.style.color = 'var(--primary-orange)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
             }}
           >
-            ✕
+            <FaTimes size={18} />
           </button>
         )}
       </div>
@@ -435,6 +484,17 @@ const DashboardSidebar = ({
                 <FaCheckCircle size={8} /> موثق
               </span>
             )}
+
+            {/* Warning badge in sidebar */}
+            {!isAdmin && user?.warnings && user.warnings.count > 0 && (
+              <WarningBadge
+                warnings={user.warnings}
+                variant="chip"
+                onClick={() => {
+                  if (onClose) onClose();
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -446,6 +506,7 @@ const DashboardSidebar = ({
           padding: '12px 12px',
           overflowY: 'auto',
           overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {navItems.map((item, index) => (
@@ -606,6 +667,9 @@ const DashboardSidebar = ({
     </motion.div>
   );
 
+  // ============================================
+  // Desktop
+  // ============================================
   if (!isMobile) {
     return (
       <aside
@@ -630,6 +694,9 @@ const DashboardSidebar = ({
     );
   }
 
+  // ============================================
+  // Mobile
+  // ============================================
   return (
     <>
       {isOpen && (
@@ -637,16 +704,19 @@ const DashboardSidebar = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
           onClick={onClose}
+          aria-hidden="true"
           style={{
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
             zIndex: 1040,
-            backdropFilter: 'blur(4px)',
+            touchAction: 'none',
+            userSelect: 'none',
           }}
         />
       )}
@@ -657,6 +727,7 @@ const DashboardSidebar = ({
           right: 0,
           bottom: 0,
           width: '280px',
+          maxWidth: '85vw',
           backgroundColor: 'var(--bg-card)',
           borderLeft: '1px solid var(--border-color)',
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
@@ -665,6 +736,7 @@ const DashboardSidebar = ({
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '-4px 0 30px var(--shadow-md)',
+          overscrollBehavior: 'contain',
         }}
       >
         {sidebarContent}
