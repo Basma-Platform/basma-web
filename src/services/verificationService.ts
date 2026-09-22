@@ -1,10 +1,14 @@
 import api from './api';
 import type {
+  VerificationRequirements,
   VerificationStatusResponse,
   UploadIdResponse,
   AdminVerificationDetail,
   AdminVerificationsListResponse,
   VerificationActionPayload,
+  ExtractDataPayload,
+  ExtractDataResponse,
+  DocumentType,
 } from '../types';
 
 export const verificationService = {
@@ -13,12 +17,28 @@ export const verificationService = {
   // ============================================
 
   /**
+   * GET /api/v1/user/verification/requirements
+   * Privacy notice + document types + image requirements
+   */
+  getRequirements: async (): Promise<VerificationRequirements> => {
+    const response = await api.get<VerificationRequirements>(
+      '/v1/user/verification/requirements'
+    );
+    return response.data;
+  },
+
+  /**
    * POST /api/v1/user/verification/upload
    * Upload ID document for verification
+   * ⚠️ document_type is now REQUIRED
    */
-  uploadId: async (file: File): Promise<UploadIdResponse> => {
+  uploadId: async (
+    file: File,
+    documentType: DocumentType
+  ): Promise<UploadIdResponse> => {
     const formData = new FormData();
     formData.append('id_image', file);
+    formData.append('document_type', documentType);
 
     const response = await api.post<UploadIdResponse>(
       '/v1/user/verification/upload',
@@ -69,6 +89,46 @@ export const verificationService = {
   getRequest: async (id: number): Promise<AdminVerificationDetail> => {
     const response = await api.get<AdminVerificationDetail>(
       `/v1/admin/verification-requests/${id}`
+    );
+    return response.data;
+  },
+
+  /**
+   * GET /api/v1/admin/verification-requests/{id}/view-image
+   * 🔒 Secured image stream (logs every access)
+   *
+   * Returns a Blob that must be converted to ObjectURL by caller
+   * Caller is responsible for URL.revokeObjectURL() cleanup
+   */
+  viewImage: async (
+    id: number,
+    reason?: string
+  ): Promise<Blob> => {
+    const response = await api.get(
+      `/v1/admin/verification-requests/${id}/view-image`,
+      {
+        params: reason ? { reason } : undefined,
+        responseType: 'blob',
+        // Prevents browser from caching the sensitive image
+        headers: {
+          'Cache-Control': 'no-store',
+        },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * POST /api/v1/admin/verification-requests/{id}/extract-data
+   * Save admin-extracted data from ID
+   */
+  extractData: async (
+    id: number,
+    payload: ExtractDataPayload
+  ): Promise<ExtractDataResponse> => {
+    const response = await api.post<ExtractDataResponse>(
+      `/v1/admin/verification-requests/${id}/extract-data`,
+      payload
     );
     return response.data;
   },

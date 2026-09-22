@@ -7,6 +7,7 @@ import MainLayout from './components/layouts/MainLayout';
 import PrivateRoute from './routes/PrivateRoute';
 import NotificationsPage from './pages/NotificationsPage';
 import PublicUserProfilePage from './pages/PublicUserProfilePage';
+import AccountStatusModal from './components/shared/AccountStatusModal';
 
 // Public Pages
 import HomePage from './pages/HomePage';
@@ -52,6 +53,8 @@ import {
   AdminRatingsListPage,
   AdminFeaturedRequestsPage,
   AdminFeaturedRequestDetailPage,
+  AdminReportsListPage,
+  AdminReportDetailPage,
 } from './pages/admin';
 
 // Error Pages
@@ -76,6 +79,8 @@ function App() {
         draggable
         pauseOnHover
       />
+
+      <AccountStatusModal />
 
       <Routes>
         {/* ============================================ */}
@@ -215,6 +220,16 @@ function App() {
             <Route
               path="/admin/featured-requests/:id"
               element={<AdminFeaturedRequestDetailPage />}
+            />
+
+            {/* Reports Management */}
+            <Route
+              path="/admin/reports"
+              element={<AdminReportsListPage />}
+            />
+            <Route
+              path="/admin/reports/:id"
+              element={<AdminReportDetailPage />}
             />
 
             {/* Future admin routes will go here */}

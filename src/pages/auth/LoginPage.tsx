@@ -6,14 +6,26 @@ import { getPostAuthPath } from '../../utils/authRedirect';
 import LoginForm from '../../components/auth/LoginForm';
 import type { LoginFormData } from '../../components/auth/LoginForm';
 import logo from '../../assets/logo.png';
-import SEO from '../../components/SEO'; // ✅ إضافة
+import SEO from '../../components/SEO';
+import { useAccountStatus } from '../../context/AccountStatusContext';
 
 const LoginPage = () => {
   const { login, isLoading, isAuthenticated, user } = useAuth();
+  const { unsuppress } = useAccountStatus();
   const location = useLocation();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [successMessage] = useState<string | null>(location.state?.message || null);
+  const [successMessage] = useState<string | null>(
+    location.state?.message || null
+  );
+
+  // ✅ Clear any leftover suppression every time the login page mounts.
+  // This fixes the "suppressed forever" deadlock where a suspended user
+  // auto-logged-out, then could never see the modal on their next login
+  // attempt because the suppress flag was still active.
+  useEffect(() => {
+    unsuppress();
+  }, [unsuppress]);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -30,14 +42,28 @@ const LoginPage = () => {
         remember: data.remember || false,
       });
     } catch (err: any) {
-      const message = err.response?.data?.message || 'حدث خطأ، يرجى المحاولة مرة أخرى';
+      const responseData = err.response?.data;
+      const errorCode = responseData?.error_code;
+
+      // ✅ If it's an account-status error, the API interceptor already
+      // triggered the global AccountStatusModal. Don't show a duplicate
+      // inline error under the form.
+      if (
+        errorCode === 'ACCOUNT_SUSPENDED' ||
+        errorCode === 'ACCOUNT_BLOCKED'
+      ) {
+        return;
+      }
+
+      // Regular error → show inline under form
+      const message =
+        responseData?.message || 'حدث خطأ، يرجى المحاولة مرة أخرى';
       setError(message);
     }
   };
 
   return (
     <>
-      {/* ✅ إضافة SEO */}
       <SEO
         title="تسجيل الدخول"
         description="سجل دخولك إلى منصة بصمة للوصول إلى حسابك وخدمات المنصة."
@@ -132,7 +158,11 @@ const LoginPage = () => {
           )}
 
           {/* Login Form */}
-          <LoginForm onSubmit={handleLogin} isLoading={isLoading} error={error} />
+          <LoginForm
+            onSubmit={handleLogin}
+            isLoading={isLoading}
+            error={error}
+          />
 
           {/* Footer Links */}
           <motion.div
@@ -155,7 +185,14 @@ const LoginPage = () => {
               }}
             >
               ليس لديك حساب؟{' '}
-              <Link to="/register" style={{ color: 'var(--primary-orange)', textDecoration: 'none', fontWeight: 600 }}>
+              <Link
+                to="/register"
+                style={{
+                  color: 'var(--primary-orange)',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                }}
+              >
                 إنشاء حساب جديد
               </Link>
             </p>

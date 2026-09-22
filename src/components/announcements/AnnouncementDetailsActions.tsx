@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { FaShareAlt, FaFlag, FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaShareAlt, FaEnvelope, FaLock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import LikeButton from './LikeButton';
+import { ReportButton } from '../reports';
 
 interface AnnouncementDetailsActionsProps {
   announcementId: number;
@@ -27,7 +28,9 @@ const AnnouncementDetailsActions = ({
           title: 'إعلان على بصمة',
           url: window.location.href,
         });
-      } catch { /* user cancelled */ }
+      } catch {
+        /* user cancelled */
+      }
     } else {
       try {
         await navigator.clipboard.writeText(window.location.href);
@@ -53,8 +56,15 @@ const AnnouncementDetailsActions = ({
         padding: '0 4px',
       }}
     >
-      {/* Left Side - Share + Like */}
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* Left Side — Share + Like */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
         {/* Share Button */}
         <motion.button
           whileHover={{ scale: 1.03 }}
@@ -99,46 +109,16 @@ const AnnouncementDetailsActions = ({
         />
       </div>
 
-      {/* Right Side - Report */}
+      {/* Right Side — Report */}
       <div>
         {isAuthenticated ? (
           isEmailVerified ? (
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => {
-                if (confirm('هل أنت متأكد من رغبتك في الإبلاغ عن هذا الإعلان؟')) {
-                  alert('✅ تم إرسال البلاغ. سيتم مراجعته من قبل الإدارة.');
-                }
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                background: 'transparent',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.85rem',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#DC3545';
-                e.currentTarget.style.color = '#DC3545';
-                e.currentTarget.style.backgroundColor = 'rgba(220,53,69,0.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-color)';
-                e.currentTarget.style.color = 'var(--text-muted)';
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <FaFlag size={14} />
-              تبليغ
-            </motion.button>
+            /* ✅ Real Report Button — opens ReportModal */
+            <ReportButton
+              targetType="announcement"
+              announcementId={announcementId}
+              variant="full"
+            />
           ) : (
             <Link
               to="/verify-email"
@@ -157,11 +137,13 @@ const AnnouncementDetailsActions = ({
                 transition: 'all 0.2s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,193,7,0.15)';
+                e.currentTarget.style.backgroundColor =
+                  'rgba(255,193,7,0.15)';
                 e.currentTarget.style.borderColor = '#E0A800';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255,193,7,0.08)';
+                e.currentTarget.style.backgroundColor =
+                  'rgba(255,193,7,0.08)';
                 e.currentTarget.style.borderColor = '#FFC107';
               }}
             >

@@ -14,3 +14,9 @@ export {
   AdminFeaturedRequestsPage,
   AdminFeaturedRequestDetailPage,
 } from './featured';
+
+// Reports
+export {
+  AdminReportsListPage,
+  AdminReportDetailPage,
+} from './reports';

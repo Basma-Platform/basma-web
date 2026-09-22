@@ -17,7 +17,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const isAdmin = user?.role === 'admin';
   const isVerified = user?.is_verified === true;
 
-  // Check if mobile
+  // ============================================
+  // Responsive: sync `isMobile` on mount + resize
+  // ============================================
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 992;
@@ -33,8 +35,23 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // ============================================
+  // ✅ Body scroll lock when mobile sidebar is open
+  //    This prevents fast scrolling from breaking the layout
+  //    and stops the underlying page from moving.
+  // ============================================
+  useEffect(() => {
+    if (isMobile && sidebarOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isMobile, sidebarOpen]);
+
   const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+    setSidebarOpen((prev) => !prev);
   };
 
   const closeSidebar = () => {
@@ -43,7 +60,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     }
   };
 
-  // ✅ تحديد عنوان الصفحة حسب نوع المستخدم
   const getTitle = () => {
     if (isAdmin) return 'لوحة الإدارة';
     if (isVerified) return 'لوحة التحكم - موثق';
@@ -59,23 +75,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         transition: 'background-color 0.3s ease',
       }}
     >
-      {/* ✅ Overlay for mobile */}
-      {isMobile && sidebarOpen && (
-        <div
-          onClick={closeSidebar}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 1040,
-          }}
-        />
-      )}
+      {/* ✅ Sidebar handles its own overlay on mobile — no duplicate here */}
 
-      {/* ✅ Sidebar */}
       <DashboardSidebar
         isOpen={sidebarOpen}
         onClose={closeSidebar}
@@ -91,16 +92,27 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
+          // ✅ Prevent content shift/layout breakage on mobile
+          width: '100%',
+          maxWidth: '100vw',
+          overflowX: 'hidden',
         }}
       >
-        {/* ✅ Header */}
         <DashboardHeader
           title={getTitle()}
           onToggleSidebar={toggleSidebar}
         />
 
-        {/* ✅ Page Content - إزالة DashboardStats من هنا */}
-        <Container fluid style={{ padding: '24px', flex: 1 }}>
+        <Container
+          fluid
+          style={{
+            padding: '24px',
+            flex: 1,
+            // ✅ Prevent content overflow on fast scroll
+            maxWidth: '100%',
+            overflowX: 'hidden',
+          }}
+        >
           {children || <Outlet />}
         </Container>
       </main>

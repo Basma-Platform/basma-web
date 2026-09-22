@@ -45,6 +45,42 @@ export interface PaginatedResponse<T> {
 
 export type UserRole = 'user' | 'admin';
 
+// ============================================
+// SPRINT 04 — Account Status & Warnings
+// ============================================
+
+export type WarningLevel =
+  | 'clean'
+  | 'warning'
+  | 'last_warning'
+  | 'critical';
+
+export interface UserWarningStatus {
+  level: WarningLevel;
+  message: string | null;
+}
+
+export interface UserWarnings {
+  count: number;
+  threshold: number;
+  remaining: number;
+  status: UserWarningStatus;
+}
+
+/**
+ * Error codes returned by backend on login when account is not usable.
+ * - ACCOUNT_SUSPENDED: temporary (has suspended_until + days_remaining)
+ * - ACCOUNT_BLOCKED: permanent
+ */
+export type AccountErrorCode = 'ACCOUNT_SUSPENDED' | 'ACCOUNT_BLOCKED';
+
+export interface LoginErrorResponse {
+  message: string;
+  error_code?: AccountErrorCode;
+  suspended_until?: string;
+  days_remaining?: number;
+}
+
 export interface User {
   id: number;
   name: string;
@@ -62,6 +98,9 @@ export interface User {
   updated_at: string;
   governorate?: Governorate;
   city?: City;
+  // Sprint 04 — Moderation
+  warnings?: UserWarnings;
+  suspended_until?: string | null;
 }
 
 export interface RegisterPayload {
@@ -480,6 +519,7 @@ export interface UploadProfileImageResponse {
 export interface UpdateProfileResponse {
   message: string;
   user: User;
+  verification_invalidated?: boolean;
 }
 
 export interface ChangePasswordResponse {
@@ -772,11 +812,18 @@ export type NotificationType =
   | 'verification_submitted_admin'
   | 'verification_approved'
   | 'verification_rejected'
+  | 'verification_image_deleted'
   // ============================================
   // Sprint 04 - Ratings
   // ============================================
   | 'rating_received'
   | 'rating_updated'
+  // ============================================
+  // Sprint 04 - Reports
+  // ============================================
+  | 'new_report_received'
+  | 'report_processed'
+  | 'report_action_taken'
   // ============================================
   // Fallback
   // ============================================
@@ -800,6 +847,12 @@ export interface NotificationMetadata {
   rater_name?: string;
   rating?: number;
   comment?: string | null;
+  // Reports
+  report_id?: number;
+  target_type?: 'user' | 'announcement';
+  priority?: 'low' | 'medium' | 'high';
+  action_taken?: string;
+  admin_notes?: string;
   // Generic
   announcement_id?: number;
   announcement_title?: string;
@@ -880,12 +933,55 @@ export interface AnnouncementFormErrors {
 
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 
-/**
- * Response from GET /api/v1/user/verification/status
- */
+export type DocumentType =
+  | 'national_id'
+  | 'passport'
+  | 'driver_license'
+  | 'university_card'
+  | 'other';
+
+// ============================================
+// Document Type Option (for dropdowns)
+// ============================================
+export interface DocumentTypeOption {
+  value: DocumentType;
+  label: string;
+}
+
+// ============================================
+// Per-Document Requirements
+// ============================================
+export interface DocumentTypeRequirement {
+  /** Which fields must be visible for this specific document type */
+  must_show: string[];
+  /** Optional fields */
+  optional_show?: string[];
+  /** Special warning for this document type */
+  warning?: string;
+}
+
+// ============================================
+// Requirements Response
+// ============================================
+export interface VerificationRequirements {
+  why_we_need_it: string[];
+  how_we_protect_it: string[];
+  deletion_policy: string[];
+  image_requirements: string[];
+  document_types: DocumentTypeOption[];
+  document_requirements: Record<DocumentType, DocumentTypeRequirement>;
+  max_file_size_mb: number;
+  accepted_formats: string[];
+}
+
+// ============================================
+// Status Response
+// ============================================
 export interface VerificationStatusResponse {
   is_verified: boolean;
   status: VerificationStatus | null;
+  document_type: DocumentType | null;
+  document_type_label: string | null;
   request_date: string | null;
   review_date: string | null;
   rejection_reason: string | null;
@@ -893,21 +989,39 @@ export interface VerificationStatusResponse {
   can_reupload: boolean;
 }
 
-/**
- * Response from POST /api/v1/user/verification/upload
- */
+// ============================================
+// Upload Response
+// ============================================
 export interface UploadIdResponse {
   message: string;
   request: {
     id: number;
     status: VerificationStatus;
+    document_type: DocumentType;
+    document_type_label: string;
     created_at: string;
+  };
+  // Warning when re-uploading after a previous rejection
+  warning?: {
+    title: string;
+    message: string;
+    previous_rejection_reason: string;
+    previous_rejected_at: string;
   };
 }
 
-/**
- * Admin list item — from GET /api/v1/admin/verification-requests
- */
+// ============================================
+// Admin Filter
+// ============================================
+export type AdminVerificationFilter =
+  | 'all'
+  | 'pending'
+  | 'approved'
+  | 'rejected';
+
+// ============================================
+// Admin List Item
+// ============================================
 export interface AdminVerificationRequest {
   id: number;
   user: {
@@ -918,17 +1032,41 @@ export interface AdminVerificationRequest {
     profile_image: string | null;
     is_verified: boolean;
   };
-  id_image: string;
-  id_image_url: string | null;
+  document_type: DocumentType;
+  document_type_label: string;
+  has_image: boolean;
   status: VerificationStatus;
   admin_notes: string | null;
   reviewed_at: string | null;
   created_at: string;
 }
 
-/**
- * Admin detail — from GET /api/v1/admin/verification-requests/{id}
- */
+// ============================================
+// Extracted Data
+// ============================================
+export interface ExtractedData {
+  full_name: string;
+  id_number: string;
+  date_of_birth: string | null;
+  expiry_date: string | null;
+}
+
+// ============================================
+// Access Log
+// ============================================
+export interface VerificationAccessLog {
+  id: number;
+  admin: {
+    id: number;
+    name: string;
+  } | null;
+  reason: string | null;
+  accessed_at: string;
+}
+
+// ============================================
+// Admin Detail
+// ============================================
 export interface AdminVerificationDetail {
   id: number;
   user: {
@@ -942,19 +1080,37 @@ export interface AdminVerificationDetail {
     city: { id: number; name: string } | null;
     created_at: string;
   };
-  id_image: string;
-  id_image_url: string | null;
+
+  document_type: DocumentType;
+  document_type_label: string;
+
+  // Image availability (NOT URL)
+  has_image: boolean;
+  image_deleted_at: string | null;
+  auto_delete_at: string | null;
+
   status: VerificationStatus;
   admin_notes: string | null;
+
+  // Extracted data
+  extracted_data: ExtractedData | null;
+  extracted_by: { id: number; name: string } | null;
+  extracted_at: string | null;
+
+  // Reviewer
   reviewed_by: { id: number; name: string } | null;
   reviewed_at: string | null;
+
+  // Access logs
+  access_logs: VerificationAccessLog[];
+
   created_at: string;
   updated_at: string;
 }
 
-/**
- * Paginated list from admin index
- */
+// ============================================
+// Admin List Response
+// ============================================
 export interface AdminVerificationsListResponse {
   data: AdminVerificationRequest[];
   meta: {
@@ -971,11 +1127,23 @@ export interface AdminVerificationsListResponse {
   };
 }
 
-/**
- * Payload for approve/reject actions
- */
+// ============================================
+// Action Payloads
+// ============================================
 export interface VerificationActionPayload {
   admin_notes?: string;
+}
+
+export interface ExtractDataPayload {
+  full_name: string;
+  id_number: string;
+  date_of_birth?: string;
+  expiry_date?: string;
+}
+
+export interface ExtractDataResponse {
+  message: string;
+  request: AdminVerificationDetail;
 }
 
 // ============================================
@@ -1256,4 +1424,201 @@ export interface AdminFeaturedRejectPayload {
 
 export interface AdminFeaturedDeletePayload {
   reason?: string;
+}
+
+// ============================================
+// SPRINT 04 - Reports System
+// ============================================
+
+export type ReportTargetType = 'user' | 'announcement';
+export type ReportStatus = 'pending' | 'reviewed' | 'rejected';
+export type ReportPriority = 'low' | 'medium' | 'high';
+
+export type ReportAction =
+  | 'warn_user'
+  | 'suspend_user'
+  | 'block_user'
+  | 'delete_content'
+  | 'reject_report';
+
+export type ReportActionTaken =
+  | 'warned'
+  | 'suspended'
+  | 'blocked'
+  | 'deleted_content'
+  | 'rejected';
+
+// User Side — Report Reasons
+export interface ReportReason {
+  value: string;
+  label: string;
+  priority: ReportPriority;
+}
+
+export interface ReportReasonsResponse {
+  target_type: ReportTargetType;
+  target_type_label: string;
+  reasons: ReportReason[];
+}
+
+// User Side — Create Report
+export interface CreateReportPayload {
+  target_type: ReportTargetType;
+  reported_user_id?: number;   // required when target_type = 'user'
+  announcement_id?: number;    // required when target_type = 'announcement'
+  reason: string;
+  description?: string;
+}
+
+export interface Report {
+  id: number;
+  target_type: ReportTargetType;
+  target_type_label: string;
+  reason: string;
+  reason_label: string;
+  description: string | null;
+  status: ReportStatus;
+  status_label: string;
+  priority: ReportPriority;
+  priority_label: string;
+  created_at: string;
+}
+
+export interface CreateReportResponse {
+  message: string;
+  report: Report;
+}
+
+// Admin Side — List Item
+export interface AdminReportListItem {
+  id: number;
+  target_type: ReportTargetType;
+  target_type_label: string;
+  reporter: {
+    id: number;
+    name: string;
+  };
+  reported_user: {
+    id: number;
+    name: string;
+  } | null;
+  announcement: {
+    id: number;
+    title: string;
+  } | null;
+  reason: string;
+  reason_label: string;
+  priority: ReportPriority;
+  priority_label: string;
+  status: ReportStatus;
+  status_label: string;
+  created_at: string;
+}
+
+// Admin Side — Full Detail
+export interface AdminReportDetail {
+  id: number;
+  target_type: ReportTargetType;
+  target_type_label: string;
+
+  reporter: {
+    id: number;
+    name: string;
+    email: string;
+    whatsapp: string;
+    profile_image: string | null;
+  };
+
+  reported_user: {
+    id: number;
+    name: string;
+    email: string;
+    whatsapp: string;
+    is_verified: boolean;
+    is_active: boolean;
+    profile_image: string | null;
+    created_at: string;
+    warnings_count: number;
+    is_suspended: boolean;
+    suspended_until: string | null;
+    is_blocked: boolean;
+  } | null;
+
+  announcement: {
+    id: number;
+    title: string;
+    description: string;
+    status: string;
+    cover_image: string | null;
+    user_id: number;
+  } | null;
+
+  reason: string;
+  reason_label: string;
+  description: string | null;
+  priority: ReportPriority;
+  priority_label: string;
+  status: ReportStatus;
+  status_label: string;
+
+  action_taken: ReportActionTaken | null;
+  action_taken_label: string | null;
+  admin_notes: string | null;
+  reviewed_at: string | null;
+  resolved_by: {
+    id: number;
+    name: string;
+  } | null;
+
+  previous_reports_against_user?: number;
+
+  created_at: string;
+  updated_at: string;
+}
+
+// Admin Side — Stats
+export interface AdminReportsStats {
+  reports: {
+    total: number;
+    pending: number;
+    reviewed: number;
+    rejected: number;
+  };
+  by_priority: {
+    high: number;
+    medium: number;
+    low: number;
+  };
+  by_target: {
+    user: number;
+    announcement: number;
+  };
+  today: {
+    new: number;
+    processed: number;
+  };
+}
+
+// Admin Side — List Response
+export interface AdminReportsListResponse {
+  data: AdminReportListItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+  stats: AdminReportsStats;
+}
+
+// Admin Side — Process Payload
+export interface ProcessReportPayload {
+  action: ReportAction;
+  admin_notes: string;
+  suspend_days?: number;
+}
+
+export interface ProcessReportResponse {
+  message: string;
+  report: AdminReportDetail;
 }

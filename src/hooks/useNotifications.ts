@@ -1,27 +1,35 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { notificationService } from '../services/notificationService';
+import { useAuth } from './useAuth';
+import { useNotificationsContext } from '../context/NotificationsContext';
 import { toast } from 'react-toastify';
 import type { Notification } from '../types';
 
-const POLLING_INTERVAL = 60000; // 60 seconds
-
 /**
- * Hook for managing notifications
+ * Hook for managing notifications list + actions.
+ *
+ * ⚠️ IMPORTANT:
+ * The "unread count" + "polling" logic now lives in
+ * `NotificationsContext` (single source of truth).
+ *
+ * This hook handles:
+ * - Fetching the full notifications list (paginated)
+ * - Marking as read/unread
+ * - Deleting notifications
  *
  * Used in: NotificationsDropdown, NotificationsPage, DashboardHeader
- *
- * Provides:
- * - fetchNotifications (paginated with filter)
- * - fetchUnreadCount (for badge)
- * - markAsRead (single)
- * - markAllAsRead
- * - deleteNotification (single)
- * - deleteAllNotifications
- * - startPolling / stopPolling (for unread count)
  */
 export const useNotifications = () => {
+  const { isAuthenticated } = useAuth();
+
+  // ✅ Single source of truth for unread count + polling
+  const {
+    unreadCount,
+    markUnreadCount,
+    refreshUnreadCount,
+  } = useNotificationsContext();
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [meta, setMeta] = useState<{
     current_page: number;
@@ -30,11 +38,12 @@ export const useNotifications = () => {
     per_page: number;
   } | null>(null);
 
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   /**
-   * Fetch notifications
+   * Fetch notifications list
    * GET /api/v1/notifications
+   *
+   * ✅ Bails silently if user is not authenticated.
+   * ✅ Silent on 401 (session may be transitioning).
    */
   const fetchNotifications = useCallback(
     async (params?: {
@@ -42,14 +51,18 @@ export const useNotifications = () => {
       page?: number;
       per_page?: number;
     }) => {
+      if (!isAuthenticated) return;
+
       try {
         setLoading(true);
         const response = await notificationService.getNotifications(params);
         setNotifications(response.data);
         setMeta(response.meta);
-        setUnreadCount(response.unread_count);
+        // ✅ Sync unread count via context
+        markUnreadCount(response.unread_count);
         return response;
       } catch (error: any) {
+        if (error.response?.status === 401) return;
         const message =
           error.response?.data?.message || 'حدث خطأ في تحميل الإشعارات';
         toast.error(message);
@@ -58,53 +71,47 @@ export const useNotifications = () => {
         setLoading(false);
       }
     },
-    []
+    [isAuthenticated, markUnreadCount]
   );
-
-  /**
-   * Fetch unread count (for badge - used in polling)
-   * GET /api/v1/notifications/unread-count
-   */
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const response = await notificationService.getUnreadCount();
-      setUnreadCount(response.count);
-      return response.count;
-    } catch (error: any) {
-      // Silent error - polling shouldn't spam toasts
-      console.error('Failed to fetch unread count:', error);
-    }
-  }, []);
 
   /**
    * Mark single notification as read
    * PUT /api/v1/notifications/{id}/read
    */
-  const markAsRead = useCallback(async (id: string) => {
-    try {
-      const response = await notificationService.markAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === id
-            ? { ...n, is_read: true, read_at: new Date().toISOString() }
-            : n
-        )
-      );
-      setUnreadCount(response.unread_count);
-      return response;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message || 'حدث خطأ في تحديث الإشعار';
-      toast.error(message);
-      throw error;
-    }
-  }, []);
+  const markAsRead = useCallback(
+    async (id: string) => {
+      if (!isAuthenticated) return;
+
+      try {
+        const response = await notificationService.markAsRead(id);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === id
+              ? { ...n, is_read: true, read_at: new Date().toISOString() }
+              : n
+          )
+        );
+        // ✅ Sync unread count
+        markUnreadCount(response.unread_count);
+        return response;
+      } catch (error: any) {
+        if (error.response?.status === 401) return;
+        const message =
+          error.response?.data?.message || 'حدث خطأ في تحديث الإشعار';
+        toast.error(message);
+        throw error;
+      }
+    },
+    [isAuthenticated, markUnreadCount]
+  );
 
   /**
    * Mark all notifications as read
    * PUT /api/v1/notifications/read-all
    */
   const markAllAsRead = useCallback(async () => {
+    if (!isAuthenticated) return;
+
     try {
       const response = await notificationService.markAllAsRead();
       setNotifications((prev) =>
@@ -114,86 +121,85 @@ export const useNotifications = () => {
           read_at: n.read_at || new Date().toISOString(),
         }))
       );
-      setUnreadCount(response.unread_count);
+      // ✅ Sync unread count to 0
+      markUnreadCount(0);
       toast.success(response.message);
       return response;
     } catch (error: any) {
+      if (error.response?.status === 401) return;
       const message =
         error.response?.data?.message || 'حدث خطأ في تحديث الإشعارات';
       toast.error(message);
       throw error;
     }
-  }, []);
+  }, [isAuthenticated, markUnreadCount]);
 
   /**
    * Delete single notification
    * DELETE /api/v1/notifications/{id}
    */
-  const deleteNotification = useCallback(async (id: string) => {
-    try {
-      const response = await notificationService.deleteNotification(id);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-      setUnreadCount(response.unread_count);
-      toast.success(response.message);
-      return response;
-    } catch (error: any) {
-      const message =
-        error.response?.data?.message || 'حدث خطأ في حذف الإشعار';
-      toast.error(message);
-      throw error;
-    }
-  }, []);
+  const deleteNotification = useCallback(
+    async (id: string) => {
+      if (!isAuthenticated) return;
+
+      try {
+        const response = await notificationService.deleteNotification(id);
+        setNotifications((prev) => prev.filter((n) => n.id !== id));
+        // ✅ Sync unread count
+        markUnreadCount(response.unread_count);
+        toast.success(response.message);
+        return response;
+      } catch (error: any) {
+        if (error.response?.status === 401) return;
+        const message =
+          error.response?.data?.message || 'حدث خطأ في حذف الإشعار';
+        toast.error(message);
+        throw error;
+      }
+    },
+    [isAuthenticated, markUnreadCount]
+  );
 
   /**
    * Delete all notifications
    * DELETE /api/v1/notifications/all
    */
   const deleteAllNotifications = useCallback(async () => {
+    if (!isAuthenticated) return;
+
     try {
       const response = await notificationService.deleteAllNotifications();
       setNotifications([]);
-      setUnreadCount(0);
       setMeta(null);
+      // ✅ Sync unread count to 0
+      markUnreadCount(0);
       toast.success(response.message);
       return response;
     } catch (error: any) {
+      if (error.response?.status === 401) return;
       const message =
         error.response?.data?.message || 'حدث خطأ في حذف الإشعارات';
       toast.error(message);
       throw error;
     }
-  }, []);
+  }, [isAuthenticated, markUnreadCount]);
 
-  /**
-   * Start polling for unread count (every 60 seconds)
-   */
+  // ============================================
+  // Backward-compat stubs
+  // (polling now lives in NotificationsContext)
+  // ============================================
   const startPolling = useCallback(() => {
-    if (pollingRef.current) return;
-    pollingRef.current = setInterval(() => {
-      fetchUnreadCount();
-    }, POLLING_INTERVAL);
-  }, [fetchUnreadCount]);
+    // No-op — controlled by NotificationsProvider
+  }, []);
 
-  /**
-   * Stop polling
-   */
   const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
+    // No-op — controlled by NotificationsProvider
   }, []);
 
-  /**
-   * Cleanup on unmount
-   */
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-    };
-  }, []);
+  const fetchUnreadCount = useCallback(async () => {
+    // Delegates to context
+    await refreshUnreadCount();
+  }, [refreshUnreadCount]);
 
   return {
     notifications,
@@ -206,6 +212,7 @@ export const useNotifications = () => {
     markAllAsRead,
     deleteNotification,
     deleteAllNotifications,
+    // Kept for backward compatibility — do NOT trigger polling here
     startPolling,
     stopPolling,
   };

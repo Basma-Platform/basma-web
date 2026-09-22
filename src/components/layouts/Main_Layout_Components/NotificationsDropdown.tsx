@@ -15,33 +15,23 @@ const NotificationsDropdown = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // ✅ Notifications Hook
+  // Note: unreadCount + polling are now managed by NotificationsProvider.
+  // This hook only fetches the list on-demand.
   const {
     notifications,
     unreadCount,
     loading,
     fetchNotifications,
-    fetchUnreadCount,
     markAsRead,
     markAllAsRead,
-    startPolling,
-    stopPolling,
   } = useNotifications();
 
   // ============================================
-  // Initial load + Polling
+  // Initial fetch (once, for dropdown content)
   // ============================================
   useEffect(() => {
-    // Initial fetch
     fetchNotifications({ filter: 'all', per_page: 5 });
-    fetchUnreadCount();
-
-    // Start polling for unread count (60s)
-    startPolling();
-
-    return () => {
-      stopPolling();
-    };
-  }, [fetchNotifications, fetchUnreadCount, startPolling, stopPolling]);
+  }, [fetchNotifications]);
 
   // ============================================
   // Close on outside click
@@ -66,7 +56,7 @@ const NotificationsDropdown = () => {
   }, [isOpen]);
 
   // ============================================
-  // Refresh notifications when opening dropdown
+  // Refresh list when opening dropdown
   // ============================================
   useEffect(() => {
     if (isOpen) {
@@ -78,7 +68,6 @@ const NotificationsDropdown = () => {
   // Handle notification click
   // ============================================
   const handleNotificationClick = async (notification: Notification) => {
-    // Mark as read if unread
     if (!notification.is_read) {
       try {
         await markAsRead(notification.id);
@@ -102,7 +91,7 @@ const NotificationsDropdown = () => {
   };
 
   // ============================================
-  // Handle view all (Same Page for Admin & User)
+  // Handle view all
   // ============================================
   const handleViewAll = () => {
     navigate('/notifications');
@@ -219,7 +208,11 @@ const NotificationsDropdown = () => {
                 }
               : {}
           }
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           <FaBell />
         </motion.div>
@@ -285,9 +278,7 @@ const NotificationsDropdown = () => {
               flexDirection: 'column',
             }}
           >
-            {/* ============================================ */}
             {/* Header */}
-            {/* ============================================ */}
             <div
               style={{
                 padding: '14px 18px',
@@ -365,9 +356,7 @@ const NotificationsDropdown = () => {
               )}
             </div>
 
-            {/* ============================================ */}
             {/* Content */}
-            {/* ============================================ */}
             <div
               style={{
                 overflowY: 'auto',
@@ -426,9 +415,7 @@ const NotificationsDropdown = () => {
               )}
             </div>
 
-            {/* ============================================ */}
             {/* Footer */}
-            {/* ============================================ */}
             {notifications.length > 0 && (
               <div
                 style={{

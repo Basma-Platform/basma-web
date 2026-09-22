@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   FaUser,
   FaCog,
@@ -13,6 +13,7 @@ import { useTheme } from '../../../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getStorageUrl } from '../../../utils/storageHelpers';
 import NotificationsDropdown from './NotificationsDropdown';
+import WarningBadge from '../../shared/WarningBadge';
 
 interface DashboardHeaderProps {
   title?: string;
@@ -26,19 +27,88 @@ const DashboardHeader = ({
   const { user, logout } = useAuth();
   const { isDark, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  // Handle scroll effect
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ============================================
+  // Detect touch device
+  // ============================================
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
+    const checkTouch =
+      'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    setIsTouchDevice(checkTouch);
+  }, []);
+
+  // ============================================
+  // Scroll effect
+  // ============================================
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ============================================
+  // Close dropdown on route change
+  // ============================================
+  useEffect(() => {
+    setDropdownOpen(false);
+  }, [location.pathname]);
+
+  // ============================================
+  // Close dropdown on outside click / tap
+  // ============================================
+  useEffect(() => {
+    if (!dropdownOpen) return;
+
+    const handleOutside = (event: MouseEvent | TouchEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+    };
+  }, [dropdownOpen]);
+
+  // ============================================
+  // Close dropdown on Escape key
+  // ============================================
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDropdownOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [dropdownOpen]);
+
+  // ============================================
+  // Cleanup hover timeout on unmount
+  // ============================================
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleLogout = async () => {
+    setDropdownOpen(false);
     await logout();
     navigate('/login');
   };
@@ -52,13 +122,32 @@ const DashboardHeader = ({
     ).toUpperCase();
   };
 
-  // ✅ Get user avatar URL via storage helper
   const getUserAvatar = (): string | null => {
     return getStorageUrl(user?.profile_image);
   };
 
   const userAvatar = getUserAvatar();
   const userInitials = getUserInitials();
+
+  const handleToggleClick = useCallback(() => {
+    setDropdownOpen((prev) => !prev);
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    if (isTouchDevice) return;
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setDropdownOpen(true);
+  }, [isTouchDevice]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (isTouchDevice) return;
+    hoverTimeoutRef.current = setTimeout(() => {
+      setDropdownOpen(false);
+    }, 180);
+  }, [isTouchDevice]);
 
   return (
     <motion.header
@@ -88,6 +177,7 @@ const DashboardHeader = ({
           onClick={onToggleSidebar}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
+          aria-label="القائمة"
           style={{
             background: 'none',
             border: 'none',
@@ -141,6 +231,7 @@ const DashboardHeader = ({
           onClick={toggleDarkMode}
           whileHover={{ scale: 1.1, rotate: 20 }}
           whileTap={{ scale: 0.9 }}
+          aria-label="تبديل الوضع"
           style={{
             background: 'none',
             border: 'none',
@@ -169,13 +260,19 @@ const DashboardHeader = ({
 
         {/* User Dropdown */}
         <div
+          ref={dropdownRef}
           style={{ position: 'relative' }}
-          onMouseEnter={() => setDropdownOpen(true)}
-          onMouseLeave={() => setDropdownOpen(false)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           <motion.button
+            type="button"
+            onClick={handleToggleClick}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            aria-haspopup="menu"
+            aria-expanded={dropdownOpen}
+            aria-label="قائمة المستخدم"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -194,7 +291,7 @@ const DashboardHeader = ({
               fontFamily: 'Cairo, sans-serif',
             }}
           >
-            {/* ✅ Avatar with profile_image support */}
+            {/* Avatar */}
             <div
               style={{
                 width: '34px',
@@ -250,6 +347,14 @@ const DashboardHeader = ({
             >
               {user?.name?.split(' ')[0] || 'مستخدم'}
             </span>
+
+            {/* ✅ Warning badge */}
+            <WarningBadge
+              warnings={user?.warnings}
+              variant="icon"
+              onClick={() => navigate('/user/profile')}
+            />
+
             <motion.div
               animate={{ rotate: dropdownOpen ? 180 : 0 }}
               transition={{ duration: 0.2 }}
@@ -266,6 +371,7 @@ const DashboardHeader = ({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
+                role="menu"
                 style={{
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
@@ -286,6 +392,8 @@ const DashboardHeader = ({
                       ? '/admin/profile'
                       : '/user/profile'
                   }
+                  role="menuitem"
+                  onClick={() => setDropdownOpen(false)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -317,6 +425,8 @@ const DashboardHeader = ({
                       ? '/admin/settings'
                       : '/user/settings'
                   }
+                  role="menuitem"
+                  onClick={() => setDropdownOpen(false)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -350,6 +460,7 @@ const DashboardHeader = ({
                   }}
                 />
                 <button
+                  role="menuitem"
                   onClick={handleLogout}
                   style={{
                     display: 'flex',

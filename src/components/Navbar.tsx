@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { getDashboardPath } from '../utils/authRedirect';
 import { getStorageUrl } from '../utils/storageHelpers';
+import WarningBadge from './shared/WarningBadge';
 import logo from '../assets/logo.png';
 
 const NAV_LINKS = [
@@ -128,6 +129,14 @@ const Navbar = () => {
             <span className="site-navbar__username">
               {user?.name?.split(' ')[0] || 'حسابي'}
             </span>
+
+            {/* ✅ Warning badge — only renders when user has warnings */}
+            <WarningBadge
+              warnings={user?.warnings}
+              variant="icon"
+              onClick={() => navigate('/user/profile')}
+            />
+
             <FaChevronDown
               size={12}
               className={`site-navbar__dropdown-arrow ${dropdownOpen ? 'is-rotated' : ''}`}
@@ -317,7 +326,6 @@ const Navbar = () => {
           </button>
 
           {isLoading ? (
-            // ✅ عرض مكان شاغر أثناء التحميل في الموبايل
             <div className="site-navbar__drawer-loading">
               <div className="site-navbar__avatar-skeleton" />
               <div className="site-navbar__text-skeleton" />
@@ -351,6 +359,16 @@ const Navbar = () => {
                   <div className="site-navbar__drawer-username">{user?.name || 'مستخدم'}</div>
                   <div className="site-navbar__drawer-useremail">{user?.email}</div>
                 </div>
+
+                {/* ✅ Warning badge in mobile drawer */}
+                <WarningBadge
+                  warnings={user?.warnings}
+                  variant="chip"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate('/user/profile');
+                  }}
+                />
               </div>
 
               <Link to={dashboardPath} className="site-navbar__btn site-navbar__btn--ghost site-navbar__btn--block">
@@ -386,6 +404,7 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* ... ALL your existing <style> block — unchanged ... */}
       <style>{`
         :root { --nav-h: 70px; }
 

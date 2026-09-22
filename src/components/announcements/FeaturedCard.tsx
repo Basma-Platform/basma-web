@@ -1,7 +1,20 @@
 import { Link } from 'react-router-dom';
-import { FaEye, FaHeart, FaMapMarkerAlt, FaUserCheck, FaStar } from 'react-icons/fa';
+import {
+  FaEye,
+  FaHeart,
+  FaMapMarkerAlt,
+  FaUserCheck,
+  FaStar,
+  FaUser,
+} from 'react-icons/fa';
+import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../context/ThemeContext';
 import type { Announcement } from '../../types';
 import { getStorageUrl } from '../../utils/storageHelpers';
+import {
+  isOwnAnnouncement,
+  getOwnBadgeStyle,
+} from '../../utils/announcementHelpers';
 
 interface FeaturedCardProps {
   announcement: Announcement;
@@ -9,20 +22,33 @@ interface FeaturedCardProps {
 }
 
 const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
+  const { user } = useAuth();
+  const { isDark } = useTheme();
+
+  // ✅ Owner check — controls "إعلانك" badge
+  const isOwn = isOwnAnnouncement(announcement, user?.id);
+  const ownBadgeStyle = getOwnBadgeStyle(isDark);
+
   const getPriceLabel = () => {
     switch (announcement.price_type) {
-      case 'free': return 'مجاني';
-      case 'paid': return `${announcement.price} شيكل`;
-      case 'barter': return 'مقايضة';
-      default: return 'مجاني';
+      case 'free':
+        return 'مجاني';
+      case 'paid':
+        return `${announcement.price} شيكل`;
+      case 'barter':
+        return 'مقايضة';
+      default:
+        return 'مجاني';
     }
   };
 
   // ✅ Cover image via global helper
   const coverImage =
     announcement.images && announcement.images.length > 0
-      ? getStorageUrl(announcement.images[0].image_path, '/placeholder-image.png') ||
-        '/placeholder-image.png'
+      ? getStorageUrl(
+          announcement.images[0].image_path,
+          '/placeholder-image.png'
+        ) || '/placeholder-image.png'
       : '/placeholder-image.png';
 
   // ✅ User avatar via global helper
@@ -46,7 +72,12 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
           borderRadius: '20px',
           overflow: 'hidden',
           boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12)',
-          border: '1.5px solid rgba(255, 215, 0, 0.5)',
+          // ✅ Own cards get a teal accent border instead of gold
+          border: isOwn
+            ? `1.5px solid ${
+                isDark ? 'rgba(32,201,224,0.5)' : 'rgba(23,162,184,0.35)'
+              }`
+            : '1.5px solid rgba(255, 215, 0, 0.5)',
           transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
           position: 'relative',
           height: '100%',
@@ -57,16 +88,23 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-          e.currentTarget.style.boxShadow = '0 18px 45px rgba(232, 122, 32, 0.25)';
+          e.currentTarget.style.boxShadow =
+            '0 18px 45px rgba(232, 122, 32, 0.25)';
           e.currentTarget.style.borderColor = '#E87A20';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'translateY(0) scale(1)';
           e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.12)';
-          e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.5)';
+          e.currentTarget.style.borderColor = isOwn
+            ? isDark
+              ? 'rgba(32,201,224,0.5)'
+              : 'rgba(23,162,184,0.35)'
+            : 'rgba(255, 215, 0, 0.5)';
         }}
       >
-        {/* Featured Badge */}
+        {/* ============================================ */}
+        {/* Featured Badge — top-right */}
+        {/* ============================================ */}
         <div
           style={{
             position: 'absolute',
@@ -90,7 +128,40 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
           <FaStar size={10} color="#FFFFFF" /> مميز
         </div>
 
+        {/* ============================================ */}
+        {/* "إعلانك" badge — top-left (owner only) */}
+        {/* ============================================ */}
+        {isOwn && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '12px',
+              left: '12px',
+              zIndex: 10,
+            }}
+          >
+            <span
+              style={{
+                ...ownBadgeStyle,
+                padding: '4px 10px',
+                borderRadius: '8px',
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                fontFamily: 'Cairo, sans-serif',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <FaUser size={8} />
+              إعلانك
+            </span>
+          </div>
+        )}
+
+        {/* ============================================ */}
         {/* Image Container */}
+        {/* ============================================ */}
         <div
           style={{
             width: '100%',
@@ -121,15 +192,33 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
               left: 0,
               right: 0,
               height: '50px',
-              background: 'linear-gradient(to top, rgba(0,0,0,0.4), transparent)',
+              background:
+                'linear-gradient(to top, rgba(0,0,0,0.4), transparent)',
+              pointerEvents: 'none',
             }}
           />
         </div>
 
+        {/* ============================================ */}
         {/* Card Content */}
-        <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* ============================================ */}
+        <div
+          style={{
+            padding: '14px 16px',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
           {/* User Info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '8px',
+            }}
+          >
             <div
               style={{
                 width: '26px',
@@ -212,8 +301,17 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
               marginBottom: '10px',
             }}
           >
-            <FaMapMarkerAlt size={11} style={{ color: 'var(--primary-orange)' }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <FaMapMarkerAlt
+              size={11}
+              style={{ color: 'var(--primary-orange)' }}
+            />
+            <span
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {announcement.governorate?.name}
               {announcement.city?.name && ` - ${announcement.city.name}`}
             </span>
@@ -232,8 +330,14 @@ const FeaturedCard = ({ announcement, onClick }: FeaturedCardProps) => {
           >
             <span
               style={{
-                backgroundColor: announcement.price_type === 'free' ? 'rgba(40, 167, 69, 0.12)' : 'rgba(232, 122, 32, 0.12)',
-                color: announcement.price_type === 'free' ? '#28A745' : 'var(--primary-orange)',
+                backgroundColor:
+                  announcement.price_type === 'free'
+                    ? 'rgba(40, 167, 69, 0.12)'
+                    : 'rgba(232, 122, 32, 0.12)',
+                color:
+                  announcement.price_type === 'free'
+                    ? '#28A745'
+                    : 'var(--primary-orange)',
                 padding: '3px 10px',
                 borderRadius: '8px',
                 fontSize: '0.75rem',
