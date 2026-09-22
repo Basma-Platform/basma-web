@@ -11,6 +11,11 @@ import {
   FaUserTimes,
   FaStar,
   FaStarHalfAlt,
+  FaFlag,
+  FaClock,
+  FaClipboardCheck,
+  FaCheck,
+  FaGavel,
 } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
 import type { NotificationType } from '../../types';
@@ -47,16 +52,24 @@ const NotificationIcon = ({
     // ============================================
     // Sprint 04 — Verification (KYC)
     // ============================================
-    verification_submitted_user: FaShieldAlt,
-    verification_submitted_admin: FaShieldAlt,
+    verification_submitted_user: FaClock,
+    verification_submitted_admin: FaClipboardCheck,
     verification_approved: FaUserCheck,
     verification_rejected: FaUserTimes,
+    verification_image_deleted: FaShieldAlt,
 
     // ============================================
     // Sprint 04 — Ratings
     // ============================================
     rating_received: FaStar,
     rating_updated: FaStarHalfAlt,
+
+    // ============================================
+    // Sprint 04 — Reports
+    // ============================================
+    new_report_received: FaFlag,
+    report_processed: FaCheck,
+    report_action_taken: FaGavel,
 
     // ============================================
     // Fallback

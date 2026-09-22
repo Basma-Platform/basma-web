@@ -16,6 +16,13 @@ import {
   FaEnvelope,
   FaShieldAlt,
   FaStar,
+  FaUser,
+  FaSearch,
+  FaHome,
+  FaRedo,
+  FaBan,
+  FaExclamationCircle,
+  FaUserPlus,
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -29,25 +36,59 @@ import AnnouncementContactButton from '../components/announcements/AnnouncementC
 import FeaturedDetailsBanner from '../components/announcements/FeaturedDetailsBanner';
 import AnnouncementReviewSection from '../components/announcements/AnnouncementReviewSection';
 import { getStorageUrl } from '../utils/storageHelpers';
+import {
+  isOwnAnnouncement,
+  getOwnBadgeStyle,
+} from '../utils/announcementHelpers';
 import type { Announcement } from '../types';
 import type { ContactButtonConfig } from '../components/announcements/AnnouncementContactButton';
 
+// ============================================
+// Error state shape
+// ============================================
+type ErrorKind =
+  | 'not_found'
+  | 'auth_required'
+  | 'forbidden'
+  | 'generic'
+  | null;
+
+interface PageError {
+  kind: ErrorKind;
+  title: string;
+  message: string;
+  suggestion: string;
+}
+
 const AnnouncementDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
+
   const { isDark } = useTheme();
-  const { isAuthenticated, user } = useAuth();
+
+  // ✅ Destructure isLoading too — we'll wait for auth to settle
+  const {
+    isAuthenticated,
+    user,
+    isLoading: isAuthLoading,
+  } = useAuth();
+
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PageError | null>(null);
 
   const cancelTokenSource = useRef<any>(null);
-
-  // Guard to prevent double-incrementing views during React strict mode / double renders
   const hasIncrementedView = useRef(false);
+  const [hasAttempted, setHasAttempted] = useState(false);
 
   const isEmailVerified =
     user?.email_verified_at !== null && user?.email_verified_at !== undefined;
   const isVerifiedUser = user?.is_verified === true;
+
+  const isOwn = isOwnAnnouncement(
+    announcement ? { user_id: announcement.user_id } : null,
+    user?.id
+  );
+  const ownBadgeStyle = getOwnBadgeStyle(isDark);
 
   // ============================================
   // PRIVACY & CONTACT LOGIC
@@ -140,35 +181,89 @@ const AnnouncementDetailsPage = () => {
   };
 
   // ============================================
-  // FETCH DATA
+  // FETCH DATA — waits for auth to be ready
   // ============================================
-
   useEffect(() => {
+    // ✅ CRITICAL: Wait for AuthContext to finish initializing before
+    // we fetch the announcement. Otherwise the fetch fires with
+    // isAuthenticated === false even when the user IS logged in,
+    // causing a restricted announcement to show the "auth required"
+    // screen incorrectly.
+    if (isAuthLoading) return;
+
     const source = axios.CancelToken.source();
     cancelTokenSource.current = source;
 
     const fetchAnnouncement = async () => {
       if (!id) {
         setLoading(false);
+        setHasAttempted(true);
         return;
       }
 
-      if (hasIncrementedView.current) return;
-      hasIncrementedView.current = true;
-
       setLoading(true);
       setError(null);
+      setHasAttempted(false);
 
       try {
         const data = await announcementService.getAnnouncement(Number(id));
         setAnnouncement(data);
-        setLoading(false);
+
+        // ✅ Increment view count once, only after successful fetch
+        if (!hasIncrementedView.current) {
+          hasIncrementedView.current = true;
+        }
       } catch (err: any) {
         if (axios.isCancel(err)) {
           return;
         }
-        setError('حدث خطأ في تحميل الإعلان. يرجى المحاولة مرة أخرى.');
+
+        const status = err?.response?.status;
+
+        if (status === 404) {
+          setError({
+            kind: 'not_found',
+            title: 'الإعلان غير موجود',
+            message:
+              'الإعلان الذي تحاول الوصول إليه غير متوفر حالياً. قد يكون قد تم حذفه من قبل صاحبه أو إزالته من المنصة.',
+            suggestion:
+              'يمكنك تصفح الإعلانات الأخرى المتاحة في المنصة، أو العودة إلى الصفحة الرئيسية.',
+          });
+        } else if (status === 403) {
+          // ✅ At this point, isAuthenticated is GUARANTEED to be accurate
+          //    because we waited for isAuthLoading to become false.
+          if (!isAuthenticated) {
+            setError({
+              kind: 'auth_required',
+              title: 'سجّل دخولك لعرض هذا الإعلان',
+              message:
+                'هذا الإعلان مخصص لمستخدمي المنصة المسجلين. سجّل دخولك أو أنشئ حساباً جديداً لعرضه والتواصل مع المعلن.',
+              suggestion:
+                'التسجيل مجاني وسريع، ويمنحك صلاحية الوصول لجميع الإعلانات والمزايا.',
+            });
+          } else {
+            setError({
+              kind: 'forbidden',
+              title: 'لا تملك صلاحية الوصول',
+              message:
+                'هذا الإعلان مخصص لفئة معينة من المستخدمين، ولا يمكنك عرضه بحسابك الحالي.',
+              suggestion:
+                'إذا كنت تعتقد أن هذا خطأ، يمكنك التواصل مع الدعم أو العودة إلى قائمة الإعلانات.',
+            });
+          }
+        } else {
+          setError({
+            kind: 'generic',
+            title: 'تعذّر تحميل الإعلان',
+            message:
+              'حدث خطأ غير متوقع أثناء تحميل الإعلان. قد تكون المشكلة مؤقتة.',
+            suggestion:
+              'يرجى المحاولة مرة أخرى بعد قليل، أو العودة إلى قائمة الإعلانات.',
+          });
+        }
+      } finally {
         setLoading(false);
+        setHasAttempted(true);
       }
     };
 
@@ -180,7 +275,7 @@ const AnnouncementDetailsPage = () => {
         cancelTokenSource.current = null;
       }
     };
-  }, [id]);
+  }, [id, isAuthLoading, isAuthenticated]);
 
   // ============================================
   // HELPERS
@@ -236,7 +331,6 @@ const AnnouncementDetailsPage = () => {
     }
   };
 
-  // ✅ Uses global storage helper — environment-aware
   const getOwnerAvatar = (): string | null => {
     return getStorageUrl(announcement?.user?.profile_image);
   };
@@ -247,10 +341,10 @@ const AnnouncementDetailsPage = () => {
   );
 
   // ============================================
-  // LOADING & ERROR STATES
+  // LOADING STATE — also wait for auth
   // ============================================
 
-  if (loading) {
+  if (isAuthLoading || loading || !hasAttempted) {
     return (
       <div
         style={{
@@ -285,60 +379,475 @@ const AnnouncementDetailsPage = () => {
     );
   }
 
+  // ============================================
+  // ERROR STATE
+  // ============================================
+
   if (error || !announcement) {
+    const errorKind: ErrorKind = error?.kind ?? 'not_found';
+
+    const config = {
+      not_found: {
+        Icon: FaSearch,
+        accent: '#E87A20',
+        accentSoft: 'rgba(232,122,32,0.12)',
+        accentBorder: 'rgba(232,122,32,0.35)',
+        gradient: 'linear-gradient(135deg, #E87A20, #F5A623)',
+        label: 'غير موجود',
+      },
+      auth_required: {
+        Icon: FaLock,
+        accent: '#17A2B8',
+        accentSoft: 'rgba(23,162,184,0.10)',
+        accentBorder: 'rgba(23,162,184,0.30)',
+        gradient: 'linear-gradient(135deg, #17A2B8, #20C9E0)',
+        label: 'يتطلب تسجيل دخول',
+      },
+      forbidden: {
+        Icon: FaBan,
+        accent: '#DC3545',
+        accentSoft: 'rgba(220,53,69,0.10)',
+        accentBorder: 'rgba(220,53,69,0.30)',
+        gradient: 'linear-gradient(135deg, #DC3545, #B02A37)',
+        label: 'ممنوع الوصول',
+      },
+      generic: {
+        Icon: FaExclamationCircle,
+        accent: '#17A2B8',
+        accentSoft: 'rgba(23,162,184,0.10)',
+        accentBorder: 'rgba(23,162,184,0.30)',
+        gradient: 'linear-gradient(135deg, #17A2B8, #20C9E0)',
+        label: 'خطأ مؤقت',
+      },
+    }[errorKind ?? 'not_found'];
+
+    const { Icon, accent, accentSoft, accentBorder, gradient, label } = config;
+
+    const title = error?.title ?? 'الإعلان غير موجود';
+    const message = error?.message ?? 'تعذّر الوصول إلى هذا الإعلان.';
+    const suggestion =
+      error?.suggestion ?? 'يمكنك العودة إلى قائمة الإعلانات.';
+
     return (
-      <div
-        style={{
-          paddingTop: '100px',
-          minHeight: '100vh',
-          backgroundColor: 'var(--bg-body)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+      <>
+        <SEO title={title} description={message} />
+
         <div
           style={{
-            textAlign: 'center',
-            backgroundColor: 'var(--bg-card)',
-            borderRadius: '16px',
-            padding: '3rem',
-            maxWidth: '500px',
-            boxShadow: '0 4px 16px var(--shadow-sm)',
-            border: '1px solid var(--border-color)',
+            paddingTop: '100px',
+            paddingBottom: '60px',
+            minHeight: '100vh',
+            backgroundColor: 'var(--bg-body)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>😕</div>
-          <h3
-            style={{
-              color: 'var(--text-secondary)',
-              fontFamily: 'Cairo, sans-serif',
-            }}
-          >
-            {error || 'الإعلان غير موجود'}
-          </h3>
-          <Link
-            to="/announcements"
-            style={{
-              color: 'var(--primary-orange)',
-              textDecoration: 'none',
-              fontFamily: 'Cairo, sans-serif',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginTop: '1rem',
-            }}
-          >
-            العودة إلى الإعلانات <FaArrowRight />
-          </Link>
+          <Container>
+            <Row className="justify-content-center">
+              <Col xs={12} sm={11} md={9} lg={7} xl={6}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  style={{
+                    position: 'relative',
+                    backgroundColor: 'var(--bg-card)',
+                    borderRadius: '24px',
+                    padding: '2.5rem 2rem 2rem',
+                    boxShadow: '0 20px 60px var(--shadow-md)',
+                    border: `1px solid ${accentBorder}`,
+                    overflow: 'hidden',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      left: 0,
+                      height: '5px',
+                      background: gradient,
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '-60px',
+                      right: '-60px',
+                      width: '200px',
+                      height: '200px',
+                      borderRadius: '50%',
+                      background: accentSoft,
+                      filter: 'blur(40px)',
+                      pointerEvents: 'none',
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '5px 14px',
+                      borderRadius: '20px',
+                      backgroundColor: accentSoft,
+                      border: `1px solid ${accentBorder}`,
+                      color: accent,
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      fontFamily: 'Cairo, sans-serif',
+                      marginBottom: '1.25rem',
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                    <FaExclamationTriangle size={11} />
+                    {label}
+                  </div>
+
+                  <motion.div
+                    initial={{ scale: 0, rotate: -12 }}
+                    animate={{
+                      scale: [1, 1.04, 1],
+                      rotate: [0, -3, 3, 0],
+                    }}
+                    transition={{
+                      scale: {
+                        repeat: Infinity,
+                        duration: 3,
+                        ease: 'easeInOut',
+                      },
+                      rotate: {
+                        repeat: Infinity,
+                        duration: 4,
+                        ease: 'easeInOut',
+                      },
+                      default: { type: 'spring', stiffness: 260, damping: 18 },
+                    }}
+                    style={{
+                      width: '88px',
+                      height: '88px',
+                      margin: '0 auto 1.25rem',
+                      borderRadius: '50%',
+                      background: gradient,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFFFFF',
+                      boxShadow: `0 12px 32px ${accent}55`,
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                    <Icon size={36} />
+                  </motion.div>
+
+                  <h2
+                    style={{
+                      color: 'var(--text-secondary)',
+                      fontSize: 'clamp(1.25rem, 2.5vw, 1.5rem)',
+                      fontWeight: 900,
+                      fontFamily: 'Cairo, sans-serif',
+                      marginBottom: '0.75rem',
+                      lineHeight: 1.35,
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                    {title}
+                  </h2>
+
+                  <p
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '0.9rem',
+                      fontFamily: 'Cairo, sans-serif',
+                      lineHeight: 1.75,
+                      maxWidth: '440px',
+                      margin: '0 auto 1.5rem',
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                    {message}
+                  </p>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      backgroundColor: 'var(--bg-input)',
+                      border: '1px solid var(--border-color)',
+                      marginBottom: '1.5rem',
+                      textAlign: 'right',
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                    <FaExclamationTriangle
+                      size={12}
+                      color={accent}
+                      style={{ flexShrink: 0, marginTop: '3px' }}
+                    />
+                    <span
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: '0.8rem',
+                        fontFamily: 'Cairo, sans-serif',
+                        lineHeight: 1.65,
+                      }}
+                    >
+                      {suggestion}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '10px',
+                      flexWrap: 'wrap',
+                      justifyContent: 'center',
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                    {errorKind === 'auth_required' && (
+                      <>
+                        <Link
+                          to="/login"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '12px 24px',
+                            borderRadius: '12px',
+                            background: gradient,
+                            color: '#FFFFFF',
+                            fontFamily: 'Cairo, sans-serif',
+                            fontSize: '0.88rem',
+                            fontWeight: 800,
+                            textDecoration: 'none',
+                            cursor: 'pointer',
+                            boxShadow: `0 6px 20px ${accent}40`,
+                            minHeight: '46px',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform =
+                              'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = `0 10px 26px ${accent}55`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = `0 6px 20px ${accent}40`;
+                          }}
+                        >
+                          <FaUser size={13} />
+                          تسجيل الدخول
+                          <FaArrowRight size={12} />
+                        </Link>
+
+                        <Link
+                          to="/register"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '12px 22px',
+                            borderRadius: '12px',
+                            backgroundColor: 'transparent',
+                            border: `1.5px solid ${accentBorder}`,
+                            color: accent,
+                            fontFamily: 'Cairo, sans-serif',
+                            fontSize: '0.88rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            cursor: 'pointer',
+                            minHeight: '46px',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = accentSoft;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor =
+                              'transparent';
+                          }}
+                        >
+                          <FaUserPlus size={13} />
+                          إنشاء حساب جديد
+                        </Link>
+                      </>
+                    )}
+
+                    {errorKind === 'generic' && (
+                      <motion.button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        whileHover={{ scale: 1.02, y: -1 }}
+                        whileTap={{ scale: 0.97 }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '12px 22px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          background: gradient,
+                          color: '#FFFFFF',
+                          fontFamily: 'Cairo, sans-serif',
+                          fontSize: '0.88rem',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          boxShadow: `0 6px 20px ${accent}40`,
+                          minHeight: '46px',
+                        }}
+                      >
+                        <FaRedo size={13} />
+                        حاول مرة أخرى
+                      </motion.button>
+                    )}
+
+                    {errorKind !== 'auth_required' && (
+                      <Link
+                        to="/announcements"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '12px 24px',
+                          borderRadius: '12px',
+                          background:
+                            errorKind === 'generic'
+                              ? 'transparent'
+                              : gradient,
+                          border:
+                            errorKind === 'generic'
+                              ? `1.5px solid ${accentBorder}`
+                              : 'none',
+                          color:
+                            errorKind === 'generic' ? accent : '#FFFFFF',
+                          fontFamily: 'Cairo, sans-serif',
+                          fontSize: '0.88rem',
+                          fontWeight: 800,
+                          textDecoration: 'none',
+                          cursor: 'pointer',
+                          boxShadow:
+                            errorKind === 'generic'
+                              ? 'none'
+                              : `0 6px 20px ${accent}40`,
+                          minHeight: '46px',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (errorKind === 'generic') {
+                            e.currentTarget.style.backgroundColor = accentSoft;
+                          } else {
+                            e.currentTarget.style.transform =
+                              'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = `0 10px 26px ${accent}55`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (errorKind === 'generic') {
+                            e.currentTarget.style.backgroundColor =
+                              'transparent';
+                          } else {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = `0 6px 20px ${accent}40`;
+                          }
+                        }}
+                      >
+                        <FaSearch size={13} />
+                        تصفّح الإعلانات
+                        <FaArrowRight size={12} />
+                      </Link>
+                    )}
+
+                    {errorKind !== 'auth_required' && (
+                      <Link
+                        to="/"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '12px 22px',
+                          borderRadius: '12px',
+                          backgroundColor: 'transparent',
+                          border: '1.5px solid var(--border-color)',
+                          color: 'var(--text-secondary)',
+                          fontFamily: 'Cairo, sans-serif',
+                          fontSize: '0.88rem',
+                          fontWeight: 700,
+                          textDecoration: 'none',
+                          cursor: 'pointer',
+                          minHeight: '46px',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = accent;
+                          e.currentTarget.style.color = accent;
+                          e.currentTarget.style.backgroundColor = accentSoft;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor =
+                            'var(--border-color)';
+                          e.currentTarget.style.color = 'var(--text-secondary)';
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <FaHome size={13} />
+                        الصفحة الرئيسية
+                      </Link>
+                    )}
+                  </div>
+
+                  <p
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '0.72rem',
+                      fontFamily: 'Cairo, sans-serif',
+                      lineHeight: 1.6,
+                      margin: '1.5rem 0 0',
+                      opacity: 0.75,
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                    إذا استمرت المشكلة، يمكنك{' '}
+                    <Link
+                      to="/contact"
+                      style={{
+                        color: accent,
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      التواصل مع الدعم
+                    </Link>
+                  </p>
+                </motion.div>
+              </Col>
+            </Row>
+          </Container>
         </div>
-      </div>
+      </>
     );
   }
 
   // ============================================
-  // RENDER
+  // RENDER — Success
   // ============================================
 
   return (
@@ -356,7 +865,6 @@ const AnnouncementDetailsPage = () => {
         }}
       >
         <Container>
-          {/* Breadcrumb */}
           <motion.nav
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -374,18 +882,30 @@ const AnnouncementDetailsPage = () => {
           >
             <Link
               to="/"
-              style={{ color: 'var(--primary-orange)', textDecoration: 'none' }}
+              style={{
+                color: 'var(--primary-orange)',
+                textDecoration: 'none',
+              }}
             >
               الرئيسية
             </Link>
-            <FaChevronRight size={10} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
+            <FaChevronRight
+              size={10}
+              style={{ color: 'var(--text-muted)', opacity: 0.4 }}
+            />
             <Link
               to="/announcements"
-              style={{ color: 'var(--primary-orange)', textDecoration: 'none' }}
+              style={{
+                color: 'var(--primary-orange)',
+                textDecoration: 'none',
+              }}
             >
               الإعلانات
             </Link>
-            <FaChevronRight size={10} style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
+            <FaChevronRight
+              size={10}
+              style={{ color: 'var(--text-muted)', opacity: 0.4 }}
+            />
             <span style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
               {announcement.title.length > 30
                 ? announcement.title.slice(0, 30) + '...'
@@ -393,26 +913,20 @@ const AnnouncementDetailsPage = () => {
             </span>
           </motion.nav>
 
-          {/* Featured Banner Display */}
           {isFeatured && <FeaturedDetailsBanner />}
 
           <Row className="g-4">
-            {/* ============================================ */}
-            {/* LEFT COLUMN - Main Content */}
-            {/* ============================================ */}
             <Col xs={12} lg={8}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
               >
-                {/* Image Carousel */}
                 <AnnouncementImageCarousel
                   images={announcement.images || []}
                   title={announcement.title}
                 />
 
-                {/* Actions Bar */}
                 <AnnouncementDetailsActions
                   announcementId={announcement.id}
                   isLiked={announcement.is_liked_by_user || false}
@@ -421,7 +935,6 @@ const AnnouncementDetailsPage = () => {
                   isEmailVerified={isEmailVerified}
                 />
 
-                {/* 📱 MOBILE OPTIMIZATION: Owner Info Card placed right under Actions Bar for mobile view */}
                 <div className="d-block d-lg-none my-3">
                   <AnnouncementOwnerInfo
                     ownerName={announcement.user?.name || 'مستخدم'}
@@ -434,7 +947,6 @@ const AnnouncementDetailsPage = () => {
                   />
                 </div>
 
-                {/* Main Content Card */}
                 <div
                   style={{
                     marginTop: '1.25rem',
@@ -450,17 +962,22 @@ const AnnouncementDetailsPage = () => {
                         ? '0 8px 30px rgba(232, 122, 32, 0.15)'
                         : '0 8px 30px rgba(255, 193, 7, 0.2)'
                       : '0 2px 12px var(--shadow-sm)',
-                    border: isFeatured
-                      ? isDark
-                        ? '1.5px solid rgba(232, 122, 32, 0.4)'
-                        : '1.5px solid #FFC107'
-                      : '1px solid var(--border-color)',
+                    border: isOwn
+                      ? `1.5px solid ${
+                          isDark
+                            ? 'rgba(32,201,224,0.5)'
+                            : 'rgba(23,162,184,0.35)'
+                        }`
+                      : isFeatured
+                        ? isDark
+                          ? '1.5px solid rgba(232, 122, 32, 0.4)'
+                          : '1.5px solid #FFC107'
+                        : '1px solid var(--border-color)',
                     transition: 'all 0.3s ease',
                     position: 'relative',
                     overflow: 'hidden',
                   }}
                 >
-                  {/* Special Featured Glow Line */}
                   {isFeatured && (
                     <div
                       style={{
@@ -475,7 +992,32 @@ const AnnouncementDetailsPage = () => {
                     />
                   )}
 
-                  {/* Title */}
+                  {isOwn && (
+                    <div
+                      style={{
+                        marginBottom: '0.75rem',
+                        display: 'inline-flex',
+                      }}
+                    >
+                      <span
+                        style={{
+                          ...ownBadgeStyle,
+                          padding: '5px 12px',
+                          borderRadius: '10px',
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          fontFamily: 'Cairo, sans-serif',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                        }}
+                      >
+                        <FaUser size={10} />
+                        إعلانك
+                      </span>
+                    </div>
+                  )}
+
                   <h1
                     style={{
                       color: 'var(--text-secondary)',
@@ -492,7 +1034,6 @@ const AnnouncementDetailsPage = () => {
                     {announcement.title}
                   </h1>
 
-                  {/* Badges */}
                   <div
                     style={{
                       display: 'flex',
@@ -536,7 +1077,8 @@ const AnnouncementDetailsPage = () => {
                         gap: '4px',
                       }}
                     >
-                      <FaTag size={10} /> {getCategoryLabel(announcement.category)}
+                      <FaTag size={10} />{' '}
+                      {getCategoryLabel(announcement.category)}
                     </span>
 
                     {announcement.sub_category && (
@@ -561,7 +1103,8 @@ const AnnouncementDetailsPage = () => {
 
                     <span
                       style={{
-                        backgroundColor: getTypeColor(announcement.type) + '15',
+                        backgroundColor:
+                          getTypeColor(announcement.type) + '15',
                         color: getTypeColor(announcement.type),
                         padding: '4px 12px',
                         borderRadius: '10px',
@@ -636,7 +1179,8 @@ const AnnouncementDetailsPage = () => {
                         )}40`,
                       }}
                     >
-                      <FaLock size={9} /> {getPrivacyLabel(announcement.privacy_type)}
+                      <FaLock size={9} />{' '}
+                      {getPrivacyLabel(announcement.privacy_type)}
                     </span>
 
                     {announcement.sub_category?.is_high_risk && (
@@ -663,7 +1207,6 @@ const AnnouncementDetailsPage = () => {
                     )}
                   </div>
 
-                  {/* Location */}
                   <div
                     style={{
                       display: 'flex',
@@ -687,11 +1230,11 @@ const AnnouncementDetailsPage = () => {
                       }}
                     >
                       {announcement.governorate?.name || 'غير محدد'}
-                      {announcement.city?.name && ` - ${announcement.city.name}`}
+                      {announcement.city?.name &&
+                        ` - ${announcement.city.name}`}
                     </span>
                   </div>
 
-                  {/* Description */}
                   <div style={{ marginBottom: '1.25rem' }}>
                     <div
                       style={{
@@ -706,25 +1249,19 @@ const AnnouncementDetailsPage = () => {
                     </div>
                   </div>
 
-                  {/* Contact Button */}
                   <AnnouncementContactButton config={contactConfig} />
                 </div>
 
-                {/* Info Cards */}
                 <AnnouncementInfoCards
                   views={announcement.views}
                   likes={announcement.likes_count || 0}
                   createdAt={announcement.created_at}
                 />
 
-                {/* Review Section */}
                 <AnnouncementReviewSection announcementId={announcement.id} />
               </motion.div>
             </Col>
 
-            {/* ============================================ */}
-            {/* RIGHT COLUMN - Sidebar */}
-            {/* ============================================ */}
             <Col xs={12} lg={4}>
               <div
                 style={{
@@ -735,7 +1272,6 @@ const AnnouncementDetailsPage = () => {
                   gap: '1.25rem',
                 }}
               >
-                {/* 💻 DESKTOP OPTIMIZATION: Owner Info stays in the right sidebar on desktop screens (hidden on mobile) */}
                 <div className="d-none d-lg-block">
                   <AnnouncementOwnerInfo
                     ownerName={announcement.user?.name || 'مستخدم'}
@@ -748,7 +1284,6 @@ const AnnouncementDetailsPage = () => {
                   />
                 </div>
 
-                {/* Security Tips */}
                 <AnnouncementSecurityTips />
               </div>
             </Col>

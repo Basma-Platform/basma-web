@@ -27,7 +27,6 @@ const VerificationIntroCard = () => {
       }}
       dir="rtl"
     >
-      {/* Decorative Background Glow */}
       <div
         style={{
           position: 'absolute',
@@ -42,7 +41,6 @@ const VerificationIntroCard = () => {
       />
 
       <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Icon */}
         <motion.div
           animate={{ y: [0, -5, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -62,12 +60,11 @@ const VerificationIntroCard = () => {
           <FaShieldAlt size={32} />
         </motion.div>
 
-        {/* Title */}
         <h2
           style={{
             textAlign: 'center',
             color: 'var(--text-secondary)',
-            fontSize: 'clamp(1.2rem, 2vw, 1.45rem)',
+            fontSize: 'clamp(1.2rem, 4vw, 1.45rem)',
             fontWeight: 900,
             marginBottom: '6px',
             lineHeight: 1.3,
@@ -91,13 +88,11 @@ const VerificationIntroCard = () => {
           احصل على شارة "موثق" واستفد من جميع مزايا المنصة مع إعلانات غير محدودة
         </p>
 
-        {/* Benefits Stack / Grid optimized for mobile readability */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
-            marginBottom: '0.25rem',
           }}
         >
           {benefits.map((benefit, idx) => (

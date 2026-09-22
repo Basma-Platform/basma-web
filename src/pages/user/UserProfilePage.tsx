@@ -11,6 +11,7 @@ import ProfileMonthlyLimit from '../../components/user/profile/ProfileMonthlyLim
 import EditProfileForm from '../../components/user/profile/EditProfileForm';
 import ChangePasswordForm from '../../components/user/profile/ChangePasswordForm';
 import ProfileSkeleton from '../../components/user/profile/ProfileSkeleton';
+import WarningCard from '../../components/user/profile/WarningCard';
 import { useProfile } from '../../hooks/useProfile';
 import { useAuth } from '../../hooks/useAuth';
 import { regionService } from '../../services/regionService';
@@ -126,10 +127,6 @@ const UserProfilePage = () => {
   // ============================================
   // Determine if form is ready to render
   // ============================================
-  // ✅ النموذج جاهز فقط عندما:
-  // 1. governorates محمّلة
-  // 2. cities محمّلة (إذا كان للمستخدم governorate_id)
-  // 3. localUser موجود
   const isFormReady =
     localUser !== null &&
     governorates.length > 0 &&
@@ -211,7 +208,7 @@ const UserProfilePage = () => {
               }}
             >
               <Link
-                to="/dashboard"
+                to="/user/dashboard"
                 style={{
                   color: 'var(--primary-orange)',
                   textDecoration: 'none',
@@ -294,6 +291,15 @@ const UserProfilePage = () => {
           )}
 
           {/* ============================================ */}
+          {/* Warning Card — only renders when user has warnings */}
+          {/* ============================================ */}
+          {localUser.warnings && localUser.warnings.count > 0 && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <WarningCard warnings={localUser.warnings} />
+            </div>
+          )}
+
+          {/* ============================================ */}
           {/* Profile Header */}
           {/* ============================================ */}
           <ProfileHeader
@@ -316,7 +322,6 @@ const UserProfilePage = () => {
           <Row className="g-4 mt-2">
             {/* Left Column: Forms */}
             <Col xs={12} lg={8}>
-              {/* ✅ عرض النموذج فقط عندما تكون البيانات جاهزة */}
               {isFormReady ? (
                 <EditProfileForm
                   key={`edit-profile-${localUser.id}-${localUser.governorate_id}-${cities.length}`}

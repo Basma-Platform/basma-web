@@ -7,10 +7,25 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaEye,
+  FaIdCard,
+  FaPassport,
+  FaCar,
+  FaGraduationCap,
+  FaFile,
+  FaInfoCircle,
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import VerificationImagePreviewModal from './VerificationImagePreviewModal';
-import { getFileTypeLabel } from '../../../utils/verificationHelpers';
+import ReuploadWarningModal from './ReuploadWarningModal';
+import {
+  getFileTypeLabel,
+  formatFileSize,
+} from '../../../utils/verificationHelpers';
+import type {
+  DocumentType,
+  DocumentTypeOption,
+  UploadIdResponse,
+} from '../../../types';
 
 const MAX_SIZE_MB = 5;
 const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
@@ -21,24 +36,89 @@ const ALLOWED_TYPES = [
   'application/pdf',
 ];
 
+// ============================================
+// Fallback document types
+// ============================================
+const FALLBACK_DOC_TYPES: DocumentTypeOption[] = [
+  { value: 'national_id', label: 'هوية وطنية' },
+  { value: 'passport', label: 'جواز سفر' },
+  { value: 'driver_license', label: 'رخصة قيادة' },
+  { value: 'university_card', label: 'بطاقة جامعية' },
+  { value: 'other', label: 'أخرى' },
+];
+
+// ============================================
+// Icons per Document Type
+// ============================================
+const DOC_TYPE_ICONS: Record<DocumentType, React.ReactNode> = {
+  national_id: <FaIdCard size={14} />,
+  passport: <FaPassport size={14} />,
+  driver_license: <FaCar size={14} />,
+  university_card: <FaGraduationCap size={14} />,
+  other: <FaFile size={14} />,
+};
+
 interface VerificationUploadBoxProps {
-  onSubmit: (file: File) => Promise<void>;
+  onSubmit: (
+    file: File,
+    documentType: DocumentType
+  ) => Promise<UploadIdResponse>;
   uploading: boolean;
   disabled?: boolean;
+  documentTypes?: DocumentTypeOption[];
+  initialDocumentType?: DocumentType;
+  /** 🆕 Optional: external warning (from hook) */
+  externalWarning?: UploadIdResponse['warning'] | null;
+  /** 🆕 Optional: callback after warning shown */
+  onWarningShown?: () => void;
 }
 
 const VerificationUploadBox = ({
   onSubmit,
   uploading,
   disabled = false,
+  documentTypes,
+  initialDocumentType = 'national_id',
+  externalWarning,
+  onWarningShown,
 }: VerificationUploadBoxProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [documentType, setDocumentType] =
+    useState<DocumentType>(initialDocumentType);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 🆕 Warning state (internal + external)
+  const [internalWarning, setInternalWarning] = useState<
+    UploadIdResponse['warning'] | null
+  >(null);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+
+  const availableDocTypes =
+    documentTypes && documentTypes.length > 0
+      ? documentTypes
+      : FALLBACK_DOC_TYPES;
+
+  // ============================================
+  // Sync external warning
+  // ============================================
+  useEffect(() => {
+    if (externalWarning) {
+      setInternalWarning(externalWarning);
+      setShowWarningModal(true);
+      if (onWarningShown) {
+        onWarningShown();
+      }
+    }
+  }, [externalWarning, onWarningShown]);
+
+  // ============================================
+  // Cleanup preview URL
+  // ============================================
   useEffect(() => {
     return () => {
       if (preview && preview.startsWith('blob:')) {
@@ -47,6 +127,9 @@ const VerificationUploadBox = ({
     };
   }, [preview]);
 
+  // ============================================
+  // File Validation
+  // ============================================
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
       return 'الرجاء رفع ملف بصيغة JPG، PNG، أو PDF';
@@ -99,22 +182,128 @@ const VerificationUploadBox = ({
   };
 
   const handleSubmit = async () => {
+    if (!documentType) {
+      setError('يرجى اختيار نوع الوثيقة');
+      return;
+    }
     if (!selectedFile) {
       setError('يرجى اختيار ملف الهوية أولاً');
       return;
     }
     try {
-      await onSubmit(selectedFile);
+      const response = await onSubmit(selectedFile, documentType);
       handleRemove();
+
+      // 🆕 Show warning modal if present in response
+      if (response.warning) {
+        setInternalWarning(response.warning);
+        setShowWarningModal(true);
+      }
     } catch {
       // Error handled by hook
     }
   };
 
+  const handleCloseWarningModal = () => {
+    setShowWarningModal(false);
+    setInternalWarning(null);
+  };
+
   const canInteract = !disabled && !uploading;
+  const isUniversityCard = documentType === 'university_card';
+
+  // ============================================
+  // Render Button
+  // ============================================
+  const renderDocTypeButton = (opt: DocumentTypeOption) => {
+    const active = documentType === opt.value;
+    return (
+      <motion.button
+        key={opt.value}
+        type="button"
+        onClick={() => canInteract && setDocumentType(opt.value)}
+        disabled={!canInteract}
+        whileTap={canInteract ? { scale: 0.97 } : {}}
+        style={{
+          padding: '10px 12px',
+          borderRadius: '10px',
+          border: `2px solid ${
+            active ? 'var(--primary-orange)' : 'var(--border-color)'
+          }`,
+          backgroundColor: active
+            ? 'rgba(232,122,32,0.08)'
+            : 'var(--bg-input)',
+          color: active
+            ? 'var(--primary-orange)'
+            : 'var(--text-secondary)',
+          fontFamily: 'Cairo, sans-serif',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          cursor: canInteract ? 'pointer' : 'not-allowed',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          justifyContent: 'center',
+          transition: 'all 0.2s ease',
+          opacity: canInteract ? 1 : 0.6,
+          boxSizing: 'border-box',
+          minHeight: '44px',
+          width: '100%',
+        }}
+      >
+        <span style={{ display: 'inline-flex', flexShrink: 0 }}>
+          {DOC_TYPE_ICONS[opt.value as DocumentType]}
+        </span>
+        <span
+          style={{
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {opt.label}
+        </span>
+      </motion.button>
+    );
+  };
 
   return (
     <>
+      {/* ============================================ */}
+      {/* Grid Styles — Local to this component       */}
+      {/* ============================================ */}
+      <style>{`
+        .verification-doc-grid {
+          display: grid;
+          gap: 8px;
+          width: 100%;
+        }
+
+        @media (min-width: 481px) {
+          .verification-doc-grid {
+            grid-template-columns: repeat(6, 1fr);
+          }
+          .verification-doc-grid > *:nth-child(1),
+          .verification-doc-grid > *:nth-child(2) {
+            grid-column: span 3;
+          }
+          .verification-doc-grid > *:nth-child(3),
+          .verification-doc-grid > *:nth-child(4),
+          .verification-doc-grid > *:nth-child(5) {
+            grid-column: span 2;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .verification-doc-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .verification-doc-grid > *:nth-child(5) {
+            grid-column: span 2;
+          }
+        }
+      `}</style>
+
       <motion.div
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -127,10 +316,13 @@ const VerificationUploadBox = ({
           boxShadow: '0 6px 24px var(--shadow-sm)',
           fontFamily: 'Cairo, sans-serif',
           width: '100%',
+          boxSizing: 'border-box',
         }}
         dir="rtl"
       >
+        {/* ============================================ */}
         {/* Header */}
+        {/* ============================================ */}
         <div
           style={{
             display: 'flex',
@@ -166,16 +358,13 @@ const VerificationUploadBox = ({
                 lineHeight: 1.2,
               }}
             >
-              رفع صورة الهوية
+              رفع وثيقة الهوية
             </h4>
             <div
               style={{
                 color: 'var(--text-muted)',
                 fontSize: '0.68rem',
                 marginTop: '2px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
               }}
             >
               JPG، PNG، أو PDF • الحد الأقصى {MAX_SIZE_MB}MB
@@ -183,7 +372,71 @@ const VerificationUploadBox = ({
           </div>
         </div>
 
+        {/* ============================================ */}
+        {/* Document Type Selector */}
+        {/* ============================================ */}
+        <div style={{ marginBottom: '1rem' }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              color: 'var(--text-secondary)',
+              marginBottom: '8px',
+            }}
+          >
+            نوع الوثيقة <span style={{ color: 'var(--error)' }}>*</span>
+          </label>
+
+          <div className="verification-doc-grid">
+            {availableDocTypes.map(renderDocTypeButton)}
+          </div>
+
+          {/* University Card Warning */}
+          <AnimatePresence>
+            {isUniversityCard && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                animate={{ opacity: 1, height: 'auto', marginTop: '10px' }}
+                exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                style={{ overflow: 'hidden' }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                    padding: '10px 12px',
+                    backgroundColor: 'rgba(245,166,35,0.12)',
+                    border: '1px solid rgba(245,166,35,0.4)',
+                    borderRadius: '10px',
+                    fontSize: '0.75rem',
+                    color: '#D97706',
+                    lineHeight: 1.55,
+                  }}
+                >
+                  <FaExclamationTriangle
+                    size={12}
+                    style={{
+                      flexShrink: 0,
+                      marginTop: '2px',
+                      color: '#F5A623',
+                    }}
+                  />
+                  <span>
+                    <strong>مهم:</strong> بطاقة الطالب مقبولة فقط إذا كانت
+                    تحتوي على <strong>صورة شخصية واضحة</strong> و
+                    <strong>الاسم الكامل</strong> مطابق لحسابك.
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ============================================ */}
         {/* Upload Zone / File Preview */}
+        {/* ============================================ */}
         {!selectedFile ? (
           <motion.div
             onDragEnter={(e) => {
@@ -241,7 +494,9 @@ const VerificationUploadBox = ({
                 margin: '0 0 4px',
               }}
             >
-              {isDragging ? 'أفلت الملف هنا' : 'اسحب الملف هنا أو اضغط للاختيار'}
+              {isDragging
+                ? 'أفلت الملف هنا'
+                : 'اسحب الملف هنا أو اضغط للاختيار'}
             </h5>
 
             <p
@@ -252,7 +507,7 @@ const VerificationUploadBox = ({
                 lineHeight: 1.4,
               }}
             >
-              صورة واضحة للهوية من الأمام • جميع الحواف ظاهرة
+              تأكد من وضوح الصورة وإظهار جميع المعلومات
             </p>
 
             <input
@@ -275,7 +530,9 @@ const VerificationUploadBox = ({
               backgroundColor: 'var(--bg-input)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+            >
               {/* Preview Thumbnail */}
               <div
                 style={{
@@ -352,9 +609,7 @@ const VerificationUploadBox = ({
                   }}
                 >
                   <span>{getFileTypeLabel(selectedFile.type)}</span>
-                  <span>
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </span>
+                  <span>{formatFileSize(selectedFile.size)}</span>
                 </div>
               </div>
 
@@ -429,6 +684,34 @@ const VerificationUploadBox = ({
           )}
         </AnimatePresence>
 
+        {/* Image Quality Notice */}
+        <div
+          style={{
+            marginTop: '1rem',
+            padding: '10px 12px',
+            backgroundColor: 'rgba(23,162,184,0.06)',
+            border: '1px solid rgba(23,162,184,0.2)',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '8px',
+            fontSize: '0.72rem',
+            color: 'var(--text-muted)',
+            lineHeight: 1.55,
+          }}
+        >
+          <FaInfoCircle
+            size={11}
+            color="#17A2B8"
+            style={{ flexShrink: 0, marginTop: '2px' }}
+          />
+          <span>
+            تأكد من ظهور <strong>صورة شخصية واضحة</strong>،{' '}
+            <strong>الاسم الكامل</strong>، و<strong>رقم الوثيقة</strong> في
+            الصورة.
+          </span>
+        </div>
+
         {/* Submit Button */}
         <motion.button
           type="button"
@@ -439,7 +722,7 @@ const VerificationUploadBox = ({
           style={{
             width: '100%',
             marginTop: '1rem',
-            padding: '12px 20px',
+            padding: '13px 20px',
             borderRadius: '12px',
             border: 'none',
             background:
@@ -480,7 +763,9 @@ const VerificationUploadBox = ({
         </motion.button>
       </motion.div>
 
+      {/* ============================================ */}
       {/* Image Preview Modal */}
+      {/* ============================================ */}
       {preview && (
         <VerificationImagePreviewModal
           isOpen={showPreview}
@@ -489,6 +774,18 @@ const VerificationUploadBox = ({
           onClose={() => setShowPreview(false)}
         />
       )}
+
+      {/* ============================================ */}
+      {/* 🆕 Reupload Warning Modal */}
+      {/* ============================================ */}
+      <ReuploadWarningModal
+        isOpen={showWarningModal}
+        title={internalWarning?.title}
+        message={internalWarning?.message}
+        previousReason={internalWarning?.previous_rejection_reason}
+        previousRejectedAt={internalWarning?.previous_rejected_at}
+        onClose={handleCloseWarningModal}
+      />
     </>
   );
 };

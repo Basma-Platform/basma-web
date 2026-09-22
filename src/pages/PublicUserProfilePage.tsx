@@ -17,6 +17,8 @@ import {
 } from '../components/publicProfile';
 import type { ReviewSortOption } from '../components/publicProfile';
 import RatingSkeleton from '../components/ratings/RatingSkeleton';
+import { ReportButton } from '../components/reports';
+import { useAuth } from '../hooks/useAuth';
 import type {
   Rating,
   UserRatingSummary,
@@ -28,6 +30,10 @@ const PER_PAGE = 12;
 const PublicUserProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const userId = id ? Number(id) : null;
+
+  // ✅ Current authenticated user — used to hide report button on own profile
+  const { user: currentUser } = useAuth();
+  const currentUserId = currentUser?.id ?? null;
 
   // Data
   const [user, setUser] = useState<PublicUserProfile | null>(null);
@@ -267,6 +273,9 @@ const PublicUserProfilePage = () => {
   // ============================================
   // Render
   // ============================================
+  const showReportButton =
+    currentUserId !== null && currentUserId !== user.id;
+
   return (
     <>
       <SEO
@@ -341,6 +350,24 @@ const PublicUserProfilePage = () => {
               averageRating={summary?.average_rating || 0}
               totalRatings={summary?.total_ratings || 0}
             />
+
+            {/* ✅ Report button — only for other users */}
+            {showReportButton && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  marginTop: '-0.75rem',
+                }}
+              >
+                <ReportButton
+                  targetType="user"
+                  reportedUserId={user.id}
+                  targetName={user.name}
+                  variant="full"
+                />
+              </div>
+            )}
 
             {/* Stats + WhatsApp */}
             <PublicUserStats

@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  FaWhatsapp,
   FaCalendarAlt,
   FaEye,
   FaArrowLeft,
+  FaIdCard,
+  FaPassport,
+  FaCar,
+  FaGraduationCap,
+  FaFile,
+  FaLock,
 } from 'react-icons/fa';
-import type { AdminVerificationRequest } from '../../../types';
+import type { AdminVerificationRequest, DocumentType } from '../../../types';
 import {
   getVerificationStatusLabel,
   getVerificationStatusColor,
@@ -20,30 +25,34 @@ interface AdminVerificationCardProps {
   request: AdminVerificationRequest;
 }
 
-// Extract up to 2 initials from full name (supports Arabic & English)
+// ============================================
+// Icon Mapping
+// ============================================
+const DOC_TYPE_ICONS: Record<DocumentType, React.ReactNode> = {
+  national_id: <FaIdCard size={11} />,
+  passport: <FaPassport size={11} />,
+  driver_license: <FaCar size={11} />,
+  university_card: <FaGraduationCap size={11} />,
+  other: <FaFile size={11} />,
+};
+
 const getUserInitials = (name: string): string => {
   if (!name || !name.trim()) return 'U';
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return 'U';
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (
-    parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
-  ).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 };
 
 const AdminVerificationCard = ({ request }: AdminVerificationCardProps) => {
-  // Track whether the profile image failed to load
   const [imageError, setImageError] = useState(false);
 
   const statusColor = getVerificationStatusColor(request.status);
   const statusBg = getVerificationStatusBg(request.status);
   const statusLabel = getVerificationStatusLabel(request.status);
 
-  // Profile image via global storage helper
   const profileImageUrl = getStorageUrl(request.user.profile_image);
-  const idImageUrl = getStorageUrl(request.id_image_url);
   const userInitials = getUserInitials(request.user.name);
-
   const shouldShowImage = !!profileImageUrl && !imageError;
 
   return (
@@ -54,292 +63,315 @@ const AdminVerificationCard = ({ request }: AdminVerificationCardProps) => {
       transition={{ duration: 0.3 }}
       style={{ height: '100%' }}
     >
-      <div
+      <Link
+        to={`/admin/verification/${request.id}`}
         style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '16px',
-          overflow: 'hidden',
-          height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 2px 8px var(--shadow-sm)',
-          transition: 'all 0.3s ease',
-          position: 'relative',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = '0 8px 24px var(--shadow-md)';
-          e.currentTarget.style.borderColor = statusColor + '60';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = '0 2px 8px var(--shadow-sm)';
-          e.currentTarget.style.borderColor = 'var(--border-color)';
+          textDecoration: 'none',
+          color: 'inherit',
+          height: '100%',
         }}
       >
-        {/* Left status bar */}
         <div
           style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '4px',
-            height: '100%',
-            backgroundColor: statusColor,
-            opacity: 0.8,
-          }}
-        />
-
-        {/* Header: User Info */}
-        <div
-          style={{
-            padding: '1rem 1.15rem 0.85rem 1.15rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            borderBottom: '1px solid var(--border-color)',
-          }}
-        >
-          {/* Avatar with proper fallback */}
-          <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              background: shouldShowImage
-                ? 'var(--bg-input)'
-                : 'linear-gradient(135deg, #E87A20, #F5A623)',
-              border: '2px solid var(--border-color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {shouldShowImage ? (
-              <img
-                src={profileImageUrl!}
-                alt={request.user.name}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-                onError={() => setImageError(true)}
-              />
-            ) : (
-              <span
-                style={{
-                  color: '#FFFFFF',
-                  fontSize: '0.9rem',
-                  fontWeight: 800,
-                  fontFamily: 'Cairo, sans-serif',
-                  letterSpacing: '0.5px',
-                  lineHeight: 1,
-                }}
-              >
-                {userInitials}
-              </span>
-            )}
-          </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                color: 'var(--text-secondary)',
-                fontSize: '0.9rem',
-                fontWeight: 800,
-                fontFamily: 'Cairo, sans-serif',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                marginBottom: '3px',
-              }}
-            >
-              {request.user.name}
-            </div>
-            <div
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.72rem',
-                fontFamily: 'system-ui, sans-serif',
-                direction: 'ltr',
-                textAlign: 'right',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {request.user.email}
-            </div>
-          </div>
-
-          {/* Status Pill */}
-          <div
-            style={{
-              padding: '4px 10px',
-              borderRadius: '8px',
-              backgroundColor: statusBg,
-              color: statusColor,
-              fontSize: '0.65rem',
-              fontWeight: 800,
-              fontFamily: 'Cairo, sans-serif',
-              border: `1px solid ${statusColor}40`,
-              flexShrink: 0,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {statusLabel}
-          </div>
-        </div>
-
-        {/* Body: ID Image Preview */}
-        <Link
-          to={`/admin/verification/${request.id}`}
-          style={{
-            display: 'block',
-            textDecoration: 'none',
-            flex: 1,
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
             overflow: 'hidden',
-            backgroundColor: 'var(--bg-input)',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 2px 8px var(--shadow-sm)',
+            transition: 'all 0.3s ease',
             position: 'relative',
-            minHeight: '160px',
+            fontFamily: 'Cairo, sans-serif',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow = '0 8px 24px var(--shadow-md)';
+            e.currentTarget.style.borderColor = statusColor + '60';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = '0 2px 8px var(--shadow-sm)';
+            e.currentTarget.style.borderColor = 'var(--border-color)';
           }}
         >
-          {idImageUrl ? (
-            <img
-              src={idImageUrl}
-              alt={`ID of ${request.user.name}`}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                transition: 'transform 0.4s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-muted)',
-                fontSize: '0.8rem',
-                fontFamily: 'Cairo, sans-serif',
-              }}
-            >
-              لا توجد صورة
-            </div>
-          )}
-
-          {/* Overlay on hover */}
+          {/* Left Status Bar */}
           <div
             style={{
               position: 'absolute',
-              inset: 0,
-              background:
-                'linear-gradient(to top, rgba(0,0,0,0.5), transparent 60%)',
-              pointerEvents: 'none',
+              top: 0,
+              right: 0,
+              width: '4px',
+              height: '100%',
+              backgroundColor: statusColor,
+              opacity: 0.8,
             }}
           />
 
-          {/* Date Badge */}
+          {/* ============================================ */}
+          {/* Header: User Info */}
+          {/* ============================================ */}
           <div
             style={{
-              position: 'absolute',
-              bottom: '8px',
-              right: '8px',
+              padding: '1rem 1.15rem 0.85rem 1.15rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              padding: '3px 9px',
-              borderRadius: '6px',
-              backgroundColor: 'rgba(0,0,0,0.65)',
-              color: '#FFFFFF',
-              fontSize: '0.65rem',
-              fontFamily: 'Cairo, sans-serif',
-              backdropFilter: 'blur(4px)',
+              gap: '12px',
+              borderBottom: '1px solid var(--border-color)',
             }}
           >
-            <FaCalendarAlt size={9} />
-            {formatVerificationDate(request.created_at)}
-          </div>
-        </Link>
+            {/* Avatar */}
+            <div
+              style={{
+                width: '46px',
+                height: '46px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                background: shouldShowImage
+                  ? 'var(--bg-input)'
+                  : 'linear-gradient(135deg, #E87A20, #F5A623)',
+                border: '2px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {shouldShowImage ? (
+                <img
+                  src={profileImageUrl!}
+                  alt={request.user.name}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <span
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: '0.9rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.5px',
+                    lineHeight: 1,
+                  }}
+                >
+                  {userInitials}
+                </span>
+              )}
+            </div>
 
-        {/* Footer: WhatsApp + Actions */}
-        <div
-          style={{
-            padding: '0.85rem 1.15rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '10px',
-            borderTop: '1px solid var(--border-color)',
-          }}
-        >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  marginBottom: '3px',
+                }}
+              >
+                {request.user.name}
+              </div>
+              <div
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.7rem',
+                  fontFamily: 'system-ui, sans-serif',
+                  direction: 'ltr',
+                  textAlign: 'right',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {request.user.email}
+              </div>
+            </div>
+
+            {/* Status Pill */}
+            <div
+              style={{
+                padding: '4px 10px',
+                borderRadius: '8px',
+                backgroundColor: statusBg,
+                color: statusColor,
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                border: `1px solid ${statusColor}40`,
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {statusLabel}
+            </div>
+          </div>
+
+          {/* ============================================ */}
+          {/* Body: Document Type + Image Status */}
+          {/* ============================================ */}
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              color: 'var(--text-muted)',
-              fontSize: '0.72rem',
-              fontFamily: 'system-ui, sans-serif',
-              direction: 'ltr',
               flex: 1,
-              minWidth: 0,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              padding: '1rem 1.15rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              backgroundColor: 'var(--bg-input)',
+              minHeight: '120px',
             }}
           >
-            <FaWhatsapp size={11} color="#25D366" />
-            {request.user.whatsapp}
+            {/* Document Type */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 10px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(232,122,32,0.1)',
+                color: 'var(--primary-orange)',
+                border: '1px solid rgba(232,122,32,0.2)',
+                fontSize: '0.68rem',
+                fontWeight: 700,
+                alignSelf: 'flex-start',
+              }}
+            >
+              {request.document_type && DOC_TYPE_ICONS[request.document_type]}
+              {request.document_type_label || 'وثيقة'}
+            </div>
+
+            {/* Image Status */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                backgroundColor: request.has_image
+                  ? 'rgba(40,167,69,0.06)'
+                  : 'rgba(108,117,125,0.06)',
+                border: `1px solid ${
+                  request.has_image
+                    ? 'rgba(40,167,69,0.2)'
+                    : 'rgba(108,117,125,0.2)'
+                }`,
+                marginTop: 'auto',
+              }}
+            >
+              <div
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '8px',
+                  backgroundColor: request.has_image
+                    ? 'rgba(40,167,69,0.15)'
+                    : 'rgba(108,117,125,0.12)',
+                  color: request.has_image ? '#28A745' : '#6C757D',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {request.has_image ? <FaLock size={11} /> : <FaEye size={11} />}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                  minWidth: 0,
+                }}
+              >
+                <div
+                  style={{
+                    color: request.has_image ? '#28A745' : 'var(--text-muted)',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {request.has_image ? 'صورة محمية' : 'الصورة محذوفة'}
+                </div>
+                {request.has_image && (
+                  <div
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '0.62rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    سيتم تسجيل كل مشاهدة
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          <Link
-            to={`/admin/verification/${request.id}`}
+          {/* ============================================ */}
+          {/* Footer */}
+          {/* ============================================ */}
+          <div
             style={{
-              display: 'inline-flex',
+              padding: '0.85rem 1.15rem',
+              display: 'flex',
               alignItems: 'center',
-              gap: '5px',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(232,122,32,0.08)',
-              color: 'var(--primary-orange)',
-              fontSize: '0.72rem',
-              fontWeight: 700,
-              fontFamily: 'Cairo, sans-serif',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
-              e.currentTarget.style.color = '#FFFFFF';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
-              e.currentTarget.style.color = 'var(--primary-orange)';
+              justifyContent: 'space-between',
+              gap: '10px',
+              borderTop: '1px solid var(--border-color)',
             }}
           >
-            <FaEye size={10} />
-            مراجعة
-            <FaArrowLeft size={8} />
-          </Link>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: 'var(--text-muted)',
+                fontSize: '0.7rem',
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              <FaCalendarAlt size={10} />
+              <span
+                style={{
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {formatVerificationDate(request.created_at)}
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(232,122,32,0.08)',
+                color: 'var(--primary-orange)',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                flexShrink: 0,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <FaEye size={10} />
+              مراجعة
+              <FaArrowLeft size={8} />
+            </div>
+          </div>
         </div>
-      </div>
+      </Link>
     </motion.div>
   );
 };

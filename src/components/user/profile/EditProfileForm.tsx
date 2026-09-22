@@ -3,13 +3,20 @@ import { Card, Button, Form, Row, Col } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { 
-  FaUser, FaWhatsapp, FaMapMarkerAlt, FaCity, 
-  FaSave, FaTimes, FaEdit 
+import { useNavigate } from 'react-router-dom';
+import {
+  FaUser,
+  FaWhatsapp,
+  FaMapMarkerAlt,
+  FaCity,
+  FaSave,
+  FaTimes,
+  FaEdit,
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 import { useProfile } from '../../../hooks/useProfile';
+import NameChangeWarningModal from './NameChangeWarningModal';
 import type { User, Governorate, City } from '../../../types';
 
 // ============================================
@@ -26,12 +33,8 @@ const editProfileSchema = z.object({
       /^(\+970|\+972)[0-9]{9}$/,
       'رقم واتساب يجب أن يبدأ بـ +970 أو +972 ويحتوي على 9 أرقام'
     ),
-  governorate_id: z
-    .string()
-    .min(1, 'المحافظة مطلوبة'),
-  city_id: z
-    .string()
-    .min(1, 'المدينة مطلوبة'),
+  governorate_id: z.string().min(1, 'المحافظة مطلوبة'),
+  city_id: z.string().min(1, 'المدينة مطلوبة'),
 });
 
 type EditProfileFormData = z.infer<typeof editProfileSchema>;
@@ -61,9 +64,15 @@ const EditProfileForm = ({
 }: EditProfileFormProps) => {
   const { isDark } = useTheme();
   const { updateProfile } = useProfile();
-  
+  const navigate = useNavigate();
+
   // Toggle state to control view vs edit mode
   const [isEditing, setIsEditing] = useState(false);
+
+  // Warning modal state
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [pendingFormData, setPendingFormData] =
+    useState<EditProfileFormData | null>(null);
 
   // ============================================
   // React Hook Form
@@ -107,39 +116,111 @@ const EditProfileForm = ({
   // Load Cities when Governorate changes
   // ============================================
   useEffect(() => {
-    if (selectedGovernorate && Number(selectedGovernorate) !== user.governorate_id) {
+    if (
+      selectedGovernorate &&
+      Number(selectedGovernorate) !== user.governorate_id
+    ) {
       onCitiesLoad(Number(selectedGovernorate));
       setValue('city_id', '');
     }
   }, [selectedGovernorate, user.governorate_id, onCitiesLoad, setValue]);
 
   // ============================================
-  // Submit Handler
+  // Save Profile (Internal)
   // ============================================
-  const onSubmit = async (data: EditProfileFormData) => {
+  const saveProfile = async (data: EditProfileFormData) => {
     try {
-      const updatedUser = await updateProfile({
-        name: data.name,
-        whatsapp: data.whatsapp,
+      const response = await updateProfile({
+        name: data.name.trim(),
+        whatsapp: data.whatsapp.trim(),
         governorate_id: Number(data.governorate_id),
         city_id: Number(data.city_id),
       });
 
-      if (onSuccess) {
-        onSuccess(updatedUser);
+      // ✅ Handle verification invalidation
+      if (response.verification_invalidated) {
+        // Update local form state
+        reset({
+          name: response.user.name,
+          whatsapp: response.user.whatsapp,
+          governorate_id: response.user.governorate_id?.toString() || '',
+          city_id: response.user.city_id?.toString() || '',
+        });
+
+        if (onSuccess) {
+          onSuccess(response.user);
+        }
+
+        setIsEditing(false);
+
+        // Redirect after short delay (toast handled by hook)
+        setTimeout(() => {
+          navigate('/user/verify-identity', {
+            state: {
+              message:
+                'يجب إعادة توثيق هويتك بسبب تغيير الاسم. ارفع وثيقتك الجديدة.',
+              reason: 'name_changed',
+            },
+          });
+        }, 1500);
+      } else {
+        // Regular save
+        reset({
+          name: response.user.name,
+          whatsapp: response.user.whatsapp,
+          governorate_id: response.user.governorate_id?.toString() || '',
+          city_id: response.user.city_id?.toString() || '',
+        });
+
+        if (onSuccess) {
+          onSuccess(response.user);
+        }
+
+        setIsEditing(false);
       }
-
-      reset({
-        name: updatedUser.name,
-        whatsapp: updatedUser.whatsapp,
-        governorate_id: updatedUser.governorate_id?.toString() || '',
-        city_id: updatedUser.city_id?.toString() || '',
-      });
-
-      setIsEditing(false);
     } catch (error) {
       // Error handled by hook
     }
+  };
+
+  // ============================================
+  // Submit Handler
+  // ============================================
+  const onSubmit = async (data: EditProfileFormData) => {
+    // ✅ Detect name change + verified user → show warning modal
+    const trimmedName = data.name.trim();
+    const nameChanged = trimmedName !== user.name.trim();
+    const shouldWarn = nameChanged && user.is_verified;
+
+    if (shouldWarn) {
+      setPendingFormData(data);
+      setShowWarningModal(true);
+      return;
+    }
+
+    // Regular save (no warning needed)
+    await saveProfile(data);
+  };
+
+  // ============================================
+  // Confirm Warning Handler
+  // ============================================
+  const handleConfirmWarning = async () => {
+    if (!pendingFormData) return;
+
+    const dataToSave = pendingFormData;
+    setShowWarningModal(false);
+    setPendingFormData(null);
+
+    await saveProfile(dataToSave);
+  };
+
+  // ============================================
+  // Cancel Warning Handler
+  // ============================================
+  const handleCancelWarning = () => {
+    setShowWarningModal(false);
+    setPendingFormData(null);
   };
 
   // ============================================
@@ -151,14 +232,16 @@ const EditProfileForm = ({
     if (onCancel) onCancel();
   };
 
-  // Helper lookups for text display in view mode
-  const currentGovernorateName = governorates.find(
-    (g) => g.id.toString() === watch('governorate_id')
-  )?.name || 'غير محدد';
+  // ============================================
+  // Helper lookups for view mode
+  // ============================================
+  const currentGovernorateName =
+    governorates.find((g) => g.id.toString() === watch('governorate_id'))
+      ?.name || 'غير محدد';
 
-  const currentCityName = cities.find(
-    (c) => c.id.toString() === watch('city_id')
-  )?.name || 'غير محدد';
+  const currentCityName =
+    cities.find((c) => c.id.toString() === watch('city_id'))?.name ||
+    'غير محدد';
 
   // ============================================
   // Shared Styles
@@ -167,7 +250,9 @@ const EditProfileForm = ({
     width: '100%',
     padding: '12px 16px',
     borderRadius: '12px',
-    border: `1px solid ${hasError ? 'var(--error)' : 'var(--input-border)'}`,
+    border: `1px solid ${
+      hasError ? 'var(--error)' : 'var(--input-border)'
+    }`,
     backgroundColor: 'var(--bg-input)',
     color: 'var(--text-primary)',
     fontFamily: 'Cairo, sans-serif',
@@ -195,386 +280,496 @@ const EditProfileForm = ({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      dir="rtl"
-    >
-      <Card
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '16px',
-          padding: '1.5rem',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
-          textAlign: 'right',
-          overflow: 'hidden',
-        }}
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        dir="rtl"
       >
-        {/* Header with Edit Toggle Button */}
-        <div
+        <Card
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '1.5rem',
-            paddingBottom: '1rem',
-            borderBottom: '1px solid var(--border-color)',
-            flexWrap: 'wrap',
-            gap: '10px',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+            textAlign: 'right',
+            overflow: 'hidden',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <motion.div
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '12px',
-                backgroundColor: 'rgba(232,122,32,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--primary-orange)',
-              }}
+          {/* Header with Edit Toggle Button */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '1.5rem',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid var(--border-color)',
+              flexWrap: 'wrap',
+              gap: '10px',
+            }}
+          >
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
             >
-              <FaEdit size={18} />
-            </motion.div>
-            <div>
-              <h5
+              <motion.div
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                whileTap={{ scale: 0.95 }}
                 style={{
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontWeight: 800,
-                  fontSize: '1.05rem',
-                  margin: 0,
-                  lineHeight: 1.2,
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(232,122,32,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--primary-orange)',
                 }}
               >
-                المعلومات الشخصية
-              </h5>
+                <FaEdit size={18} />
+              </motion.div>
+              <div>
+                <h5
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontFamily: 'Cairo, sans-serif',
+                    fontWeight: 800,
+                    fontSize: '1.05rem',
+                    margin: 0,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  المعلومات الشخصية
+                </h5>
+                <span
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.75rem',
+                    fontFamily: 'Cairo, sans-serif',
+                  }}
+                >
+                  {isEditing
+                    ? 'قم بتحديث بياناتك ثم اضغط حفظ'
+                    : 'عرض المعلومات الشخصية الخاصة بحسابك'}
+                </span>
+              </div>
+            </div>
+
+            {!isEditing && (
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Button
+                  type="button"
+                  onClick={() => setIsEditing(true)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    borderColor: 'var(--primary-orange)',
+                    color: 'var(--primary-orange)',
+                    borderRadius: '10px',
+                    padding: '8px 18px',
+                    fontFamily: 'Cairo, sans-serif',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                      'var(--primary-orange)';
+                    e.currentTarget.style.color = '#FFFFFF';
+                    e.currentTarget.style.boxShadow =
+                      '0 4px 12px rgba(232,122,32,0.25)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--primary-orange)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <FaEdit size={13} />
+                  تعديل البيانات
+                </Button>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Form / Content View */}
+          <Form onSubmit={handleSubmit(onSubmit)}>
+            <Row className="g-3">
+              {/* Name */}
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label style={labelStyle}>
+                    <FaUser size={12} color="var(--primary-orange)" />
+                    الاسم الكامل{' '}
+                    {isEditing && (
+                      <span style={{ color: 'var(--error)' }}>*</span>
+                    )}
+                  </Form.Label>
+                  {isEditing ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Form.Control
+                        {...register('name')}
+                        type="text"
+                        placeholder="أدخل اسمك الكامل"
+                        style={inputStyle(!!errors.name)}
+                      />
+                      {errors.name && (
+                        <div style={errorStyle}>{errors.name.message}</div>
+                      )}
+
+                      {/* ⚠️ Live warning for verified users */}
+                      {user.is_verified &&
+                        watch('name')?.trim() !== user.name.trim() &&
+                        watch('name')?.trim().length >= 3 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '6px',
+                              marginTop: '6px',
+                              padding: '8px 10px',
+                              backgroundColor: 'rgba(245,166,35,0.08)',
+                              border: '1px solid rgba(245,166,35,0.3)',
+                              borderRadius: '8px',
+                              fontSize: '0.7rem',
+                              color: '#D97706',
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            <FaTimes size={10} style={{ flexShrink: 0, marginTop: '2px' }} />
+                            <span>
+                              تغيير الاسم سيؤدي إلى إلغاء توثيق حسابك
+                            </span>
+                          </motion.div>
+                        )}
+                    </motion.div>
+                  ) : (
+                    <div
+                      style={{
+                        ...inputStyle(false),
+                        backgroundColor: 'var(--bg-input)',
+                        opacity: 0.9,
+                        cursor: 'default',
+                      }}
+                    >
+                      {watch('name') || 'غير محدد'}
+                    </div>
+                  )}
+                </Form.Group>
+              </Col>
+
+              {/* WhatsApp */}
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label style={labelStyle}>
+                    <FaWhatsapp size={12} color="#25D366" />
+                    رقم واتساب{' '}
+                    {isEditing && (
+                      <span style={{ color: 'var(--error)' }}>*</span>
+                    )}
+                  </Form.Label>
+                  {isEditing ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Form.Control
+                        {...register('whatsapp')}
+                        type="tel"
+                        placeholder="+970xxxxxxxxx"
+                        dir="rtl"
+                        style={{
+                          ...inputStyle(!!errors.whatsapp),
+                          textAlign: 'right',
+                          direction: 'rtl',
+                        }}
+                      />
+                      {errors.whatsapp && (
+                        <div style={errorStyle}>
+                          {errors.whatsapp.message}
+                        </div>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <div
+                      dir="rtl"
+                      style={{
+                        ...inputStyle(false),
+                        backgroundColor: 'var(--bg-input)',
+                        opacity: 0.9,
+                        textAlign: 'right',
+                        direction: 'rtl',
+                        cursor: 'default',
+                      }}
+                    >
+                      {watch('whatsapp') || 'غير محدد'}
+                    </div>
+                  )}
+                </Form.Group>
+              </Col>
+
+              {/* Governorate */}
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label style={labelStyle}>
+                    <FaMapMarkerAlt size={12} color="var(--primary-orange)" />
+                    المحافظة{' '}
+                    {isEditing && (
+                      <span style={{ color: 'var(--error)' }}>*</span>
+                    )}
+                  </Form.Label>
+                  {isEditing ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Form.Select
+                        {...register('governorate_id')}
+                        style={{
+                          ...inputStyle(!!errors.governorate_id),
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="">اختر المحافظة</option>
+                        {governorates.map((gov) => (
+                          <option key={gov.id} value={gov.id.toString()}>
+                            {gov.name}
+                          </option>
+                        ))}
+                      </Form.Select>
+                      {errors.governorate_id && (
+                        <div style={errorStyle}>
+                          {errors.governorate_id.message}
+                        </div>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <div
+                      style={{
+                        ...inputStyle(false),
+                        backgroundColor: 'var(--bg-input)',
+                        opacity: 0.9,
+                        cursor: 'default',
+                      }}
+                    >
+                      {currentGovernorateName}
+                    </div>
+                  )}
+                </Form.Group>
+              </Col>
+
+              {/* City */}
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label style={labelStyle}>
+                    <FaCity size={12} color="var(--primary-orange)" />
+                    المدينة / الحي{' '}
+                    {isEditing && (
+                      <span style={{ color: 'var(--error)' }}>*</span>
+                    )}
+                  </Form.Label>
+                  {isEditing ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Form.Select
+                        {...register('city_id')}
+                        disabled={!selectedGovernorate}
+                        style={{
+                          ...inputStyle(!!errors.city_id),
+                          cursor: selectedGovernorate
+                            ? 'pointer'
+                            : 'not-allowed',
+                          opacity: selectedGovernorate ? 1 : 0.6,
+                        }}
+                      >
+                        <option value="">
+                          {!selectedGovernorate
+                            ? 'اختر المحافظة أولاً'
+                            : 'اختر المدينة / الحي'}
+                        </option>
+                        {cities.map((city) => (
+                          <option key={city.id} value={city.id.toString()}>
+                            {city.name}
+                          </option>
+                        ))}
+                      </Form.Select>
+                      {errors.city_id && (
+                        <div style={errorStyle}>{errors.city_id.message}</div>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <div
+                      style={{
+                        ...inputStyle(false),
+                        backgroundColor: 'var(--bg-input)',
+                        opacity: 0.9,
+                        cursor: 'default',
+                      }}
+                    >
+                      {currentCityName}
+                    </div>
+                  )}
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {/* Info Note */}
+            <div
+              style={{
+                marginTop: '1.25rem',
+                padding: '12px 16px',
+                backgroundColor: isDark
+                  ? 'rgba(255,255,255,0.03)'
+                  : 'rgba(23,162,184,0.05)',
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+              }}
+            >
               <span
                 style={{
                   color: 'var(--text-muted)',
                   fontSize: '0.75rem',
                   fontFamily: 'Cairo, sans-serif',
+                  lineHeight: 1.6,
                 }}
               >
-                {isEditing ? 'قم بتحديث بياناتك ثم اضغط حفظ' : 'عرض المعلومات الشخصية الخاصة بحسابك'}
+                لا يمكن تغيير البريد الإلكتروني لأسباب أمنية. إذا كنت بحاجة
+                لتغييره، يرجى التواصل مع الدعم.
               </span>
             </div>
-          </div>
 
-          {!isEditing && (
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
-              <Button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                style={{
-                  backgroundColor: 'transparent',
-                  borderColor: 'var(--primary-orange)',
-                  color: 'var(--primary-orange)',
-                  borderRadius: '10px',
-                  padding: '8px 18px',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.3s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
-                  e.currentTarget.style.color = '#FFFFFF';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(232,122,32,0.25)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = 'var(--primary-orange)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <FaEdit size={13} />
-                تعديل البيانات
-              </Button>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Form / Content View */}
-        <Form onSubmit={handleSubmit(onSubmit)}>
-          <Row className="g-3">
-            {/* Name */}
-            <Col xs={12} md={6}>
-              <Form.Group>
-                <Form.Label style={labelStyle}>
-                  <FaUser size={12} color="var(--primary-orange)" />
-                  الاسم الكامل {isEditing && <span style={{ color: 'var(--error)' }}>*</span>}
-                </Form.Label>
-                {isEditing ? (
-                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Form.Control
-                      {...register('name')}
-                      type="text"
-                      placeholder="أدخل اسمك الكامل"
-                      style={inputStyle(!!errors.name)}
-                    />
-                    {errors.name && <div style={errorStyle}>{errors.name.message}</div>}
-                  </motion.div>
-                ) : (
-                  <div
-                    style={{
-                      ...inputStyle(false),
-                      backgroundColor: 'var(--bg-input)',
-                      opacity: 0.9,
-                      cursor: 'default',
-                    }}
-                  >
-                    {watch('name') || 'غير محدد'}
-                  </div>
-                )}
-              </Form.Group>
-            </Col>
-
-            {/* WhatsApp */}
-            <Col xs={12} md={6}>
-              <Form.Group>
-                <Form.Label style={labelStyle}>
-                  <FaWhatsapp size={12} color="#25D366" />
-                  رقم واتساب {isEditing && <span style={{ color: 'var(--error)' }}>*</span>}
-                </Form.Label>
-                {isEditing ? (
-                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Form.Control
-                      {...register('whatsapp')}
-                      type="tel"
-                      placeholder="+970xxxxxxxxx"
-                      dir="rtl"
-                      style={{
-                        ...inputStyle(!!errors.whatsapp),
-                        textAlign: 'right',
-                        direction: 'rtl',
-                      }}
-                    />
-                    {errors.whatsapp && <div style={errorStyle}>{errors.whatsapp.message}</div>}
-                  </motion.div>
-                ) : (
-                  <div
-                    dir="rtl"
-                    style={{
-                      ...inputStyle(false),
-                      backgroundColor: 'var(--bg-input)',
-                      opacity: 0.9,
-                      textAlign: 'right',
-                      direction: 'rtl',
-                      cursor: 'default',
-                    }}
-                  >
-                    {watch('whatsapp') || 'غير محدد'}
-                  </div>
-                )}
-              </Form.Group>
-            </Col>
-
-            {/* Governorate */}
-            <Col xs={12} md={6}>
-              <Form.Group>
-                <Form.Label style={labelStyle}>
-                  <FaMapMarkerAlt size={12} color="var(--primary-orange)" />
-                  المحافظة {isEditing && <span style={{ color: 'var(--error)' }}>*</span>}
-                </Form.Label>
-                {isEditing ? (
-                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Form.Select
-                      {...register('governorate_id')}
-                      style={{ ...inputStyle(!!errors.governorate_id), cursor: 'pointer' }}
-                    >
-                      <option value="">اختر المحافظة</option>
-                      {governorates.map((gov) => (
-                        <option key={gov.id} value={gov.id.toString()}>
-                          {gov.name}
-                        </option>
-                      ))}
-                    </Form.Select>
-                    {errors.governorate_id && <div style={errorStyle}>{errors.governorate_id.message}</div>}
-                  </motion.div>
-                ) : (
-                  <div
-                    style={{
-                      ...inputStyle(false),
-                      backgroundColor: 'var(--bg-input)',
-                      opacity: 0.9,
-                      cursor: 'default',
-                    }}
-                  >
-                    {currentGovernorateName}
-                  </div>
-                )}
-              </Form.Group>
-            </Col>
-
-            {/* City */}
-            <Col xs={12} md={6}>
-              <Form.Group>
-                <Form.Label style={labelStyle}>
-                  <FaCity size={12} color="var(--primary-orange)" />
-                  المدينة / الحي {isEditing && <span style={{ color: 'var(--error)' }}>*</span>}
-                </Form.Label>
-                {isEditing ? (
-                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                    <Form.Select
-                      {...register('city_id')}
-                      disabled={!selectedGovernorate}
-                      style={{
-                        ...inputStyle(!!errors.city_id),
-                        cursor: selectedGovernorate ? 'pointer' : 'not-allowed',
-                        opacity: selectedGovernorate ? 1 : 0.6,
-                      }}
-                    >
-                      <option value="">
-                        {!selectedGovernorate ? 'اختر المحافظة أولاً' : 'اختر المدينة / الحي'}
-                      </option>
-                      {cities.map((city) => (
-                        <option key={city.id} value={city.id.toString()}>
-                          {city.name}
-                        </option>
-                      ))}
-                    </Form.Select>
-                    {errors.city_id && <div style={errorStyle}>{errors.city_id.message}</div>}
-                  </motion.div>
-                ) : (
-                  <div
-                    style={{
-                      ...inputStyle(false),
-                      backgroundColor: 'var(--bg-input)',
-                      opacity: 0.9,
-                      cursor: 'default',
-                    }}
-                  >
-                    {currentCityName}
-                  </div>
-                )}
-              </Form.Group>
-            </Col>
-          </Row>
-
-          {/* Info Note */}
-          <div
-            style={{
-              marginTop: '1.25rem',
-              padding: '12px 16px',
-              backgroundColor: isDark
-                ? 'rgba(255,255,255,0.03)'
-                : 'rgba(23,162,184,0.05)',
-              borderRadius: '12px',
-              border: '1px solid var(--border-color)',
-            }}
-          >
-            <span
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.75rem',
-                fontFamily: 'Cairo, sans-serif',
-                lineHeight: 1.6,
-              }}
-            >
-              لا يمكن تغيير البريد الإلكتروني لأسباب أمنية. إذا كنت بحاجة لتغييره، يرجى التواصل مع الدعم.
-            </span>
-          </div>
-
-          {/* Action Buttons (Animated entry/exit when editing) */}
-          <AnimatePresence>
-            {isEditing && (
-              <motion.div
-                initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                animate={{ opacity: 1, height: 'auto', marginTop: '1.5rem' }}
-                exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                transition={{ duration: 0.3 }}
-                style={{ overflow: 'hidden' }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '10px',
-                    flexWrap: 'wrap',
+            {/* Action Buttons */}
+            <AnimatePresence>
+              {isEditing && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{
+                    opacity: 1,
+                    height: 'auto',
+                    marginTop: '1.5rem',
                   }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ overflow: 'hidden' }}
                 >
-                  <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} style={{ flex: '1 1 auto', minWidth: '160px' }}>
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      style={{
-                        backgroundColor: 'var(--primary-orange)',
-                        borderColor: 'var(--primary-orange)',
-                        color: '#FFFFFF',
-                        borderRadius: '12px',
-                        padding: '12px 28px',
-                        fontFamily: 'Cairo, sans-serif',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        transition: 'all 0.3s ease',
-                        cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                        opacity: isSubmitting ? 0.7 : 1,
-                        boxShadow: '0 4px 16px rgba(232,122,32,0.3)',
-                        width: '100%',
-                      }}
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '10px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <motion.div
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{ flex: '1 1 auto', minWidth: '160px' }}
                     >
-                      {isSubmitting ? (
-                        <>
-                          <span
-                            className="spinner-border spinner-border-sm"
-                            style={{ width: '1rem', height: '1rem' }}
-                          />
-                          جاري الحفظ...
-                        </>
-                      ) : (
-                        <>
-                          <FaSave size={14} />
-                          حفظ التعديلات
-                        </>
-                      )}
-                    </Button>
-                  </motion.div>
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        style={{
+                          backgroundColor: 'var(--primary-orange)',
+                          borderColor: 'var(--primary-orange)',
+                          color: '#FFFFFF',
+                          borderRadius: '12px',
+                          padding: '12px 28px',
+                          fontFamily: 'Cairo, sans-serif',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          transition: 'all 0.3s ease',
+                          cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                          opacity: isSubmitting ? 0.7 : 1,
+                          boxShadow: '0 4px 16px rgba(232,122,32,0.3)',
+                          width: '100%',
+                        }}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <span
+                              className="spinner-border spinner-border-sm"
+                              style={{ width: '1rem', height: '1rem' }}
+                            />
+                            جاري الحفظ...
+                          </>
+                        ) : (
+                          <>
+                            <FaSave size={14} />
+                            حفظ التعديلات
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
 
-                  <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}>
-                    <Button
-                      type="button"
-                      variant="outline-secondary"
-                      onClick={handleCancel}
-                      disabled={isSubmitting}
-                      style={{
-                        backgroundColor: 'transparent',
-                        borderColor: 'var(--border-color)',
-                        color: 'var(--text-muted)',
-                        borderRadius: '12px',
-                        padding: '12px 24px',
-                        fontFamily: 'Cairo, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '0.9rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        transition: 'all 0.3s ease',
-                      }}
+                    <motion.div
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
                     >
-                      <FaTimes size={12} />
-                      إلغاء
-                    </Button>
-                  </motion.div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Form>
-      </Card>
-    </motion.div>
+                      <Button
+                        type="button"
+                        variant="outline-secondary"
+                        onClick={handleCancel}
+                        disabled={isSubmitting}
+                        style={{
+                          backgroundColor: 'transparent',
+                          borderColor: 'var(--border-color)',
+                          color: 'var(--text-muted)',
+                          borderRadius: '12px',
+                          padding: '12px 24px',
+                          fontFamily: 'Cairo, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '0.9rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          transition: 'all 0.3s ease',
+                        }}
+                      >
+                        <FaTimes size={12} />
+                        إلغاء
+                      </Button>
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Form>
+        </Card>
+      </motion.div>
+
+      {/* ============================================ */}
+      {/* Name Change Warning Modal */}
+      {/* ============================================ */}
+      <NameChangeWarningModal
+        isOpen={showWarningModal}
+        oldName={user.name}
+        newName={pendingFormData?.name || ''}
+        onConfirm={handleConfirmWarning}
+        onCancel={handleCancelWarning}
+        isLoading={isSubmitting}
+      />
+    </>
   );
 };
 

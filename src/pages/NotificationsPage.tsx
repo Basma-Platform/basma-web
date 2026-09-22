@@ -45,7 +45,7 @@ const NotificationsPage = () => {
     read: 0,
   });
 
-  // ✅ Prevent double-fetching on mount + StrictMode
+  // Prevent double-fetching on mount + StrictMode
   const hasFetchedOnce = useRef(false);
 
   // Modal
@@ -61,8 +61,7 @@ const NotificationsPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // ============================================
-  // ✅ THE FIX: Single useEffect handles ALL fetches
-  //    No separate loadNotifications callback, no dependency chain.
+  // Single useEffect handles ALL fetches
   // ============================================
   useEffect(() => {
     let cancelled = false;
@@ -74,12 +73,15 @@ const NotificationsPage = () => {
           page: currentPage,
           per_page: perPage,
         });
-        if (!cancelled) {
-          setCounts((prev) => ({
-            ...prev,
-            [activeFilter]: response.meta.total,
-          }));
-        }
+
+        // ✅ Guard against undefined (hook returns undefined when
+        // not authenticated — see useNotifications.ts)
+        if (cancelled || !response) return;
+
+        setCounts((prev) => ({
+          ...prev,
+          [activeFilter]: response.meta.total,
+        }));
       } catch {
         // Toast handled in hook
       }
@@ -101,7 +103,7 @@ const NotificationsPage = () => {
   // ============================================
   const handleFilterChange = (filter: NotificationFilter) => {
     setActiveFilter(filter);
-    setCurrentPage(1); // reset to page 1 on filter change
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page: number) => {
@@ -109,8 +111,6 @@ const NotificationsPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ✅ Per-page change → reset to page 1
-  //    The useEffect above will auto-fire because `perPage` changed.
   const handlePerPageChange = (newPerPage: number) => {
     setPerPage(newPerPage);
     setCurrentPage(1);
@@ -143,7 +143,13 @@ const NotificationsPage = () => {
             page: 1,
             per_page: perPage,
           });
-          setCounts((prev) => ({ ...prev, [activeFilter]: response.meta.total }));
+          // ✅ Guard against undefined
+          if (response) {
+            setCounts((prev) => ({
+              ...prev,
+              [activeFilter]: response.meta.total,
+            }));
+          }
         }
       } else if (deleteModalState.id) {
         await deleteNotification(deleteModalState.id);
@@ -153,7 +159,13 @@ const NotificationsPage = () => {
           page: currentPage,
           per_page: perPage,
         });
-        setCounts((prev) => ({ ...prev, [activeFilter]: response.meta.total }));
+        // ✅ Guard against undefined
+        if (response) {
+          setCounts((prev) => ({
+            ...prev,
+            [activeFilter]: response.meta.total,
+          }));
+        }
       }
       setDeleteModalState({ isOpen: false, id: null, isBulk: false });
     } catch {
@@ -172,7 +184,13 @@ const NotificationsPage = () => {
         page: currentPage,
         per_page: perPage,
       });
-      setCounts((prev) => ({ ...prev, [activeFilter]: response.meta.total }));
+      // ✅ Guard against undefined
+      if (response) {
+        setCounts((prev) => ({
+          ...prev,
+          [activeFilter]: response.meta.total,
+        }));
+      }
     } catch {
       // Toast handled in hook
     }
