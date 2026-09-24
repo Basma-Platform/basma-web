@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaChevronLeft, FaStar, FaInbox } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useAdminRatings } from '../../../hooks/useAdminRatings';
+import { useUrlFilters } from '../../../hooks/useUrlFilters';
 import Pagination from '../../../components/shared/Pagination';
 import {
   AdminRatingStatsCards,
@@ -34,16 +35,23 @@ const AdminRatingsListPage = () => {
     deleteRating,
   } = useAdminRatings();
 
-  // Filters
-  const [search, setSearch] = useState('');
-  const [ratingFilter, setRatingFilter] =
-    useState<AdminRatingValueFilter>('all');
-  const [sort, setSort] = useState<AdminRatingSort>('newest');
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+  // ============================================
+  // URL-driven filters ✅
+  // Reads from ?rating=5&sort=newest&...
+  // ============================================
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useUrlFilters({
+    rating: 'all' as AdminRatingValueFilter,
+    sort: 'newest' as AdminRatingSort,
+    search: '' as string,
+    page: 1 as number,
+    per_page: DEFAULT_PER_PAGE as number,
+  });
 
+  const [localSearch, setLocalSearch] = useState(filters.search);
   const [isSearching, setIsSearching] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+
+  const isFirstFetch = useRef(true);
 
   // Delete modal
   const [deleteModal, setDeleteModal] = useState<{
@@ -52,67 +60,96 @@ const AdminRatingsListPage = () => {
   }>({ open: false, rating: null });
 
   // ============================================
-  // Initial: stats + first page
+  // Initial: fetch stats
   // ============================================
   useEffect(() => {
-    const init = async () => {
-      try {
-        await Promise.all([
-          fetchStats(),
-          fetchRatings({ page: 1, per_page: DEFAULT_PER_PAGE, sort: 'newest' }),
-        ]);
-      } finally {
-        setInitialLoading(false);
-      }
-    };
-    init();
+    fetchStats().catch(() => {
+      // toast handled in hook
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ============================================
-  // Refetch on filter / page / perPage changes
+  // Debounce search → URL
   // ============================================
   useEffect(() => {
-    if (initialLoading) return;
-    setIsSearching(true);
-    const timer = setTimeout(
-      () => {
-        fetchRatings({
-          search: search || undefined,
-          rating:
-            ratingFilter === 'all'
-              ? undefined
-              : (ratingFilter as 1 | 2 | 3 | 4 | 5),
-          sort,
-          page,
-          per_page: perPage,
-        }).finally(() => setIsSearching(false));
-      },
-      search ? 450 : 0
-    );
-
+    const timer = setTimeout(() => {
+      if (localSearch !== filters.search) {
+        setFilter('search', localSearch);
+        setFilter('page', 1);
+      }
+    }, 450);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, ratingFilter, sort, page, perPage]);
+  }, [localSearch]);
+
+  useEffect(() => {
+    setLocalSearch(filters.search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search]);
+
+  // ============================================
+  // Fetch ratings whenever URL filters change ✅
+  // ============================================
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        setIsSearching(true);
+        await fetchRatings({
+          search: filters.search || undefined,
+          rating:
+            filters.rating === 'all'
+              ? undefined
+              : (Number(filters.rating) as 1 | 2 | 3 | 4 | 5),
+          sort: filters.sort,
+          page: filters.page,
+          per_page: filters.per_page,
+        });
+      } catch {
+        // toast handled in hook
+      } finally {
+        if (!cancelled) {
+          setIsSearching(false);
+          if (isFirstFetch.current) {
+            setInitialLoading(false);
+            isFirstFetch.current = false;
+          }
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    filters.rating,
+    filters.sort,
+    filters.search,
+    filters.page,
+    filters.per_page,
+  ]);
 
   // ============================================
   // Handlers
   // ============================================
   const handleClearFilters = () => {
-    setSearch('');
-    setRatingFilter('all');
-    setSort('newest');
-    setPage(1);
+    clearFilters();
+    setLocalSearch('');
   };
 
   const handlePageChange = (p: number) => {
-    setPage(p);
+    setFilter('page', p);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePerPageChange = (pp: number) => {
-    setPerPage(pp);
-    setPage(1);
+    setFilter('per_page', pp);
+    setFilter('page', 1);
   };
 
   const handleDeleteClick = (rating: Rating) => {
@@ -152,9 +189,6 @@ const AdminRatingsListPage = () => {
     );
   }
 
-  // ============================================
-  // Render
-  // ============================================
   return (
     <>
       <SEO
@@ -256,17 +290,17 @@ const AdminRatingsListPage = () => {
 
           {/* Filters */}
           <AdminRatingsFilters
-            search={search}
-            onSearchChange={setSearch}
-            ratingFilter={ratingFilter}
+            search={localSearch}
+            onSearchChange={setLocalSearch}
+            ratingFilter={filters.rating}
             onRatingFilterChange={(v) => {
-              setRatingFilter(v);
-              setPage(1);
+              setFilter('rating', v);
+              setFilter('page', 1);
             }}
-            sort={sort}
+            sort={filters.sort}
             onSortChange={(s) => {
-              setSort(s);
-              setPage(1);
+              setFilter('sort', s);
+              setFilter('page', 1);
             }}
             onClear={handleClearFilters}
             isSearching={isSearching}
@@ -312,9 +346,7 @@ const AdminRatingsListPage = () => {
                   margin: '0 0 8px',
                 }}
               >
-                {search || ratingFilter !== 'all'
-                  ? 'لا توجد نتائج مطابقة'
-                  : 'لا توجد تقييمات'}
+                {hasActiveFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد تقييمات'}
               </h3>
               <p
                 style={{
@@ -323,11 +355,11 @@ const AdminRatingsListPage = () => {
                   margin: 0,
                 }}
               >
-                {search || ratingFilter !== 'all'
+                {hasActiveFilters
                   ? 'حاول تغيير الفلاتر أو كلمات البحث'
                   : 'لم يقم أي مستخدم بتقييم آخر بعد'}
               </p>
-              {(search || ratingFilter !== 'all') && (
+              {hasActiveFilters && (
                 <Button
                   onClick={handleClearFilters}
                   style={{
@@ -347,22 +379,7 @@ const AdminRatingsListPage = () => {
               )}
             </motion.div>
           ) : (
-            // FIX: key={sort} here already forces React to unmount and
-            // rebuild this whole grid from scratch whenever sort changes —
-            // that alone guarantees correct order with zero animation
-            // needed. The `layout` prop below used to be added on top of
-            // that, telling Framer Motion to FLIP-animate elements between
-            // their old and new position. The two don't cooperate well:
-            // `layout` expects elements to persist across a render and
-            // measures their rect before/after, but CSS Grid reflows (row
-            // count changing, columns shifting) are a known rough edge for
-            // that measurement, and combined with the forced remount it
-            // produced a stale transform on whichever cards landed in an
-            // early grid cell — exactly the "first row frozen" symptom.
-            // Removed `layout`; the key-based remount plus the existing
-            // initial/animate fade+scale already gives a clean, correct
-            // reorder.
-            <div className="admin-ratings-grid" key={sort}>
+            <div className="admin-ratings-grid" key={filters.sort}>
               {ratings.map((rating) => (
                 <motion.div
                   key={rating.id}
@@ -383,10 +400,10 @@ const AdminRatingsListPage = () => {
           {/* Pagination */}
           {meta && meta.last_page > 1 && (
             <Pagination
-              currentPage={page}
+              currentPage={filters.page}
               lastPage={meta.last_page}
               total={meta.total}
-              perPage={perPage}
+              perPage={filters.per_page}
               onPageChange={handlePageChange}
               onPerPageChange={handlePerPageChange}
               perPageOptions={PER_PAGE_OPTIONS}

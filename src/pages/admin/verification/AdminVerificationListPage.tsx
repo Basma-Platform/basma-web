@@ -1,15 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  FaChevronLeft,
-  FaShieldAlt,
-  FaInbox,
-  FaTimes,
-} from 'react-icons/fa';
+import { FaChevronLeft, FaShieldAlt, FaInbox, FaTimes } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useAdminVerifications } from '../../../hooks/useAdminVerifications';
+import { useUrlFilters } from '../../../hooks/useUrlFilters';
 import {
   AdminVerificationStats,
   AdminVerificationFilters,
@@ -25,94 +21,100 @@ const AdminVerificationListPage = () => {
   const { requests, meta, stats, loading, fetchRequests } =
     useAdminVerifications();
 
-  const [statusFilter, setStatusFilter] =
-    useState<AdminVerificationFilter>('all');
-  const [search, setSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+  // ============================================
+  // URL-driven filters ✅
+  // Reads from ?status=pending&search=...
+  // ============================================
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useUrlFilters({
+    status: 'all' as AdminVerificationFilter,
+    search: '' as string,
+    page: 1 as number,
+    per_page: DEFAULT_PER_PAGE as number,
+  });
+
+  const [localSearch, setLocalSearch] = useState(filters.search);
   const [isSearching, setIsSearching] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // ============================================
-  // Load requests
-  // ============================================
-  const loadRequests = useCallback(
-    async (
-      page: number = 1,
-      filterOverride?: AdminVerificationFilter,
-      searchOverride?: string,
-      perPageOverride?: number
-    ) => {
-      const f = filterOverride ?? statusFilter;
-      const s = searchOverride ?? search;
-      const pp = perPageOverride ?? perPage;
-      await fetchRequests({
-        status: f,
-        search: s || undefined,
-        page,
-        per_page: pp,
-      });
-    },
-    [fetchRequests, statusFilter, search, perPage]
-  );
+  const isFirstFetch = useRef(true);
 
-  // Initial load
+  // ============================================
+  // Debounce search → URL
+  // ============================================
   useEffect(() => {
-    const init = async () => {
+    const timer = setTimeout(() => {
+      if (localSearch !== filters.search) {
+        setFilter('search', localSearch);
+        setFilter('page', 1);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSearch]);
+
+  useEffect(() => {
+    setLocalSearch(filters.search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search]);
+
+  // ============================================
+  // Fetch on URL filter change ✅
+  // ============================================
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
       try {
-        await loadRequests(1);
+        setIsSearching(true);
+        await fetchRequests({
+          status: filters.status,
+          search: filters.search || undefined,
+          page: filters.page,
+          per_page: filters.per_page,
+        });
+      } catch {
+        // toast handled in hook
       } finally {
-        setInitialLoading(false);
+        if (!cancelled) {
+          setIsSearching(false);
+          if (isFirstFetch.current) {
+            setInitialLoading(false);
+            isFirstFetch.current = false;
+          }
+        }
       }
     };
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  // Filter change → reset page
-  useEffect(() => {
-    if (initialLoading) return;
-    setCurrentPage(1);
-    loadRequests(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+    load();
 
-  // Debounced search
-  useEffect(() => {
-    if (initialLoading) return;
-    setIsSearching(true);
-    const t = setTimeout(() => {
-      setCurrentPage(1);
-      loadRequests(1).finally(() => setIsSearching(false));
-    }, 500);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [filters.status, filters.search, filters.page, filters.per_page]);
 
   // ============================================
-  // Pagination Handlers
+  // Handlers
   // ============================================
-  const handlePageChange = async (page: number) => {
-    setCurrentPage(page);
-    await loadRequests(page);
+  const handleClearFilters = () => {
+    clearFilters();
+    setLocalSearch('');
+  };
+
+  const handlePageChange = (page: number) => {
+    setFilter('page', page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handlePerPageChange = async (newPerPage: number) => {
-    setPerPage(newPerPage);
-    setCurrentPage(1);
-    await loadRequests(1, undefined, undefined, newPerPage);
+  const handlePerPageChange = (pp: number) => {
+    setFilter('per_page', pp);
+    setFilter('page', 1);
   };
 
-  // ============================================
-  // Clear Filters
-  // ============================================
-  const handleClearFilters = () => {
-    setStatusFilter('all');
-    setSearch('');
+  const handleStatusChange = (s: AdminVerificationFilter) => {
+    setFilter('status', s);
+    setFilter('page', 1);
   };
-
-  const hasFilters = statusFilter !== 'all' || search.trim() !== '';
 
   // ============================================
   // Initial Loading
@@ -154,9 +156,7 @@ const AdminVerificationListPage = () => {
         dir="rtl"
       >
         <Container fluid="xl" className="px-3 px-md-4">
-          {/* ============================================ */}
           {/* Breadcrumb + Title */}
-          {/* ============================================ */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -236,18 +236,18 @@ const AdminVerificationListPage = () => {
             <div style={{ marginBottom: '1.25rem' }}>
               <AdminVerificationStats
                 stats={stats}
-                activeFilter={statusFilter}
-                onFilterClick={setStatusFilter}
+                activeFilter={filters.status}
+                onFilterClick={handleStatusChange}
               />
             </div>
           )}
 
           {/* Filters */}
           <AdminVerificationFilters
-            search={search}
-            onSearchChange={setSearch}
-            status={statusFilter}
-            onStatusChange={setStatusFilter}
+            search={localSearch}
+            onSearchChange={setLocalSearch}
+            status={filters.status}
+            onStatusChange={handleStatusChange}
             counts={{
               all: stats?.total || 0,
               pending: stats?.pending || 0,
@@ -283,7 +283,7 @@ const AdminVerificationListPage = () => {
               )}
             </span>
 
-            {hasFilters && (
+            {hasActiveFilters && (
               <Button
                 variant="link"
                 onClick={handleClearFilters}
@@ -343,7 +343,7 @@ const AdminVerificationListPage = () => {
                   margin: '0 0 8px',
                 }}
               >
-                {hasFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات'}
+                {hasActiveFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات'}
               </h3>
               <p
                 style={{
@@ -352,11 +352,11 @@ const AdminVerificationListPage = () => {
                   margin: 0,
                 }}
               >
-                {hasFilters
+                {hasActiveFilters
                   ? 'حاول تغيير الفلاتر أو كلمات البحث'
                   : 'لم يقدّم أي مستخدم طلب توثيق بعد'}
               </p>
-              {hasFilters && (
+              {hasActiveFilters && (
                 <Button
                   onClick={handleClearFilters}
                   style={{
@@ -395,15 +395,13 @@ const AdminVerificationListPage = () => {
             </Row>
           )}
 
-          {/* ============================================ */}
-          {/* Full-featured Pagination */}
-          {/* ============================================ */}
+          {/* Pagination */}
           {meta && requests.length > 0 && (
             <Pagination
-              currentPage={currentPage}
+              currentPage={filters.page}
               lastPage={meta.last_page}
               total={meta.total}
-              perPage={perPage}
+              perPage={filters.per_page}
               onPageChange={handlePageChange}
               onPerPageChange={handlePerPageChange}
               perPageOptions={[6, 12, 24, 48]}

@@ -1622,3 +1622,317 @@ export interface ProcessReportResponse {
   message: string;
   report: AdminReportDetail;
 }
+
+
+// ============================================
+// SPRINT 05 — Admin Dashboard Types
+// ============================================
+
+// ---------- Overview Stats ----------
+export interface AdminDashboardUsersStats {
+  total: number;
+  verified: number;
+  suspended: number;
+  blocked: number;
+  new_today: number;
+  new_this_week: number;
+  new_this_month: number;
+}
+
+export interface AdminDashboardAnnouncementsStats {
+  total: number;
+  active: number;
+  disabled: number;
+  deleted: number;
+  featured: number;
+  total_views: number;
+  new_today: number;
+  new_this_week: number;
+}
+
+export interface AdminDashboardEngagementStats {
+  total_ratings: number;
+  average_rating: number;
+  total_likes: number;
+  new_ratings_today: number;
+  new_likes_today: number;
+}
+
+export interface AdminDashboardModerationStats {
+  pending_reports: number;
+  pending_verifications: number;
+  pending_featured: number;
+  total_reports: number;
+  total_verifications: number;
+  high_priority_reports: number;
+}
+
+export interface AdminDashboardFinancialStats {
+  total_revenue: number;
+  this_month_revenue: number;
+  today_revenue: number;
+  total_featured_requests: number;
+  approved_requests: number;
+}
+
+export interface AdminDashboardTodayStats {
+  new_users: number;
+  new_announcements: number;
+  new_ratings: number;
+  new_reports: number;
+}
+
+export interface AdminDashboardStats {
+  users: AdminDashboardUsersStats;
+  announcements: AdminDashboardAnnouncementsStats;
+  engagement: AdminDashboardEngagementStats;
+  moderation: AdminDashboardModerationStats;
+  financial: AdminDashboardFinancialStats;
+  today: AdminDashboardTodayStats;
+}
+
+// ---------- Pending ----------
+export interface PendingReports {
+  total: number;
+  high: number;
+  medium: number;
+  low: number;
+  oldest_age: number; // in minutes
+  link: string;
+}
+
+export interface PendingVerifications {
+  total: number;
+  oldest_age: number;
+  link: string;
+}
+
+export interface PendingFeatured {
+  total: number;
+  expected_revenue: number;
+  oldest_age: number;
+  link: string;
+}
+
+export interface NearWarningUser {
+  id: number;
+  name: string;
+  warnings_count: number;
+  profile_image: string | null;
+}
+
+export interface FrequentlyReportedUser {
+  id: number;
+  name: string;
+  profile_image: string | null;
+  reports_count: number;
+}
+
+export interface AdminDashboardPending {
+  reports: PendingReports;
+  verifications: PendingVerifications;
+  featured_requests: PendingFeatured;
+  near_warning_threshold: NearWarningUser[];
+  frequently_reported: FrequentlyReportedUser[];
+}
+
+// ---------- Top Performers ----------
+export interface TopUser {
+  id: number;
+  name: string;
+  profile_image: string | null;
+  is_verified: boolean;
+  announcements: number;
+  total_ratings: number;
+  average_rating: number;
+}
+
+export interface TopAnnouncement {
+  id: number;
+  title: string;
+  views: number;
+  likes_count: number;
+  user: { id: number; name: string };
+  city: { id: number; name: string } | null;
+  created_at: string;
+}
+
+export interface TopCategory {
+  id: number;
+  name: string;
+  category: 'goods' | 'services';
+  announcements_count: number;
+}
+
+export interface TopGovernorate {
+  id: number;
+  name: string;
+  users_count: number;
+  announcements_count: number;
+}
+
+export interface AdminDashboardTop {
+  top_users: TopUser[];
+  top_announcements: TopAnnouncement[];
+  top_categories: TopCategory[];
+  top_governorates: TopGovernorate[];
+}
+
+// ---------- Advanced Stats ----------
+export interface AdminDashboardAdvanced {
+  retention: {
+    active_today: number;
+    active_this_week: number;
+    returning_7d: number;
+    returning_30d: number;
+  };
+  content_quality: {
+    reported_ratio: number;
+    deleted_ratio: number;
+    featured_ratio: number;
+  };
+  moderation_efficiency: {
+    avg_report_processing_minutes: number;
+    avg_verification_processing_minutes: number;
+    avg_featured_processing_minutes: number;
+  };
+  system_health: {
+    storage_used_mb: number;
+    notifications_today: number;
+    pending_jobs: number;
+    failed_jobs: number;
+  };
+}
+
+// ---------- Charts ----------
+export type ChartDaysRange = 7 | 14 | 30 | 60 | 90;
+
+export interface ChartTimeSeries {
+  labels: string[];
+  series: Array<{ name: string; data: number[] }>;
+}
+
+export interface ChartSimple {
+  labels: string[];
+  series: number[];
+  colors?: string[];
+}
+
+export interface ChartDualSeries {
+  labels: string[];
+  series: Array<{ name: string; data: number[] }>;
+}
+
+export interface AdminDashboardCharts {
+  user_growth: ChartTimeSeries;
+  announcements_created: ChartTimeSeries;
+  activity_overview: ChartTimeSeries;
+  announcements_by_category: ChartSimple;
+  announcements_by_governorate: ChartSimple;
+  reports_status: ChartSimple;
+  verification_status: ChartSimple;
+  payment_methods: ChartDualSeries;
+}
+
+// ---------- Activity Feed ----------
+export type ActivityEventType =
+  | 'user_registered'
+  | 'announcement_created'
+  | 'announcement_disabled'
+  | 'announcement_deleted'
+  | 'rating_created'
+  | 'report_created'
+  | 'verification_submitted'
+  | 'verification_approved'
+  | 'verification_rejected'
+  | 'featured_request_created'
+  | 'featured_request_approved'
+  | 'featured_request_rejected'
+  | 'user_warned'
+  | 'user_suspended'
+  | 'user_blocked'
+  | 'user_restored';
+
+export type ActivityEventCategory =
+  | 'user'
+  | 'announcement'
+  | 'interaction'
+  | 'report'
+  | 'moderation'
+  | 'verification'
+  | 'featured'
+  | 'system';
+
+export type ActivityActorRole = 'user' | 'admin' | 'system';
+
+export type ActivityIconColor =
+  | 'blue'
+  | 'green'
+  | 'red'
+  | 'yellow'
+  | 'orange'
+  | 'purple'
+  | 'gray';
+
+export interface ActivityActor {
+  id: number;
+  name: string;
+  role: ActivityActorRole;
+  profile_image: string | null;
+}
+
+export interface ActivityTarget {
+  type: string;
+  id: number;
+}
+
+export interface AdminActivityItem {
+  id: number;
+  event_type: ActivityEventType;
+  event_category: ActivityEventCategory;
+  title: string;
+  description: string;
+  icon: string;
+  color: ActivityIconColor;
+  actor: ActivityActor;
+  target: ActivityTarget;
+  link: string | null;
+  is_sensitive: boolean;
+  created_at: string;
+  time_ago: string;
+}
+
+export interface AdminActivityResponse {
+  data: AdminActivityItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+}
+
+export interface AdminActivityFilters {
+  category?: ActivityEventCategory;
+  actor_role?: ActivityActorRole;
+  event_type?: ActivityEventType;
+  from_date?: string;
+  to_date?: string;
+  sensitive?: boolean;
+  per_page?: number;
+  page?: number;
+}
+
+// ---------- Main Dashboard Response ----------
+export interface AdminDashboardResponse {
+  data: {
+    overview: AdminDashboardStats;
+    pending: AdminDashboardPending;
+    top: AdminDashboardTop;
+    recent_activity: AdminActivityItem[];
+  };
+  meta: {
+    generated_at: string;
+    cache_ttl: number;
+  };
+}

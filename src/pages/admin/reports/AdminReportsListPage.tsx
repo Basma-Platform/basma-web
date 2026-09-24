@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaChevronLeft, FaFlag, FaInbox } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useAdminReports } from '../../../hooks/useAdminReports';
+import { useUrlFilters } from '../../../hooks/useUrlFilters';
 import Pagination from '../../../components/shared/Pagination';
 import {
   AdminReportsStatsCards,
@@ -33,44 +34,59 @@ const AdminReportsListPage = () => {
     fetchStats,
   } = useAdminReports();
 
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] =
-    useState<AdminReportsStatusFilter>('all');
-  const [targetTypeFilter, setTargetTypeFilter] =
-    useState<AdminReportsTargetFilter>('all');
-  const [priorityFilter, setPriorityFilter] =
-    useState<AdminReportsPriorityFilter>('all');
-  const [sort, setSort] = useState<AdminReportsSort>('newest');
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState<number>(REPORT_DEFAULT_PER_PAGE);
+  // ============================================
+  // URL-driven filters ✅
+  // Reads from ?status=pending&priority=high&...
+  // ============================================
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useUrlFilters({
+    status: 'all' as AdminReportsStatusFilter,
+    target_type: 'all' as AdminReportsTargetFilter,
+    priority: 'all' as AdminReportsPriorityFilter,
+    sort: 'newest' as AdminReportsSort,
+    search: '' as string,
+    page: 1 as number,
+    per_page: REPORT_DEFAULT_PER_PAGE as number,
+  });
 
+  // Local search state (debounced)
+  const [localSearch, setLocalSearch] = useState(filters.search);
   const [isSearching, setIsSearching] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+
+  const isFirstFetch = useRef(true);
 
   // ============================================
   // Fetch stats once on mount
   // ============================================
   useEffect(() => {
-    let cancelled = false;
-
-    const loadStats = async () => {
-      try {
-        await fetchStats();
-      } catch {
-        // toast handled in hook
-      }
-    };
-
-    if (!cancelled) loadStats();
-
-    return () => {
-      cancelled = true;
-    };
+    fetchStats().catch(() => {
+      // toast handled in hook
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ============================================
-  // Fetch reports on filter / page change
+  // Debounce search → push to URL
+  // ============================================
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== filters.search) {
+        setFilter('search', localSearch);
+        setFilter('page', 1);
+      }
+    }, 450);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSearch]);
+
+  // Sync local search when URL changes externally
+  useEffect(() => {
+    setLocalSearch(filters.search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search]);
+
+  // ============================================
+  // Fetch reports whenever URL filters change ✅
   // ============================================
   useEffect(() => {
     let cancelled = false;
@@ -79,87 +95,91 @@ const AdminReportsListPage = () => {
       try {
         setIsSearching(true);
         await fetchReports({
-          status: statusFilter,
-          target_type: targetTypeFilter,
-          priority: priorityFilter,
-          search: search || undefined,
-          sort,
-          page,
-          per_page: perPage,
+          status: filters.status,
+          target_type: filters.target_type,
+          priority: filters.priority,
+          search: filters.search || undefined,
+          sort: filters.sort,
+          page: filters.page,
+          per_page: filters.per_page,
         });
       } catch {
         // toast handled in hook
       } finally {
         if (!cancelled) {
           setIsSearching(false);
-          setInitialLoading(false);
+          if (isFirstFetch.current) {
+            setInitialLoading(false);
+            isFirstFetch.current = false;
+          }
         }
       }
     };
 
-    const timer = setTimeout(load, search ? 450 : 0);
+    load();
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    statusFilter,
-    targetTypeFilter,
-    priorityFilter,
-    search,
-    sort,
-    page,
-    perPage,
+    filters.status,
+    filters.target_type,
+    filters.priority,
+    filters.search,
+    filters.sort,
+    filters.page,
+    filters.per_page,
   ]);
 
   // ============================================
-  // Handlers
+  // Handlers — all update URL ✅
   // ============================================
   const handleClearFilters = useCallback(() => {
-    setSearch('');
-    setStatusFilter('all');
-    setTargetTypeFilter('all');
-    setPriorityFilter('all');
-    setSort('newest');
-    setPage(1);
-  }, []);
+    clearFilters();
+    setLocalSearch('');
+  }, [clearFilters]);
 
-  const handleStatusChange = useCallback((v: AdminReportsStatusFilter) => {
-    setStatusFilter(v);
-    setPage(1);
-  }, []);
+  const handleStatusChange = useCallback(
+    (v: AdminReportsStatusFilter) => {
+      setFilter('status', v);
+      setFilter('page', 1);
+    },
+    [setFilter]
+  );
 
   const handleTargetTypeChange = useCallback(
     (v: AdminReportsTargetFilter) => {
-      setTargetTypeFilter(v);
-      setPage(1);
+      setFilter('target_type', v);
+      setFilter('page', 1);
     },
-    []
+    [setFilter]
   );
 
   const handlePriorityChange = useCallback(
     (v: AdminReportsPriorityFilter) => {
-      setPriorityFilter(v);
-      setPage(1);
+      setFilter('priority', v);
+      setFilter('page', 1);
     },
-    []
+    [setFilter]
   );
 
-  const handleSortChange = useCallback((v: AdminReportsSort) => {
-    setSort(v);
-    setPage(1);
-  }, []);
+  const handleSortChange = useCallback(
+    (v: AdminReportsSort) => {
+      setFilter('sort', v);
+      setFilter('page', 1);
+    },
+    [setFilter]
+  );
 
   const handlePageChange = (p: number) => {
-    setPage(p);
+    setFilter('page', p);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePerPageChange = (pp: number) => {
-    setPerPage(pp);
-    setPage(1);
+    setFilter('per_page', pp);
+    setFilter('page', 1);
   };
 
   // ============================================
@@ -208,9 +228,7 @@ const AdminReportsListPage = () => {
         dir="rtl"
       >
         <Container fluid="xl" className="px-3 px-md-4">
-          {/* ============================================
-              Breadcrumb + Title
-              ============================================ */}
+          {/* Breadcrumb + Title */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -285,41 +303,35 @@ const AdminReportsListPage = () => {
             </div>
           </motion.div>
 
-          {/* ============================================
-              Stats Cards
-              ============================================ */}
+          {/* Stats Cards */}
           {stats && (
             <div style={{ marginBottom: '1.25rem' }}>
               <AdminReportsStatsCards
                 stats={stats}
-                activeStatus={statusFilter}
+                activeStatus={filters.status}
                 onStatusClick={handleStatusChange}
               />
             </div>
           )}
 
-          {/* ============================================
-              Filters
-              ============================================ */}
+          {/* Filters */}
           <AdminReportsFilters
-            search={search}
-            onSearchChange={setSearch}
-            status={statusFilter}
+            search={localSearch}
+            onSearchChange={setLocalSearch}
+            status={filters.status}
             onStatusChange={handleStatusChange}
-            targetType={targetTypeFilter}
+            targetType={filters.target_type}
             onTargetTypeChange={handleTargetTypeChange}
-            priority={priorityFilter}
+            priority={filters.priority}
             onPriorityChange={handlePriorityChange}
-            sort={sort}
+            sort={filters.sort}
             onSortChange={handleSortChange}
             onClear={handleClearFilters}
             isSearching={isSearching}
             resultsCount={meta?.total}
           />
 
-          {/* ============================================
-              Grid
-              ============================================ */}
+          {/* Grid */}
           {loading && reports.length === 0 ? (
             <AdminReportsSkeleton variant="list" count={6} />
           ) : reports.length === 0 ? (
@@ -358,12 +370,7 @@ const AdminReportsListPage = () => {
                   margin: '0 0 8px',
                 }}
               >
-                {search ||
-                statusFilter !== 'all' ||
-                targetTypeFilter !== 'all' ||
-                priorityFilter !== 'all'
-                  ? 'لا توجد نتائج مطابقة'
-                  : 'لا توجد بلاغات'}
+                {hasActiveFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد بلاغات'}
               </h3>
               <p
                 style={{
@@ -372,17 +379,11 @@ const AdminReportsListPage = () => {
                   margin: 0,
                 }}
               >
-                {search ||
-                statusFilter !== 'all' ||
-                targetTypeFilter !== 'all' ||
-                priorityFilter !== 'all'
+                {hasActiveFilters
                   ? 'حاول تغيير الفلاتر أو كلمات البحث'
                   : 'لم يقدم أي مستخدم بلاغاً بعد'}
               </p>
-              {(search ||
-                statusFilter !== 'all' ||
-                targetTypeFilter !== 'all' ||
-                priorityFilter !== 'all') && (
+              {hasActiveFilters && (
                 <Button
                   onClick={handleClearFilters}
                   style={{
@@ -419,7 +420,6 @@ const AdminReportsListPage = () => {
                 ))}
               </div>
 
-              {/* Responsive 3-column grid */}
               <style>{`
                 .admin-reports-grid {
                   display: grid;
@@ -440,15 +440,13 @@ const AdminReportsListPage = () => {
             </>
           )}
 
-          {/* ============================================
-              Pagination
-              ============================================ */}
+          {/* Pagination */}
           {meta && meta.last_page > 1 && (
             <Pagination
-              currentPage={page}
+              currentPage={filters.page}
               lastPage={meta.last_page}
               total={meta.total}
-              perPage={perPage}
+              perPage={filters.per_page}
               onPageChange={handlePageChange}
               onPerPageChange={handlePerPageChange}
               perPageOptions={[...REPORT_PER_PAGE_OPTIONS]}

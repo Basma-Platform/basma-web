@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { FaChevronLeft, FaStar, FaInbox } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useAdminFeaturedRequests } from '../../../hooks/useAdminFeaturedRequests';
+import { useUrlFilters } from '../../../hooks/useUrlFilters';
 import Pagination from '../../../components/shared/Pagination';
 import {
   AdminFeaturedStatsCards,
@@ -28,101 +29,114 @@ const AdminFeaturedRequestsPage = () => {
   const { requests, meta, stats, loading, fetchRequests } =
     useAdminFeaturedRequests();
 
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<AdminFeaturedStatusFilter>('all');
-  const [paymentMethod, setPaymentMethod] =
-    useState<AdminFeaturedPaymentFilter>('all');
-  const [sort, setSort] = useState<AdminFeaturedSort>('newest');
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(FEATURED_DEFAULT_PER_PAGE);
+  // ============================================
+  // URL-driven filters ✅
+  // Reads from ?status=pending&sort=newest&...
+  // ============================================
+  const { filters, setFilter, clearFilters, hasActiveFilters } = useUrlFilters({
+    status: 'all' as AdminFeaturedStatusFilter,
+    payment_method: 'all' as AdminFeaturedPaymentFilter,
+    sort: 'newest' as AdminFeaturedSort,
+    search: '' as string,
+    page: 1 as number,
+    per_page: FEATURED_DEFAULT_PER_PAGE as number,
+  });
 
+  const [localSearch, setLocalSearch] = useState(filters.search);
   const [isSearching, setIsSearching] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // ✅ Skip the FIRST run of the filter effect (initial load handles it)
-  const isFirstRender = useRef(true);
+  const isFirstFetch = useRef(true);
 
   // ============================================
-  // Initial load
+  // Debounce search → URL
   // ============================================
   useEffect(() => {
-    const init = async () => {
-      try {
-        await fetchRequests({
-          status: 'all',
-          sort: 'newest',
-          page: 1,
-          per_page: FEATURED_DEFAULT_PER_PAGE,
-        });
-      } finally {
-        setInitialLoading(false);
+    const timer = setTimeout(() => {
+      if (localSearch !== filters.search) {
+        setFilter('search', localSearch);
+        setFilter('page', 1);
       }
-    };
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ============================================
-  // Refetch on any filter change
-  // ✅ Guarded only against the very first render
-  // ✅ `sort` is now included and always honored
-  // ============================================
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-
-    const timer = setTimeout(
-      () => {
-        setIsSearching(true);
-        fetchRequests({
-          status,
-          payment_method:
-            paymentMethod === 'all' ? undefined : paymentMethod,
-          search: search || undefined,
-          sort, // ✅ always sent
-          page,
-          per_page: perPage,
-        }).finally(() => setIsSearching(false));
-      },
-      search ? 450 : 0
-    );
-
+    }, 450);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status, paymentMethod, sort, page, perPage]);
+  }, [localSearch]);
+
+  // Sync local when URL changes externally
+  useEffect(() => {
+    setLocalSearch(filters.search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search]);
 
   // ============================================
-  // Handlers
+  // Fetch on URL filter change ✅
+  // ============================================
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        setIsSearching(true);
+        await fetchRequests({
+          status: filters.status,
+          payment_method:
+            filters.payment_method === 'all'
+              ? undefined
+              : filters.payment_method,
+          search: filters.search || undefined,
+          sort: filters.sort,
+          page: filters.page,
+          per_page: filters.per_page,
+        });
+      } catch {
+        // toast handled in hook
+      } finally {
+        if (!cancelled) {
+          setIsSearching(false);
+          if (isFirstFetch.current) {
+            setInitialLoading(false);
+            isFirstFetch.current = false;
+          }
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    filters.status,
+    filters.payment_method,
+    filters.search,
+    filters.sort,
+    filters.page,
+    filters.per_page,
+  ]);
+
+  // ============================================
+  // Handlers — all update URL ✅
   // ============================================
   const handleClearFilters = () => {
-    setSearch('');
-    setStatus('all');
-    setPaymentMethod('all');
-    setSort('newest');
-    setPage(1);
+    clearFilters();
+    setLocalSearch('');
   };
 
   const handlePageChange = (p: number) => {
-    setPage(p);
+    setFilter('page', p);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handlePerPageChange = (pp: number) => {
-    setPerPage(pp);
-    setPage(1);
+    setFilter('per_page', pp);
+    setFilter('page', 1);
   };
 
   const handleCardClick = (request: AdminFeaturedRequestListItem) => {
     navigate(`/admin/featured-requests/${request.id}`);
   };
-
-  const hasFilters =
-    status !== 'all' ||
-    paymentMethod !== 'all' ||
-    sort !== 'newest' ||
-    search.trim() !== '';
 
   // ============================================
   // Initial loading skeleton
@@ -143,9 +157,6 @@ const AdminFeaturedRequestsPage = () => {
     );
   }
 
-  // ============================================
-  // Render
-  // ============================================
   return (
     <>
       <SEO
@@ -243,10 +254,10 @@ const AdminFeaturedRequestsPage = () => {
             <div style={{ marginBottom: '1.25rem' }}>
               <AdminFeaturedStatsCards
                 stats={stats}
-                activeFilter={status}
+                activeFilter={filters.status}
                 onFilterClick={(f) => {
-                  setStatus(f);
-                  setPage(1);
+                  setFilter('status', f);
+                  setFilter('page', 1);
                 }}
               />
             </div>
@@ -254,22 +265,22 @@ const AdminFeaturedRequestsPage = () => {
 
           {/* Filters */}
           <AdminFeaturedFilters
-            search={search}
-            onSearchChange={setSearch}
-            status={status}
+            search={localSearch}
+            onSearchChange={setLocalSearch}
+            status={filters.status}
             onStatusChange={(s) => {
-              setStatus(s);
-              setPage(1);
+              setFilter('status', s);
+              setFilter('page', 1);
             }}
-            paymentMethod={paymentMethod}
+            paymentMethod={filters.payment_method}
             onPaymentMethodChange={(p) => {
-              setPaymentMethod(p);
-              setPage(1);
+              setFilter('payment_method', p);
+              setFilter('page', 1);
             }}
-            sort={sort}
+            sort={filters.sort}
             onSortChange={(s) => {
-              setSort(s);
-              setPage(1);
+              setFilter('sort', s);
+              setFilter('page', 1);
             }}
             onClear={handleClearFilters}
             isSearching={isSearching}
@@ -315,7 +326,7 @@ const AdminFeaturedRequestsPage = () => {
                   margin: '0 0 8px',
                 }}
               >
-                {hasFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات'}
+                {hasActiveFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات'}
               </h3>
               <p
                 style={{
@@ -324,11 +335,11 @@ const AdminFeaturedRequestsPage = () => {
                   margin: 0,
                 }}
               >
-                {hasFilters
+                {hasActiveFilters
                   ? 'حاول تغيير الفلاتر أو كلمات البحث'
                   : 'لم يقدّم أي مستخدم طلب تمييز بعد'}
               </p>
-              {hasFilters && (
+              {hasActiveFilters && (
                 <Button
                   onClick={handleClearFilters}
                   style={{
@@ -372,10 +383,10 @@ const AdminFeaturedRequestsPage = () => {
           {/* Pagination */}
           {meta && meta.last_page > 1 && (
             <Pagination
-              currentPage={page}
+              currentPage={filters.page}
               lastPage={meta.last_page}
               total={meta.total}
-              perPage={perPage}
+              perPage={filters.per_page}
               onPageChange={handlePageChange}
               onPerPageChange={handlePerPageChange}
               perPageOptions={[...FEATURED_PER_PAGE_OPTIONS]}
@@ -386,7 +397,6 @@ const AdminFeaturedRequestsPage = () => {
         </Container>
       </div>
 
-      {/* Page-scoped styles */}
       <style>{`
         .admin-featured-page {
           background-color: var(--bg-body);
