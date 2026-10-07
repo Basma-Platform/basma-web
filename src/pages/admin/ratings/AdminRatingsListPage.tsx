@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaChevronLeft, FaStar, FaInbox } from 'react-icons/fa';
+import { FaChevronLeft, FaStar, FaInbox, FaTimes } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useAdminRatings } from '../../../hooks/useAdminRatings';
 import Pagination from '../../../components/shared/Pagination';
@@ -22,6 +22,40 @@ import type { Rating } from '../../../types';
 const PER_PAGE_OPTIONS = [12, 24, 48, 96];
 const DEFAULT_PER_PAGE = 12;
 
+// ============================================
+// URL helpers
+// ============================================
+const readUrlParam = (key: string, fallback: string): string => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key) ?? fallback;
+};
+
+const readUrlNumber = (key: string, fallback: number): number => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get(key);
+  if (raw === null) return fallback;
+  const num = Number(raw);
+  return isNaN(num) ? fallback : num;
+};
+
+const writeUrlParams = (params: Record<string, string | number | null>) => {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === '' || value === 'all') {
+      url.searchParams.delete(key);
+    } else {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  window.history.replaceState({}, '', url.toString());
+};
+
+// ============================================
+// Page
+// ============================================
 const AdminRatingsListPage = () => {
   const {
     ratings,
@@ -34,16 +68,32 @@ const AdminRatingsListPage = () => {
     deleteRating,
   } = useAdminRatings();
 
-  // Filters
-  const [search, setSearch] = useState('');
-  const [ratingFilter, setRatingFilter] =
-    useState<AdminRatingValueFilter>('all');
-  const [sort, setSort] = useState<AdminRatingSort>('newest');
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+  // Filter state
+  const [rating, setRating] = useState<AdminRatingValueFilter>(
+    () => readUrlParam('rating', 'all') as AdminRatingValueFilter
+  );
+  const [sort, setSort] = useState<AdminRatingSort>(
+    () => readUrlParam('sort', 'newest') as AdminRatingSort
+  );
+  const [search, setSearch] = useState(() => readUrlParam('search', ''));
+  const [page, setPage] = useState(() => readUrlNumber('page', 1));
+  const [perPage, setPerPage] = useState(() =>
+    readUrlNumber('per_page', DEFAULT_PER_PAGE)
+  );
 
+  const [localSearch, setLocalSearch] = useState(search);
   const [isSearching, setIsSearching] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+
+  const isFirstFetch = useRef(true);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Delete modal
   const [deleteModal, setDeleteModal] = useState<{
@@ -51,87 +101,127 @@ const AdminRatingsListPage = () => {
     rating: Rating | null;
   }>({ open: false, rating: null });
 
-  // ============================================
-  // Initial: stats + first page
-  // ============================================
+  // Sync URL
   useEffect(() => {
-    const init = async () => {
-      try {
-        await Promise.all([
-          fetchStats(),
-          fetchRatings({ page: 1, per_page: DEFAULT_PER_PAGE, sort: 'newest' }),
-        ]);
-      } finally {
-        setInitialLoading(false);
-      }
-    };
-    init();
+    writeUrlParams({
+      rating: rating === 'all' ? null : rating,
+      sort: sort === 'newest' ? null : sort,
+      search: search || null,
+      page: page > 1 ? page : null,
+      per_page: perPage !== DEFAULT_PER_PAGE ? perPage : null,
+    });
+  }, [rating, sort, search, page, perPage]);
+
+  // Fetch stats (once)
+  useEffect(() => {
+    fetchStats().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ============================================
-  // Refetch on filter / page / perPage changes
-  // ============================================
+  // Debounce search
   useEffect(() => {
-    if (initialLoading) return;
-    setIsSearching(true);
-    const timer = setTimeout(
-      () => {
-        fetchRatings({
+    const timer = setTimeout(() => {
+      if (localSearch !== search) {
+        setSearch(localSearch);
+        setPage(1);
+      }
+    }, 450);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSearch]);
+
+  // Fetch ratings
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!isMountedRef.current) return;
+      try {
+        setIsSearching(true);
+        await fetchRatings({
           search: search || undefined,
           rating:
-            ratingFilter === 'all'
+            rating === 'all'
               ? undefined
-              : (ratingFilter as 1 | 2 | 3 | 4 | 5),
+              : (Number(rating) as 1 | 2 | 3 | 4 | 5),
           sort,
           page,
           per_page: perPage,
-        }).finally(() => setIsSearching(false));
-      },
-      search ? 450 : 0
-    );
+        });
+      } catch {
+        // toast handled in hook
+      } finally {
+        if (!cancelled && isMountedRef.current) {
+          setIsSearching(false);
+          if (isFirstFetch.current) {
+            setInitialLoading(false);
+            isFirstFetch.current = false;
+          }
+        }
+      }
+    };
 
-    return () => clearTimeout(timer);
+    load();
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, ratingFilter, sort, page, perPage]);
+  }, [rating, sort, search, page, perPage]);
 
-  // ============================================
   // Handlers
-  // ============================================
-  const handleClearFilters = () => {
-    setSearch('');
-    setRatingFilter('all');
+  const handleClearFilters = useCallback(() => {
+    setRating('all');
     setSort('newest');
+    setSearch('');
+    setLocalSearch('');
     setPage(1);
-  };
+  }, []);
 
-  const handlePageChange = (p: number) => {
+  const handlePageChange = useCallback((p: number) => {
     setPage(p);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handlePerPageChange = (pp: number) => {
+  const handlePerPageChange = useCallback((pp: number) => {
     setPerPage(pp);
     setPage(1);
-  };
+  }, []);
 
-  const handleDeleteClick = (rating: Rating) => {
-    setDeleteModal({ open: true, rating });
-  };
+  const handleRatingFilterChange = useCallback(
+    (v: AdminRatingValueFilter) => {
+      setRating(v);
+      setPage(1);
+    },
+    []
+  );
 
-  const handleDeleteConfirm = async (reason?: string) => {
-    if (!deleteModal.rating) return;
-    try {
-      await deleteRating(deleteModal.rating.id, reason);
-      setDeleteModal({ open: false, rating: null });
-    } catch {
-      // toast handled in hook
-    }
-  };
+  const handleSortChange = useCallback((s: AdminRatingSort) => {
+    setSort(s);
+    setPage(1);
+  }, []);
 
-  // ============================================
+  const handleDeleteClick = useCallback((r: Rating) => {
+    setDeleteModal({ open: true, rating: r });
+  }, []);
+
+  const handleDeleteConfirm = useCallback(
+    async (reason?: string) => {
+      if (!deleteModal.rating) return;
+      try {
+        await deleteRating(deleteModal.rating.id, reason);
+        setDeleteModal({ open: false, rating: null });
+      } catch {
+        // toast handled in hook
+      }
+    },
+    [deleteModal.rating, deleteRating]
+  );
+
+  const hasActiveFilters =
+    rating !== 'all' || sort !== 'newest' || search.trim() !== '';
+
   // Initial loading
-  // ============================================
   if (initialLoading && !stats) {
     return (
       <>
@@ -152,9 +242,6 @@ const AdminRatingsListPage = () => {
     );
   }
 
-  // ============================================
-  // Render
-  // ============================================
   return (
     <>
       <SEO
@@ -256,22 +343,61 @@ const AdminRatingsListPage = () => {
 
           {/* Filters */}
           <AdminRatingsFilters
-            search={search}
-            onSearchChange={setSearch}
-            ratingFilter={ratingFilter}
-            onRatingFilterChange={(v) => {
-              setRatingFilter(v);
-              setPage(1);
-            }}
+            search={localSearch}
+            onSearchChange={setLocalSearch}
+            ratingFilter={rating}
+            onRatingFilterChange={handleRatingFilterChange}
             sort={sort}
-            onSortChange={(s) => {
-              setSort(s);
-              setPage(1);
-            }}
-            onClear={handleClearFilters}
+            onSortChange={handleSortChange}
             isSearching={isSearching}
-            resultsCount={meta?.total}
           />
+
+          {/* Results Count + Clear — Below Filters */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              marginBottom: '1rem',
+              padding: '0 4px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.8rem',
+                fontFamily: 'Cairo, sans-serif',
+              }}
+            >
+              {!loading && meta && (
+                <>
+                  عرض {ratings.length} من {meta.total} تقييم
+                </>
+              )}
+            </span>
+
+            {hasActiveFilters && (
+              <Button
+                variant="link"
+                onClick={handleClearFilters}
+                style={{
+                  color: 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontFamily: 'Cairo, sans-serif',
+                  fontSize: '0.78rem',
+                  padding: '4px 10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <FaTimes size={11} />
+                مسح الفلاتر
+              </Button>
+            )}
+          </div>
 
           {/* Grid */}
           {loading && ratings.length === 0 ? (
@@ -312,9 +438,7 @@ const AdminRatingsListPage = () => {
                   margin: '0 0 8px',
                 }}
               >
-                {search || ratingFilter !== 'all'
-                  ? 'لا توجد نتائج مطابقة'
-                  : 'لا توجد تقييمات'}
+                {hasActiveFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد تقييمات'}
               </h3>
               <p
                 style={{
@@ -323,11 +447,11 @@ const AdminRatingsListPage = () => {
                   margin: 0,
                 }}
               >
-                {search || ratingFilter !== 'all'
+                {hasActiveFilters
                   ? 'حاول تغيير الفلاتر أو كلمات البحث'
                   : 'لم يقم أي مستخدم بتقييم آخر بعد'}
               </p>
-              {(search || ratingFilter !== 'all') && (
+              {hasActiveFilters && (
                 <Button
                   onClick={handleClearFilters}
                   style={{
@@ -347,34 +471,16 @@ const AdminRatingsListPage = () => {
               )}
             </motion.div>
           ) : (
-            // FIX: key={sort} here already forces React to unmount and
-            // rebuild this whole grid from scratch whenever sort changes —
-            // that alone guarantees correct order with zero animation
-            // needed. The `layout` prop below used to be added on top of
-            // that, telling Framer Motion to FLIP-animate elements between
-            // their old and new position. The two don't cooperate well:
-            // `layout` expects elements to persist across a render and
-            // measures their rect before/after, but CSS Grid reflows (row
-            // count changing, columns shifting) are a known rough edge for
-            // that measurement, and combined with the forced remount it
-            // produced a stale transform on whichever cards landed in an
-            // early grid cell — exactly the "first row frozen" symptom.
-            // Removed `layout`; the key-based remount plus the existing
-            // initial/animate fade+scale already gives a clean, correct
-            // reorder.
             <div className="admin-ratings-grid" key={sort}>
-              {ratings.map((rating) => (
+              {ratings.map((r) => (
                 <motion.div
-                  key={rating.id}
+                  key={r.id}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.2 }}
                   style={{ height: '100%', minWidth: 0 }}
                 >
-                  <AdminRatingCard
-                    rating={rating}
-                    onDelete={handleDeleteClick}
-                  />
+                  <AdminRatingCard rating={r} onDelete={handleDeleteClick} />
                 </motion.div>
               ))}
             </div>

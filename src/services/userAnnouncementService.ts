@@ -13,10 +13,10 @@ export const userAnnouncementService = {
    * List my announcements (excludes soft-deleted)
    *
    * @param params - { status, search, sort, page, per_page }
-   *   status: 'all' | 'active' | 'disabled' | 'featured'
+   *   status: 'all' | 'active' | 'disabled' | 'completed' | 'featured'
    */
   getMyAnnouncements: async (params?: {
-    status?: 'all' | 'active' | 'disabled' | 'featured';
+    status?: 'all' | 'active' | 'disabled' | 'completed' | 'featured';
     search?: string;
     sort?: 'newest' | 'oldest' | 'most_viewed';
     page?: number;
@@ -102,6 +102,28 @@ export const userAnnouncementService = {
   enableAnnouncement: async (id: number) => {
     const response = await api.post<UserAnnouncementDetailResponse>(
       `/v1/user/announcements/${id}/enable`
+    );
+    return response.data;
+  },
+
+  /**
+   * POST /api/v1/user/announcements/{id}/complete
+   * Mark as completed (transaction done)
+   */
+  completeAnnouncement: async (id: number) => {
+    const response = await api.post<UserAnnouncementDetailResponse>(
+      `/v1/user/announcements/${id}/complete`
+    );
+    return response.data;
+  },
+
+  /**
+   * POST /api/v1/user/announcements/{id}/reopen
+   * Reopen a completed announcement
+   */
+  reopenAnnouncement: async (id: number) => {
+    const response = await api.post<UserAnnouncementDetailResponse>(
+      `/v1/user/announcements/${id}/reopen`
     );
     return response.data;
   },

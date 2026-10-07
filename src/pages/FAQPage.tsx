@@ -1,6 +1,8 @@
 import { Container, Row, Col } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { FaChevronLeft } from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import { faqService } from '../services/faqService';
 import FAQSearch from '../components/faq/FAQSearch';
@@ -11,86 +13,331 @@ import FAQPagination from '../components/faq/FAQPaginations';
 import type { FAQ } from '../types';
 import SEO from '../components/SEO';
 
-// Mock data fallback
+// ============================================
+// Mock data fallback — mirrors backend seeder
+// ============================================
 const MOCK_FAQS: FAQ[] = [
+  // ---- عام ----
   {
     id: 1,
-    question: 'كيف يمكنني إنشاء حساب جديد؟',
-    answer: 'يمكنك إنشاء حساب جديد بالنقر على زر "ابدأ الآن" في الصفحة الرئيسية...',
-    category: 'الحساب',
+    question: 'ما هي منصة بصمة؟',
+    answer:
+      'بصمة هي منصة مجتمعية متكاملة لأهل غزة، تجمع ثلاث ركائز في مكان واحد: تبادل الخدمات بين الأفراد، صندوق بصمة لدعم المحتاجين وتوثيق الإنجازات، ومنشورات المجتمع لنشر الوعي والتعاون. هدفنا بناء مجتمع متكافل ومترابط.',
+    category: 'عام',
     order: 1,
     is_active: true,
   },
   {
     id: 2,
-    question: 'كيف يمكنني نشر إعلان؟',
-    answer: 'بعد تسجيل الدخول، يمكنك النقر على زر "نشر إعلان" في لوحة التحكم...',
-    category: 'الإعلانات',
-    order: 1,
-    is_active: true,
-  },
-  {
-    id: 3,
-    question: 'كيف يمكنني التواصل مع المعلن؟',
-    answer: 'يمكنك التواصل مع المعلن عبر رقم واتساب الموجود في صفحة الإعلان...',
-    category: 'الإعلانات',
+    question: 'من يمكنه استخدام منصة بصمة؟',
+    answer:
+      'جميع سكان غزة فوق سن 18 عاماً يمكنهم التسجيل في بصمة والاستفادة من خدماتها. بعض الميزات — مثل صندوق بصمة ومنشورات المجتمع — تتطلب توثيق الهوية.',
+    category: 'عام',
     order: 2,
     is_active: true,
   },
   {
+    id: 3,
+    question: 'هل استخدام المنصة مجاني؟',
+    answer:
+      'نعم، التسجيل والاستخدام الأساسي للمنصة مجاني تماماً. توجد خدمة اختيارية مدفوعة لتمييز الخدمات مقابل رسوم رمزية، لدعم استمرارية المنصة.',
+    category: 'عام',
+    order: 3,
+    is_active: true,
+  },
+  // ---- الحساب والتسجيل ----
+  {
     id: 4,
-    question: 'كيف يتم التحقق من هوية المستخدمين؟',
-    answer: 'يمكن للمستخدمين رفع صورة بطاقة هويتهم من خلال صفحة الملف الشخصي...',
-    category: 'الأمان والسلامة',
+    question: 'كيف يمكنني التسجيل في منصة بصمة؟',
+    answer:
+      'يمكنك التسجيل بسهولة عبر ملء نموذج التسجيل: الاسم الكامل، البريد الإلكتروني، كلمة المرور، رقم واتساب (يبدأ بـ +970 أو +972)، والمنطقة (المحافظة والمدينة). ثم وافق على الشروط وستصلك رسالة تفعيل على بريدك الإلكتروني.',
+    category: 'الحساب والتسجيل',
     order: 1,
     is_active: true,
   },
   {
     id: 5,
-    question: 'هل المنصة مجانية؟',
-    answer: 'نعم، منصة بصمة مجانية بالكامل...',
-    category: 'الدفع والمقايضة',
-    order: 1,
+    question: 'كيف يمكنني تغيير كلمة المرور؟',
+    answer:
+      'من صفحة "الملف الشخصي" → قسم "تغيير كلمة المرور"، أدخل كلمة المرور الحالية ثم الجديدة (8 أحرف على الأقل) وأكدها. سيتم تحديث كلمة المرور فوراً.',
+    category: 'الحساب والتسجيل',
+    order: 2,
     is_active: true,
   },
   {
     id: 6,
     question: 'كيف يمكنني حذف حسابي؟',
-    answer: 'يمكنك حذف حسابك من خلال إعدادات الملف الشخصي...',
-    category: 'الحساب',
-    order: 2,
+    answer:
+      'من صفحة "الإعدادات" → قسم "منطقة الخطر"، يمكنك طلب حذف حسابك. سيتم تعطيله فوراً وحذف جميع بياناتك نهائياً خلال 30 يوماً. لا يمكن التراجع عن هذا الإجراء بعد انتهاء المدة.',
+    category: 'الحساب والتسجيل',
+    order: 3,
     is_active: true,
   },
+  // ---- تبادل الخدمات ----
   {
     id: 7,
-    question: 'ماذا أفعل إذا واجهت مشكلة مع مستخدم آخر؟',
-    answer: 'يمكنك الإبلاغ عن أي مشكلة من خلال زر "تبليغ"...',
-    category: 'الأمان والسلامة',
-    order: 2,
+    question: 'كيف يمكنني نشر عرض أو طلب خدمة؟',
+    answer:
+      'من لوحة التحكم، اضغط على "نشر عرض أو طلب". اختر نوع المنشور (عرض خدمة أو طلب خدمة)، الفئة، العنوان، الوصف، طريقة التبادل (مدفوع أو مقايضة)، المنطقة، وإعدادات الخصوصية. أضف صوراً للتوضيح ثم انشر.',
+    category: 'تبادل الخدمات',
+    order: 1,
     is_active: true,
   },
   {
     id: 8,
-    question: 'ما هي أنواع الإعلانات المتاحة؟',
-    answer: 'يمكنك نشر إعلانات من نوع "عرض" أو "طلب"...',
-    category: 'الإعلانات',
-    order: 3,
+    question: 'ما الفرق بين "عرض" و "طلب"؟',
+    answer:
+      '"العرض" يعني أن لديك خدمة أو سلعة تقدّمها للمجتمع. أما "الطلب" فيعني أنك تبحث عن خدمة أو سلعة يحتاجها غيرك لتقديمها لك. الفرق يظهر في طريقة البحث والتصفية.',
+    category: 'تبادل الخدمات',
+    order: 2,
     is_active: true,
   },
   {
     id: 9,
-    question: 'كيف يمكنني تغيير كلمة المرور؟',
-    answer: 'يمكنك تغيير كلمة المرور من خلال إعدادات الملف الشخصي...',
-    category: 'الحساب',
+    question: 'ما هي طرق التبادل المتاحة؟',
+    answer:
+      'هناك طريقتان: "مدفوع" — حيث تحدد سعراً معيناً بالشيكل، مع خيار "قابل للتفاوض". و"مقايضة" — حيث تعرض ما تقدّمه مقابل ما تطلبه من الطرف الآخر دون استخدام المال.',
+    category: 'تبادل الخدمات',
     order: 3,
     is_active: true,
   },
   {
     id: 10,
-    question: 'هل يمكنني إلغاء الإعلان بعد نشره؟',
-    answer: 'نعم، يمكنك إلغاء (تعطيل) الإعلان في أي وقت...',
-    category: 'الإعلانات',
+    question: 'كم عدد الخدمات التي يمكنني نشرها؟',
+    answer:
+      'المستخدم العادي يمكنه نشر 5 عروض أو طلبات شهرياً. أما المستخدم الموثق (بعد توثيق هويته) فيمكنه النشر بعدد غير محدود. يتم احتساب الحد الشهري لجميع المنشورات بغض النظر عن حالتها.',
+    category: 'تبادل الخدمات',
     order: 4,
+    is_active: true,
+  },
+  {
+    id: 11,
+    question: 'هل يمكنني تعديل أو حذف إعلاني بعد نشره؟',
+    answer:
+      'نعم. يمكنك تعديل الإعلان أو حذفه من قسم "خدماتي". عند الحذف، يتم إخفاؤه فوراً من المنصة، ثم يُحذف نهائياً من قاعدة البيانات بعد 30 يوماً.',
+    category: 'تبادل الخدمات',
+    order: 5,
+    is_active: true,
+  },
+  {
+    id: 12,
+    question: 'كيف يمكنني التواصل مع صاحب العرض أو الطلب؟',
+    answer:
+      'يظهر رقم واتساب صاحب الإعلان في صفحة التفاصيل (للمستخدمين المسجلين فقط). اضغط على الزر للتواصل مباشرة عبر واتساب. الزوار غير المسجلين يرون زر "سجل الدخول للتواصل".',
+    category: 'تبادل الخدمات',
+    order: 6,
+    is_active: true,
+  },
+  // ---- صندوق بصمة ----
+  {
+    id: 13,
+    question: 'ما هو صندوق بصمة؟',
+    answer:
+      'صندوق بصمة هو مبادرة خيرية مجتمعية تتيح لأهل غزة تقديم طلبات مساعدة موثّقة، وللمتبرعين الوصول إليها بسهولة وأمان. كل حالة تُراجع من فريق بصمة قبل نشرها، وكل تبرّع يُترجم إلى إنجاز ملموس يوثّق أثر المتبرعين.',
+    category: 'صندوق بصمة',
+    order: 1,
+    is_active: true,
+  },
+  {
+    id: 14,
+    question: 'من يمكنه تقديم طلب مساعدة؟',
+    answer:
+      'يجب أن يكون المستخدم مسجلاً في بصمة وموثّق هويته. هذا الشرط يضمن مصداقية الحالات المعروضة، ويحمي المتبرعين من أي محاولات احتيال.',
+    category: 'صندوق بصمة',
+    order: 2,
+    is_active: true,
+  },
+  {
+    id: 15,
+    question: 'كيف أقدّم طلب مساعدة؟',
+    answer:
+      'من لوحة التحكم، اذهب إلى "صندوق بصمة" → "تقديم طلب جديد". أدخل عنواناً عاماً ووصفاً مختصراً، وأضف فيديو قصير (من 60 إلى 90 ثانية) يوضح حالتك، ثم البيانات التفصيلية. تتم مراجعة الطلب قبل النشر.',
+    category: 'صندوق بصمة',
+    order: 3,
+    is_active: true,
+  },
+  {
+    id: 16,
+    question: 'هل بياناتي الشخصية محمية عند تقديم طلب؟',
+    answer:
+      'نعم، خصوصيتك أولوية. البيانات التفصيلية (الاسم الحقيقي، العنوان، رقم التواصل) تُشفّر بالكامل، ولا يراها إلا فريق المراجعة المصرّح له، ويُسجَّل كل وصول في سجل تدقيق. ما ينشر للعامة هو فقط العنوان والوصف العام والفيديو.',
+    category: 'صندوق بصمة',
+    order: 4,
+    is_active: true,
+  },
+  {
+    id: 17,
+    question: 'كيف أعرف أن تبرّعي وصل فعلاً للمحتاج؟',
+    answer:
+      'بعد اكتمال الدعم، يقوم فريق بصمة بتوثيق الحالة كإنجاز مجتمعي في قسم "الإنجازات الخيرية"، يُذكر فيه أن الحالة تم دعمها ورقمها. هذا يضمن الشفافية ويُلهم الآخرين للعطاء.',
+    category: 'صندوق بصمة',
+    order: 5,
+    is_active: true,
+  },
+  // ---- منشورات المجتمع ----
+  {
+    id: 18,
+    question: 'ما هي منشورات المجتمع؟',
+    answer:
+      'مساحة مجتمعية للتوعية والتنبيه: تحذيرات أمنية، منشورات مفقود/موجود، وإعلانات عامة تخدم أهالي منطقتك. كل منشور يُراجَع قبل النشر لضمان المصداقية.',
+    category: 'منشورات المجتمع',
+    order: 1,
+    is_active: true,
+  },
+  {
+    id: 19,
+    question: 'ما أنواع المنشورات المتاحة؟',
+    answer:
+      'أربعة أنواع: "تحذير" — لتنبيه المجتمع من خطر أو احتيال. "مفقود" — للإعلان عن شخص أو شيء مفقود. "موجود" — للإعلان عن شيء تم إيجاده. "عام" — لأي إعلان يخدم المجتمع.',
+    category: 'منشورات المجتمع',
+    order: 2,
+    is_active: true,
+  },
+  {
+    id: 20,
+    question: 'هل يمكنني نشر منشور دون توثيق هويتي؟',
+    answer:
+      'لا. يتطلب النشر في منشورات المجتمع توثيق الهوية أولاً. هذا الشرط يحمي مصداقية المحتوى، ويمنع انتشار التحذيرات أو المعلومات الكاذبة.',
+    category: 'منشورات المجتمع',
+    order: 3,
+    is_active: true,
+  },
+  {
+    id: 21,
+    question: 'كم عدد المنشورات المسموح بها؟',
+    answer:
+      'يمكنك نشر 3 منشورات نشطة كحد أقصى في الوقت الواحد، بما لا يتجاوز 3 منشورات شهرياً. هذا الحد يحافظ على جودة المحتوى ويحمي المجتمع من الإغراق.',
+    category: 'منشورات المجتمع',
+    order: 4,
+    is_active: true,
+  },
+  {
+    id: 22,
+    question: 'ما معنى "تم الحل"؟',
+    answer:
+      '"تم الحل" هي حالة يضعها صاحب المنشور عندما يُحل الموضوع — مثل العثور على المفقود، أو زوال سبب التحذير. المنشور يُوسم بهذه الحالة ويظل ظاهراً للتوعية.',
+    category: 'منشورات المجتمع',
+    order: 5,
+    is_active: true,
+  },
+  // ---- التوثيق والأمان ----
+  {
+    id: 23,
+    question: 'كيف أوثّق هويتي في بصمة؟',
+    answer:
+      'من صفحة "الملف الشخصي" → "توثيق الهوية"، ارفع صورة واضحة لوثيقة رسمية (هوية وطنية، جواز سفر، رخصة قيادة، أو بطاقة جامعية) بصيغة JPG أو PNG أو PDF. يراجع فريق بصمة الطلب خلال 24-48 ساعة.',
+    category: 'التوثيق والأمان',
+    order: 1,
+    is_active: true,
+  },
+  {
+    id: 24,
+    question: 'لماذا أحتاج لتوثيق الهوية؟',
+    answer:
+      'التوثيق يمنحك شارة "موثق" على حسابك وخدماتك، ويبني ثقة أكبر مع المستخدمين الآخرين. كما يمنحك ميزات إضافية: نشر غير محدود، الوصول لخيارات خصوصية إضافية، والمساهمة في صندوق بصمة ومنشورات المجتمع.',
+    category: 'التوثيق والأمان',
+    order: 2,
+    is_active: true,
+  },
+  {
+    id: 25,
+    question: 'هل بيانات وثيقة الهوية آمنة؟',
+    answer:
+      'نعم، أمانك أولوية. الوثيقة تُشفّر بالكامل وتُحفظ في مخزن محمي، ولا يمكن الوصول إليها إلا لفريق مراجعة مصرّح له، ويُسجَّل كل وصول (المشرف، الوقت، السبب). تُحذف الصورة تلقائياً بعد 90 يوماً من الموافقة.',
+    category: 'التوثيق والأمان',
+    order: 3,
+    is_active: true,
+  },
+  {
+    id: 26,
+    question: 'ما هي إرشادات الأمان في التعامل مع الآخرين؟',
+    answer:
+      'اختر مكاناً عاماً ومزدحماً للقاء. أخبر شخصاً موثوقاً بموعد اللقاء. تحقق من تقييمات الطرف الآخر. لا تشارك بياناتك الحساسة. ألغِ اللقاء فوراً إذا شعرت بعدم الأمان، وأبلغ عن أي سلوك مشبوه.',
+    category: 'التوثيق والأمان',
+    order: 4,
+    is_active: true,
+  },
+  {
+    id: 27,
+    question: 'كيف أبلّغ عن مستخدم أو محتوى مخالف؟',
+    answer:
+      'زر "الإبلاغ" متاح في صفحة الإعلان، الملف الشخصي، التعليقات، والمنشورات. اختر سبب الإبلاغ من القائمة (احتيال، محتوى مسيء، معلومات مضللة، سبام، انتهاك خصوصية، تهديد، أو أخرى)، وأضف تفاصيل إن أردت.',
+    category: 'التوثيق والأمان',
+    order: 5,
+    is_active: true,
+  },
+  // ---- التقييمات والسمعة ----
+  {
+    id: 28,
+    question: 'كيف يمكنني تقييم مستخدم بعد التعامل معه؟',
+    answer:
+      'بعد إتمام التعامل، ادخل إلى صفحة الطرف الآخر، واضغط "تقييم التجربة". اختر عدد النجوم من 1 إلى 5، وأضف تعليقاً (اختياري). تقييمك يساهم في بناء سمعة شفافة داخل المجتمع.',
+    category: 'التقييمات والسمعة',
+    order: 1,
+    is_active: true,
+  },
+  {
+    id: 29,
+    question: 'هل يمكنني تقييم نفس المستخدم أكثر من مرة؟',
+    answer:
+      'يمكنك تقييم المستخدم مرة واحدة لكل إعلان مختلف تتعاملون بشأنه. لا يمكن تقييم نفس التعامل مرتين. هذا يضمن مصداقية النظام ويمنع التلاعب بالتقييمات.',
+    category: 'التقييمات والسمعة',
+    order: 2,
+    is_active: true,
+  },
+  {
+    id: 30,
+    question: 'هل يمكنني تعديل أو حذف تقييمي؟',
+    answer:
+      'نعم، خلال 24 ساعة من إضافة التقييم، يمكنك تعديله أو حذفه. بعد هذه المدة، يصبح التقييم نهائياً للحفاظ على نزاهة سجل السمعة.',
+    category: 'التقييمات والسمعة',
+    order: 3,
+    is_active: true,
+  },
+  // ---- تمييز خدماتي والدفع ----
+  {
+    id: 31,
+    question: 'ما هي ميزة "تمييز خدماتي"؟',
+    answer:
+      'تمييز خدماتي يضع خدمتك في أعلى نتائج البحث وفي قسم خاص، مع شارة ذهبية. يحصل على مشاهدات أكثر بـ 10 أضعاف، ويزيد فرص التواصل مع المهتمين.',
+    category: 'تمييز خدماتي والدفع',
+    order: 1,
+    is_active: true,
+  },
+  {
+    id: 32,
+    question: 'كيف أميّز خدمتي؟',
+    answer:
+      'من "خدماتي"، اختر الخدمة واضغط "ميّز". اختر الباقة (7 أيام، 14 يوماً، أو 30 يوماً)، ثم حوّل المبلغ عبر إحدى الطرق المتاحة (PalPay، Jawwal Pay، BOP)، وأرفق صورة الإيصال. تتم الموافقة خلال 24 ساعة.',
+    category: 'تمييز خدماتي والدفع',
+    order: 2,
+    is_active: true,
+  },
+  {
+    id: 33,
+    question: 'ما هي أسعار التمييز؟',
+    answer:
+      'توجد ثلاث باقات: باقة 7 أيام بـ 25 شيكلاً، باقة 14 يوماً بـ 45 شيكلاً، وباقة 30 يوماً بـ 80 شيكلاً. جميع الأسعار معروضة بوضوح في صفحة "ميّز خدمتك".',
+    category: 'تمييز خدماتي والدفع',
+    order: 3,
+    is_active: true,
+  },
+  {
+    id: 34,
+    question: 'ما هي طرق الدفع المتاحة؟',
+    answer:
+      'نقبل الدفع عبر ثلاث طرق: PalPay، Jawwal Pay، و Bank of Palestine (BOP). تُعرض تفاصيل الحساب عند اختيار الطريقة، مع تعليمات واضحة للتحويل.',
+    category: 'تمييز خدماتي والدفع',
+    order: 4,
+    is_active: true,
+  },
+  {
+    id: 35,
+    question: 'ماذا لو رُفض طلب التمييز؟',
+    answer:
+      'إذا رُفض الطلب (بسبب صورة غير واضحة، مبلغ غير مطابق، أو أي مشكلة أخرى)، ستُعلم بالسبب. لا يتم خصم أي مبلغ في حال الرفض، ويمكنك إعادة إرسال الطلب بعد تصحيح المشكلة.',
+    category: 'تمييز خدماتي والدفع',
+    order: 5,
     is_active: true,
   },
 ];
@@ -109,7 +356,9 @@ const FAQPage = () => {
   const [lastPage, setLastPage] = useState(1);
   const [isUsingMock, setIsUsingMock] = useState(true);
 
-  // Fetch categories separately from API
+  // ============================================
+  // Fetch categories
+  // ============================================
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -118,14 +367,19 @@ const FAQPage = () => {
           setCategories(['الكل', ...data]);
         }
       } catch (err) {
-        const mockCategories = ['الكل', ...new Set(MOCK_FAQS.map((f) => f.category))];
+        const mockCategories = [
+          'الكل',
+          ...Array.from(new Set(MOCK_FAQS.map((f) => f.category))),
+        ];
         setCategories(mockCategories);
       }
     };
     fetchCategories();
   }, []);
 
-  // Fetch FAQs from API with pagination
+  // ============================================
+  // Fetch FAQs with pagination
+  // ============================================
   useEffect(() => {
     const fetchFAQs = async () => {
       try {
@@ -177,7 +431,9 @@ const FAQPage = () => {
     return () => clearTimeout(timer);
   }, [currentPage, perPage, selectedCategory, searchTerm]);
 
+  // ============================================
   // Local search filter
+  // ============================================
   useEffect(() => {
     let result = faqs;
 
@@ -284,16 +540,18 @@ const FAQPage = () => {
                 color: 'var(--text-muted)',
                 fontSize: '1.1rem',
                 fontFamily: 'Cairo, sans-serif',
-                maxWidth: '600px',
+                maxWidth: '640px',
                 margin: '0 auto',
+                lineHeight: 1.8,
+                textAlign: 'center',
               }}
             >
-              إجابات على أكثر الأسئلة التي يطرحها مستخدمونا
+              إجابات على أكثر الأسئلة التي يطرحها مستخدمونا حول منصة بصمة
             </p>
           </div>
         </motion.div>
 
-        {/* Search + PerPage Dropdown */}
+        {/* Search + PerPage */}
         <Row className="justify-content-center mb-4">
           <Col xs={12} lg={8}>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -357,7 +615,9 @@ const FAQPage = () => {
                 )}
               </span>
               <span style={{ fontSize: '0.85rem', opacity: 0.6 }}>
-                {!loading && lastPage > 1 && `الصفحة ${currentPage} من ${lastPage}`}
+                {!loading &&
+                  lastPage > 1 &&
+                  `الصفحة ${currentPage} من ${lastPage}`}
               </span>
             </div>
           </Col>
@@ -392,10 +652,21 @@ const FAQPage = () => {
                 }}
               >
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
-                <h3 style={{ color: 'var(--text-secondary)', fontFamily: 'Cairo, sans-serif' }}>
+                <h3
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontFamily: 'Cairo, sans-serif',
+                  }}
+                >
                   لا توجد نتائج
                 </h3>
-                <p>
+                <p
+                  style={{
+                    lineHeight: 1.8,
+                    maxWidth: '480px',
+                    margin: '0 auto',
+                  }}
+                >
                   {searchTerm
                     ? 'لم نعثر على أي أسئلة تطابق بحثك. حاول تغيير كلمات البحث.'
                     : 'لا توجد أسئلة في هذه الفئة حالياً.'}
@@ -411,6 +682,129 @@ const FAQPage = () => {
                 onPageChange={handlePageChange}
                 isDark={isDark}
               />
+            )}
+
+            {/* Still have questions CTA */}
+            {!loading && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5 }}
+                style={{
+                  marginTop: '3rem',
+                  padding: '2rem 1.75rem',
+                  borderRadius: '18px',
+                  background:
+                    'linear-gradient(135deg, rgba(232, 122, 32, 0.08) 0%, rgba(232, 122, 32, 0.03) 100%)',
+                  border: '1.5px solid rgba(232, 122, 32, 0.25)',
+                  boxShadow: '0 8px 28px rgba(232, 122, 32, 0.10)',
+                  textAlign: 'center',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-40px',
+                    right: '-40px',
+                    width: '140px',
+                    height: '140px',
+                    borderRadius: '50%',
+                    background:
+                      'radial-gradient(circle, rgba(232, 122, 32, 0.15), transparent 70%)',
+                    pointerEvents: 'none',
+                  }}
+                />
+
+                <div
+                  style={{
+                    width: '56px',
+                    height: '56px',
+                    margin: '0 auto 1rem',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, #E87A20, #F5A623)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFFFFF',
+                    fontSize: '1.5rem',
+                    boxShadow: '0 6px 20px rgba(232, 122, 32, 0.35)',
+                    position: 'relative',
+                    zIndex: 1,
+                  }}
+                >
+                  💬
+                </div>
+
+                <h3
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontSize: 'clamp(1.15rem, 2vw, 1.4rem)',
+                    fontWeight: 900,
+                    fontFamily: 'Cairo, sans-serif',
+                    marginBottom: '0.5rem',
+                    position: 'relative',
+                    zIndex: 1,
+                  }}
+                >
+                  لم تجد إجابة سؤالك؟
+                </h3>
+
+                <p
+                  style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '0.92rem',
+                    fontFamily: 'Cairo, sans-serif',
+                    lineHeight: 1.85,
+                    maxWidth: '520px',
+                    margin: '0 auto 1.25rem',
+                    textAlign: 'center',
+                    position: 'relative',
+                    zIndex: 1,
+                  }}
+                >
+                  فريق بصمة جاهز لمساعدتك. إذا لم تجد ما تبحث عنه، تواصل معنا
+                  مباشرة وسنرد عليك في أقرب وقت ممكن.
+                </p>
+
+                <Link
+                  to="/contact"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '11px 28px',
+                    borderRadius: '30px',
+                    backgroundColor: 'var(--primary-orange)',
+                    color: '#FFFFFF',
+                    textDecoration: 'none',
+                    fontSize: '0.9rem',
+                    fontWeight: 800,
+                    fontFamily: 'Cairo, sans-serif',
+                    boxShadow: '0 6px 20px rgba(232, 122, 32, 0.35)',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    zIndex: 1,
+                    minHeight: '44px',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow =
+                      '0 10px 28px rgba(232, 122, 32, 0.45)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow =
+                      '0 6px 20px rgba(232, 122, 32, 0.35)';
+                  }}
+                >
+                  تواصل مع الدعم
+                  <FaChevronLeft size={11} />
+                </Link>
+              </motion.div>
             )}
           </Col>
         </Row>

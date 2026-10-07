@@ -67,7 +67,7 @@ const UserDashboard = () => {
   if (error || !data) {
     return (
       <Container className="py-5">
-        <SEO title="لوحة التحكم - منصة بصمة" description="إدارة حسابك وإعلاناتك على منصة بصمة" />
+        <SEO title="لوحة التحكم - منصة بصمة" description="إدارة حسابك وخدماتك على منصة بصمة" />
         <Alert variant="danger" className="text-center">
           {error || 'تعذر تحميل البيانات'}
         </Alert>
@@ -97,7 +97,7 @@ const UserDashboard = () => {
     <>
       <SEO
         title={`لوحة التحكم - ${data.user.name}`}
-        description="صفحة لوحة التحكم الخاصة بمستخدم منصة بصمة لمتابعة الإحصائيات والإعلانات"
+        description="صفحة لوحة التحكم الخاصة بمستخدم منصة بصمة لمتابعة الإحصائيات والخدمات"
       />
 
       <style>{`

@@ -26,7 +26,7 @@ const ProfileVerificationCard = ({ verification }: ProfileVerificationCardProps)
         icon: <FaCheckCircle size={24} color="#FFFFFF" />,
         iconBg: 'linear-gradient(135deg, #28A745, #4FCB6E)',
         title: 'الحساب موثق',
-        description: 'تم التحقق من هويتك بنجاح. يمكنك الآن نشر إعلانات غير محدودة والاستفادة من جميع المزايا.',
+        description: 'تم التحقق من هويتك بنجاح. يمكنك الآن نشر عروض وطلبات غير محدودة والاستفادة من جميع المزايا.',
         color: '#28A745',
         bgColor: 'rgba(40,167,69,0.08)',
         borderColor: 'rgba(40,167,69,0.25)',
@@ -144,7 +144,7 @@ const ProfileVerificationCard = ({ verification }: ProfileVerificationCardProps)
       icon: <FaShieldAlt size={24} color="#FFFFFF" />,
       iconBg: 'linear-gradient(135deg, #E87A20, #F5A623)',
       title: 'الحساب غير موثق',
-      description: 'وثّق هويتك للحصول على إعلانات غير محدودة، شارة التوثيق، وثقة أكبر من المجتمع.',
+      description: 'وثّق هويتك للحصول على عروض وطلبات غير محدودة، شارة التوثيق، وثقة أكبر من المجتمع.',
       color: '#E87A20',
       bgColor: 'rgba(232,122,32,0.08)',
       borderColor: 'rgba(232,122,32,0.25)',
@@ -357,7 +357,7 @@ const ProfileVerificationCard = ({ verification }: ProfileVerificationCardProps)
               }}
             >
               {[
-                'إعلانات غير محدودة',
+                'عروض وطلبات غير محدودة',
                 'شارة موثق رسمية',
                 'ثقة أكبر بالمجتمع',
               ].map((text, i) => (

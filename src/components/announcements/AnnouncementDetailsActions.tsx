@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FaShareAlt, FaEnvelope, FaLock } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { toast } from 'react-toastify';
 import LikeButton from './LikeButton';
 import { ReportButton } from '../reports';
 
@@ -22,22 +23,27 @@ const AnnouncementDetailsActions = ({
   onLikeToggle,
 }: AnnouncementDetailsActionsProps) => {
   const handleShare = async () => {
+    const shareUrl = window.location.href;
+
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'إعلان على بصمة',
-          url: window.location.href,
+          title: 'خدمة على بصمة',
+          text: 'تفضل بمشاهدة هذه الخدمة على منصة بصمة',
+          url: shareUrl,
         });
       } catch {
-        /* user cancelled */
+        /* user cancelled share — silent */
       }
-    } else {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        // toast or feedback
-      } catch {
-        alert('📋 الرابط: ' + window.location.href);
-      }
+      return;
+    }
+
+    // Fallback — copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('تم نسخ الرابط بنجاح');
+    } catch {
+      toast.info(`الرابط: ${shareUrl}`, { autoClose: 8000 });
     }
   };
 
@@ -67,6 +73,7 @@ const AnnouncementDetailsActions = ({
       >
         {/* Share Button */}
         <motion.button
+          type="button"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
           onClick={handleShare}
@@ -113,7 +120,6 @@ const AnnouncementDetailsActions = ({
       <div>
         {isAuthenticated ? (
           isEmailVerified ? (
-            /* ✅ Real Report Button — opens ReportModal */
             <ReportButton
               targetType="announcement"
               announcementId={announcementId}

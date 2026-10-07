@@ -129,7 +129,7 @@ const DashboardQuickActions = ({ actions }: DashboardQuickActionsProps) => {
                 to={actions?.create_path || '/user/announcements/create'}
                 className="quick-action-btn btn-primary-action"
               >
-                <span>إضافة إعلان جديد</span>
+                <span>نشر عرض أو طلب</span>
                 <span className="quick-action-icon-wrapper">
                   <FaPlus size={14} />
                 </span>
@@ -141,7 +141,7 @@ const DashboardQuickActions = ({ actions }: DashboardQuickActionsProps) => {
               to={actions?.my_announcements_path || '/user/my-announcements'}
               className="quick-action-btn"
             >
-              <span>إدارة إعلاناتي</span>
+              <span>إدارة خدماتي</span>
               <span className="quick-action-icon-wrapper">
                 <FaBullhorn size={14} />
               </span>

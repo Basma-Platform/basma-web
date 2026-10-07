@@ -1,24 +1,28 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
+      // All API requests → Laravel backend
       '/api': {
-        target: 'https://basma-backend.onrender.com',
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        secure: false,
+        cookieDomainRewrite: 'localhost',
       },
+      // Sanctum CSRF cookie endpoint
       '/sanctum': {
-        target: 'https://basma-backend.onrender.com',
+        target: 'http://localhost:8000',
         changeOrigin: true,
-        secure: false,
+        cookieDomainRewrite: 'localhost',
+      },
+      // Storage (images, video thumbnails)
+      '/storage': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
       },
     },
   },
-  build: {
-    chunkSizeWarningLimit: 600,
-  },
-})
+});

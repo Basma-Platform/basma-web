@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   FaSearch,
@@ -43,9 +43,7 @@ interface AdminFeaturedFiltersProps {
   onPaymentMethodChange: (v: AdminFeaturedPaymentFilter) => void;
   sort: AdminFeaturedSort;
   onSortChange: (v: AdminFeaturedSort) => void;
-  onClear: () => void;
   isSearching?: boolean;
-  resultsCount?: number;
 }
 
 const AdminFeaturedFilters = ({
@@ -57,9 +55,7 @@ const AdminFeaturedFilters = ({
   onPaymentMethodChange,
   sort,
   onSortChange,
-  onClear,
   isSearching = false,
-  resultsCount,
 }: AdminFeaturedFiltersProps) => {
   const [localSearch, setLocalSearch] = useState(search);
   const [showSort, setShowSort] = useState(false);
@@ -69,18 +65,33 @@ const AdminFeaturedFilters = ({
   const paymentRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounce search
+  // ✅ Stable ref to onSearchChange so the debounce effect doesn't restart
+  const onSearchChangeRef = useRef(onSearchChange);
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange;
+  }, [onSearchChange]);
+
+  // ============================================
+  // Debounce search → call latest onSearchChange
+  // ============================================
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => onSearchChange(localSearch), 450);
+    debounceRef.current = setTimeout(() => {
+      onSearchChangeRef.current(localSearch);
+    }, 450);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [localSearch, onSearchChange]);
+  }, [localSearch]);
 
-  useEffect(() => setLocalSearch(search), [search]);
+  // Sync from parent when it changes externally
+  useEffect(() => {
+    setLocalSearch(search);
+  }, [search]);
 
+  // ============================================
   // Close dropdowns on outside click
+  // ============================================
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
@@ -99,7 +110,30 @@ const AdminFeaturedFilters = ({
     return () => document.removeEventListener('mousedown', onClick);
   }, [showSort, showPayment]);
 
+  // ============================================
+  // Stable handlers
+  // ============================================
+  const handleClearSearch = useCallback(() => setLocalSearch(''), []);
+
+  const handlePickSort = useCallback(
+    (value: AdminFeaturedSort) => {
+      onSortChange(value);
+      setShowSort(false);
+    },
+    [onSortChange]
+  );
+
+  const handlePickPayment = useCallback(
+    (value: AdminFeaturedPaymentFilter) => {
+      onPaymentMethodChange(value);
+      setShowPayment(false);
+    },
+    [onPaymentMethodChange]
+  );
+
+  // ============================================
   // Status tabs
+  // ============================================
   const statusTabs: {
     key: AdminFeaturedStatusFilter;
     label: string;
@@ -135,12 +169,6 @@ const AdminFeaturedFilters = ({
     FEATURED_PAYMENT_OPTIONS.find((o) => o.value === paymentMethod)?.label ||
     'الكل';
 
-  const hasFilters =
-    status !== 'all' ||
-    paymentMethod !== 'all' ||
-    sort !== 'newest' ||
-    search.trim() !== '';
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -166,7 +194,7 @@ const AdminFeaturedFilters = ({
           {localSearch && (
             <button
               type="button"
-              onClick={() => setLocalSearch('')}
+              onClick={handleClearSearch}
               className="admin-featured-filters__search-clear"
               aria-label="مسح"
             >
@@ -207,12 +235,11 @@ const AdminFeaturedFilters = ({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => {
-                      onPaymentMethodChange(
+                    onClick={() =>
+                      handlePickPayment(
                         opt.value as AdminFeaturedPaymentFilter
-                      );
-                      setShowPayment(false);
-                    }}
+                      )
+                    }
                     className={`admin-featured-filters__menu-item ${
                       active ? 'is-active' : ''
                     }`}
@@ -254,10 +281,9 @@ const AdminFeaturedFilters = ({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => {
-                      onSortChange(opt.value as AdminFeaturedSort);
-                      setShowSort(false);
-                    }}
+                    onClick={() =>
+                      handlePickSort(opt.value as AdminFeaturedSort)
+                    }
                     className={`admin-featured-filters__menu-item ${
                       active ? 'is-active' : ''
                     }`}
@@ -272,53 +298,29 @@ const AdminFeaturedFilters = ({
       </div>
 
       {/* ============================================
-          Row 2: Status tabs (spread) + results + clear
+          Row 2: Status tabs (full width)
           ============================================ */}
-      <div className="admin-featured-filters__row2">
-        <div className="admin-featured-filters__tabs" role="tablist">
-          {statusTabs.map((tab) => {
-            const active = status === tab.key;
-            const Icon = tab.Icon;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => onStatusChange(tab.key)}
-                className="admin-featured-filters__tab"
-                style={{ color: active ? tab.color : 'var(--text-muted)' }}
-              >
-                <Icon size={11} />
-                <span className="admin-featured-filters__tab-label">
-                  {tab.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="admin-featured-filters__meta">
-          {typeof resultsCount === 'number' && (
-            <span className="admin-featured-filters__results">
-              {resultsCount} نتيجة
-            </span>
-          )}
-
-          {hasFilters && (
+      <div className="admin-featured-filters__tabs" role="tablist">
+        {statusTabs.map((tab) => {
+          const active = status === tab.key;
+          const Icon = tab.Icon;
+          return (
             <button
+              key={tab.key}
               type="button"
-              onClick={() => {
-                onClear();
-                setLocalSearch('');
-              }}
-              className="admin-featured-filters__clear"
+              role="tab"
+              aria-selected={active}
+              onClick={() => onStatusChange(tab.key)}
+              className="admin-featured-filters__tab"
+              style={{ color: active ? tab.color : 'var(--text-muted)' }}
             >
-              <FaTimes size={10} />
-              مسح الفلاتر
+              <Icon size={11} />
+              <span className="admin-featured-filters__tab-label">
+                {tab.label}
+              </span>
             </button>
-          )}
-        </div>
+          );
+        })}
       </div>
 
       {/* Responsive styles */}
@@ -335,9 +337,6 @@ const AdminFeaturedFilters = ({
           box-sizing: border-box;
         }
 
-        /* ============================================
-           Row 1 — Search + Payment + Sort
-           ============================================ */
         .admin-featured-filters__row1 {
           display: flex;
           gap: 10px;
@@ -496,16 +495,8 @@ const AdminFeaturedFilters = ({
         }
 
         /* ============================================
-           Row 2 — Tabs spread + meta
+           Tabs — full width row
            ============================================ */
-        .admin-featured-filters__row2 {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
         .admin-featured-filters__tabs {
           display: flex;
           gap: 4px;
@@ -543,64 +534,9 @@ const AdminFeaturedFilters = ({
           text-overflow: ellipsis;
         }
 
-        .admin-featured-filters__meta {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-
-        .admin-featured-filters__results {
-          color: var(--text-muted);
-          font-size: 0.75rem;
-          white-space: nowrap;
-        }
-
-        .admin-featured-filters__clear {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          padding: 6px 12px;
-          border-radius: 8px;
-          border: 1px solid rgba(220,53,69,0.3);
-          background-color: rgba(220,53,69,0.06);
-          color: #DC3545;
-          font-family: 'Cairo', sans-serif;
-          font-size: 0.72rem;
-          font-weight: 700;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: all 0.2s ease;
-        }
-
-        .admin-featured-filters__clear:hover {
-          background-color: rgba(220,53,69,0.12);
-        }
-
         /* ============================================
            Responsive
            ============================================ */
-
-        /* Tablet+: meta on same row as tabs */
-        @media (min-width: 768px) {
-          .admin-featured-filters__row2 {
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-          }
-          .admin-featured-filters__tabs {
-            flex: 1 1 auto;
-            min-width: 0;
-          }
-          .admin-featured-filters__meta {
-            flex: 0 1 auto;
-            justify-content: flex-end;
-          }
-        }
-
-        /* Small phones: reduce paddings + font sizes */
         @media (max-width: 480px) {
           .admin-featured-filters {
             padding: 0.85rem;
@@ -620,7 +556,6 @@ const AdminFeaturedFilters = ({
           }
         }
 
-        /* Extra small: tabs collapse to 2 cols, dropdowns full width */
         @media (max-width: 380px) {
           .admin-featured-filters__dropdown {
             flex: 1 1 100%;

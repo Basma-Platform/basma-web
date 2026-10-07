@@ -1,13 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  FaChevronLeft,
-  FaShieldAlt,
-  FaInbox,
-  FaTimes,
-} from 'react-icons/fa';
+import { FaChevronLeft, FaShieldAlt, FaInbox, FaTimes } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useAdminVerifications } from '../../../hooks/useAdminVerifications';
 import {
@@ -21,98 +16,157 @@ import Pagination from '../../../components/shared/Pagination';
 
 const DEFAULT_PER_PAGE = 12;
 
+// ============================================
+// URL helpers
+// ============================================
+const readUrlParam = (key: string, fallback: string): string => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key) ?? fallback;
+};
+
+const readUrlNumber = (key: string, fallback: number): number => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get(key);
+  if (raw === null) return fallback;
+  const num = Number(raw);
+  return isNaN(num) ? fallback : num;
+};
+
+const writeUrlParams = (params: Record<string, string | number | null>) => {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === '' || value === 'all') {
+      url.searchParams.delete(key);
+    } else {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  window.history.replaceState({}, '', url.toString());
+};
+
+// ============================================
+// Page
+// ============================================
 const AdminVerificationListPage = () => {
   const { requests, meta, stats, loading, fetchRequests } =
     useAdminVerifications();
 
-  const [statusFilter, setStatusFilter] =
-    useState<AdminVerificationFilter>('all');
-  const [search, setSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
+  // Filter state
+  const [status, setStatus] = useState<AdminVerificationFilter>(
+    () => readUrlParam('status', 'all') as AdminVerificationFilter
+  );
+  const [search, setSearch] = useState(() => readUrlParam('search', ''));
+  const [page, setPage] = useState(() => readUrlNumber('page', 1));
+  const [perPage, setPerPage] = useState(() =>
+    readUrlNumber('per_page', DEFAULT_PER_PAGE)
+  );
+
+  const [localSearch, setLocalSearch] = useState(search);
   const [isSearching, setIsSearching] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // ============================================
-  // Load requests
-  // ============================================
-  const loadRequests = useCallback(
-    async (
-      page: number = 1,
-      filterOverride?: AdminVerificationFilter,
-      searchOverride?: string,
-      perPageOverride?: number
-    ) => {
-      const f = filterOverride ?? statusFilter;
-      const s = searchOverride ?? search;
-      const pp = perPageOverride ?? perPage;
-      await fetchRequests({
-        status: f,
-        search: s || undefined,
-        page,
-        per_page: pp,
-      });
-    },
-    [fetchRequests, statusFilter, search, perPage]
-  );
+  const isFirstFetch = useRef(true);
+  const isMountedRef = useRef(true);
 
-  // Initial load
   useEffect(() => {
-    const init = async () => {
-      try {
-        await loadRequests(1);
-      } finally {
-        setInitialLoading(false);
-      }
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
     };
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter change → reset page
+  // ============================================
+  // Sync URL
+  // ============================================
   useEffect(() => {
-    if (initialLoading) return;
-    setCurrentPage(1);
-    loadRequests(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+    writeUrlParams({
+      status: status === 'all' ? null : status,
+      search: search || null,
+      page: page > 1 ? page : null,
+      per_page: perPage !== DEFAULT_PER_PAGE ? perPage : null,
+    });
+  }, [status, search, page, perPage]);
 
-  // Debounced search
+  // ============================================
+  // Debounce search
+  // ============================================
   useEffect(() => {
-    if (initialLoading) return;
-    setIsSearching(true);
-    const t = setTimeout(() => {
-      setCurrentPage(1);
-      loadRequests(1).finally(() => setIsSearching(false));
+    const timer = setTimeout(() => {
+      if (localSearch !== search) {
+        setSearch(localSearch);
+        setPage(1);
+      }
     }, 500);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [localSearch]);
 
   // ============================================
-  // Pagination Handlers
+  // Fetch requests
   // ============================================
-  const handlePageChange = async (page: number) => {
-    setCurrentPage(page);
-    await loadRequests(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  useEffect(() => {
+    let cancelled = false;
 
-  const handlePerPageChange = async (newPerPage: number) => {
-    setPerPage(newPerPage);
-    setCurrentPage(1);
-    await loadRequests(1, undefined, undefined, newPerPage);
-  };
+    const load = async () => {
+      if (!isMountedRef.current) return;
+      try {
+        setIsSearching(true);
+        await fetchRequests({
+          status,
+          search: search || undefined,
+          page,
+          per_page: perPage,
+        });
+      } catch {
+        // toast handled in hook
+      } finally {
+        if (!cancelled && isMountedRef.current) {
+          setIsSearching(false);
+          if (isFirstFetch.current) {
+            setInitialLoading(false);
+            isFirstFetch.current = false;
+          }
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, search, page, perPage]);
 
   // ============================================
-  // Clear Filters
+  // Handlers
   // ============================================
-  const handleClearFilters = () => {
-    setStatusFilter('all');
+  const handleClearFilters = useCallback(() => {
+    setStatus('all');
     setSearch('');
-  };
+    setLocalSearch('');
+    setPage(1);
+  }, []);
 
-  const hasFilters = statusFilter !== 'all' || search.trim() !== '';
+  const handlePageChange = useCallback((p: number) => {
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handlePerPageChange = useCallback((pp: number) => {
+    setPerPage(pp);
+    setPage(1);
+  }, []);
+
+  const handleStatusChange = useCallback((s: AdminVerificationFilter) => {
+    setStatus(s);
+    setPage(1);
+  }, []);
+
+  const hasActiveFilters = status !== 'all' || search.trim() !== '';
 
   // ============================================
   // Initial Loading
@@ -154,9 +208,7 @@ const AdminVerificationListPage = () => {
         dir="rtl"
       >
         <Container fluid="xl" className="px-3 px-md-4">
-          {/* ============================================ */}
           {/* Breadcrumb + Title */}
-          {/* ============================================ */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -236,18 +288,18 @@ const AdminVerificationListPage = () => {
             <div style={{ marginBottom: '1.25rem' }}>
               <AdminVerificationStats
                 stats={stats}
-                activeFilter={statusFilter}
-                onFilterClick={setStatusFilter}
+                activeFilter={status}
+                onFilterClick={handleStatusChange}
               />
             </div>
           )}
 
           {/* Filters */}
           <AdminVerificationFilters
-            search={search}
-            onSearchChange={setSearch}
-            status={statusFilter}
-            onStatusChange={setStatusFilter}
+            search={localSearch}
+            onSearchChange={setLocalSearch}
+            status={status}
+            onStatusChange={handleStatusChange}
             counts={{
               all: stats?.total || 0,
               pending: stats?.pending || 0,
@@ -283,7 +335,7 @@ const AdminVerificationListPage = () => {
               )}
             </span>
 
-            {hasFilters && (
+            {hasActiveFilters && (
               <Button
                 variant="link"
                 onClick={handleClearFilters}
@@ -343,7 +395,7 @@ const AdminVerificationListPage = () => {
                   margin: '0 0 8px',
                 }}
               >
-                {hasFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات'}
+                {hasActiveFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات'}
               </h3>
               <p
                 style={{
@@ -352,11 +404,11 @@ const AdminVerificationListPage = () => {
                   margin: 0,
                 }}
               >
-                {hasFilters
+                {hasActiveFilters
                   ? 'حاول تغيير الفلاتر أو كلمات البحث'
                   : 'لم يقدّم أي مستخدم طلب توثيق بعد'}
               </p>
-              {hasFilters && (
+              {hasActiveFilters && (
                 <Button
                   onClick={handleClearFilters}
                   style={{
@@ -395,12 +447,10 @@ const AdminVerificationListPage = () => {
             </Row>
           )}
 
-          {/* ============================================ */}
-          {/* Full-featured Pagination */}
-          {/* ============================================ */}
+          {/* Pagination */}
           {meta && requests.length > 0 && (
             <Pagination
-              currentPage={currentPage}
+              currentPage={page}
               lastPage={meta.last_page}
               total={meta.total}
               perPage={perPage}

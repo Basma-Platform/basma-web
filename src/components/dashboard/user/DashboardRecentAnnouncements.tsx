@@ -1,19 +1,26 @@
-import { Card, Badge } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   FaEye,
-  FaCalendarAlt,
-  FaImage,
   FaHeart,
+  FaBullhorn,
+  FaPlus,
+  FaImage,
+  FaTag,
+  FaExchangeAlt,
+  FaHandshake,
+  FaFlagCheckered,
   FaChevronLeft,
-  FaClipboardList,
-  FaStar,
-  FaClock,
-  FaTimesCircle,
 } from 'react-icons/fa';
-import { motion } from 'framer-motion';
-import { getStorageUrl } from '../../../utils/storageHelpers';
 import type { DashboardRecentAnnouncement } from '../../../types';
+import { getStorageUrl } from '../../../utils/storageHelpers';
+import {
+  getPriceLabel,
+  getBarterBadgeLabel,
+  getNegotiableLabel,
+  getAnnouncementStatusLabel,
+  getAnnouncementStatusColor,
+} from '../../../utils/announcementHelpers';
 
 interface DashboardRecentAnnouncementsProps {
   announcements: DashboardRecentAnnouncement[];
@@ -22,401 +29,469 @@ interface DashboardRecentAnnouncementsProps {
 const DashboardRecentAnnouncements = ({
   announcements,
 }: DashboardRecentAnnouncementsProps) => {
-  const navigate = useNavigate();
-
-  // ============================================
-  // Status Badge (Basic)
-  // ============================================
-  const getStatusBadge = (status: string, isDisabled: boolean) => {
-    if (isDisabled)
-      return (
-        <Badge bg="warning" className="text-dark">
-          معطل
-        </Badge>
-      );
-    if (status === 'active') return <Badge bg="success">نشط</Badge>;
-    return <Badge bg="danger">محذوف</Badge>;
-  };
-
-  // ============================================
-  // Featured Badge
-  // ============================================
-  const getFeaturedBadge = (item: DashboardRecentAnnouncement) => {
-    // If currently featured (active + not expired)
-    if (item.is_featured && item.featured_until) {
-      return (
-        <Badge
-          style={{
-            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-            color: '#000000',
-            fontWeight: 700,
-            fontSize: '0.7rem',
-            padding: '3px 10px',
-            borderRadius: '10px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            boxShadow: '0 2px 8px rgba(255,215,0,0.4)',
-          }}
-          title={`مميز حتى ${formatDate(item.featured_until)}`}
-        >
-          <FaStar size={10} /> مميز
-        </Badge>
-      );
-    }
-
-    // If there's a pending featured request
-    if (item.featured_request_status === 'pending') {
-      return (
-        <Badge
-          style={{
-            backgroundColor: 'rgba(255,193,7,0.15)',
-            color: '#856404',
-            border: '1px solid rgba(255,193,7,0.3)',
-            fontWeight: 600,
-            fontSize: '0.7rem',
-            padding: '3px 10px',
-            borderRadius: '10px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-          title="طلب التمييز قيد المراجعة"
-        >
-          <FaClock size={9} /> قيد المراجعة
-        </Badge>
-      );
-    }
-
-    // If there's a rejected featured request
-    if (item.featured_request_status === 'rejected') {
-      return (
-        <Badge
-          style={{
-            backgroundColor: 'rgba(220,53,69,0.1)',
-            color: '#DC3545',
-            border: '1px solid rgba(220,53,69,0.2)',
-            fontWeight: 600,
-            fontSize: '0.7rem',
-            padding: '3px 10px',
-            borderRadius: '10px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-          title="تم رفض طلب التمييز"
-        >
-          <FaTimesCircle size={9} /> مرفوض
-        </Badge>
-      );
-    }
-
-    return null;
-  };
-
-  const getPriceLabel = (priceType: string, price: number | null) => {
-    switch (priceType) {
-      case 'free':
-        return 'مجاني';
-      case 'paid':
-        return `${price} شيكل`;
-      case 'barter':
-        return 'مقايضة';
-      default:
-        return '';
-    }
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('ar-EG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  // ✅ Resolve cover image URL via storage helper
-  const getCoverImage = (coverImage: string | null): string | null => {
-    return getStorageUrl(coverImage);
-  };
-
   return (
-    <Card
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
       style={{
         backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
         borderRadius: '16px',
         padding: '1.25rem',
+        border: '1px solid var(--border-color)',
         boxShadow: '0 4px 16px var(--shadow-sm)',
-        width: '100%',
-        overflow: 'hidden',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <h5
-          style={{
-            color: 'var(--text-secondary)',
-            fontFamily: 'Cairo, sans-serif',
-            fontWeight: 700,
-            margin: 0,
-            fontSize: '1.05rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <FaClipboardList style={{ color: 'var(--primary-orange)' }} /> أحدث
-          إعلاناتي
-        </h5>
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '1rem',
+          gap: '10px',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '11px',
+              background: 'linear-gradient(135deg, #E87A20, #F5A623)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 12px rgba(232,122,32,0.35)',
+              flexShrink: 0,
+            }}
+          >
+            <FaBullhorn size={16} />
+          </div>
+          <div>
+            <h4
+              style={{
+                color: 'var(--text-secondary)',
+                fontSize: '0.95rem',
+                fontWeight: 800,
+                fontFamily: 'Cairo, sans-serif',
+                margin: 0,
+                lineHeight: 1.2,
+              }}
+            >
+              آخر خدماتي
+            </h4>
+            <p
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.7rem',
+                fontFamily: 'Cairo, sans-serif',
+                margin: '2px 0 0',
+              }}
+            >
+              آخر ما أضفته
+            </p>
+          </div>
+        </div>
+
         <Link
-          to="/user/my-announcements"
-          style={{
-            color: 'var(--primary-orange)',
-            fontFamily: 'Cairo, sans-serif',
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            textDecoration: 'none',
-          }}
+          to="/user/announcements/create"
+          style={{ textDecoration: 'none' }}
         >
-          عرض الكل <FaChevronLeft size={10} />
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '7px 14px',
+              borderRadius: '9px',
+              border: '1.5px solid var(--primary-orange)',
+              backgroundColor: 'transparent',
+              color: 'var(--primary-orange)',
+              fontFamily: 'Cairo, sans-serif',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
+              e.currentTarget.style.color = '#FFFFFF';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--primary-orange)';
+            }}
+          >
+            <FaPlus size={10} />
+            نشر عرض أو طلب
+          </motion.button>
         </Link>
       </div>
 
+      {/* List */}
       {announcements.length === 0 ? (
         <div
-          className="text-center py-4"
-          style={{ color: 'var(--text-muted)' }}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem 1rem',
+            textAlign: 'center',
+          }}
         >
-          <p className="mb-2" style={{ fontFamily: 'Cairo, sans-serif' }}>
-            لا توجد إعلانات حالياً
-          </p>
-          <Link
-            to="/user/announcements/create"
+          <div
             style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(232,122,32,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               color: 'var(--primary-orange)',
-              fontWeight: 600,
-              fontFamily: 'Cairo, sans-serif',
-              textDecoration: 'none',
+              opacity: 0.6,
+              marginBottom: '12px',
             }}
           >
-            + أضف إعلانك الأول
-          </Link>
+            <FaBullhorn size={26} />
+          </div>
+          <h5
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '0.9rem',
+              fontWeight: 800,
+              fontFamily: 'Cairo, sans-serif',
+              margin: '0 0 6px',
+            }}
+          >
+            لا توجد عروض أو طلبات بعد
+          </h5>
+          <p
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.75rem',
+              fontFamily: 'Cairo, sans-serif',
+              margin: 0,
+              lineHeight: 1.5,
+            }}
+          >
+            ابدأ بنشر عرضك أو طلبك الأول
+          </p>
         </div>
       ) : (
-        <div className="d-flex flex-column gap-2">
-          {announcements.map((item, index) => (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            flex: 1,
+          }}
+        >
+          {announcements.slice(0, 5).map((item, index) => (
+            <RecentItem key={item.id} item={item} index={index} />
+          ))}
+
+          {/* View All */}
+          <Link
+            to="/user/my-announcements"
+            style={{
+              textDecoration: 'none',
+              display: 'block',
+              marginTop: 'auto',
+              paddingTop: '8px',
+              borderTop: '1px solid var(--border-color)',
+            }}
+          >
             <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.04, duration: 0.25 }}
-              whileHover={{ x: -4 }}
-              onClick={() => navigate(`/user/announcements/${item.id}`)}
+              whileHover={{ x: -3 }}
               style={{
-                backgroundColor: 'var(--bg-input)',
-                border: item.is_featured
-                  ? '2px solid #FFD700'
-                  : '1px solid var(--border-color)',
-                borderRadius: '12px',
-                padding: '12px',
-                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                padding: '8px',
+                borderRadius: '9px',
+                color: 'var(--primary-orange)',
+                fontFamily: 'Cairo, sans-serif',
+                fontSize: '0.78rem',
+                fontWeight: 700,
                 transition: 'all 0.2s ease',
-                maxWidth: '100%',
-                position: 'relative',
               }}
             >
-              {/* Desktop View */}
-              <div className="d-none d-md-flex align-items-center justify-content-between gap-3">
-                <div
-                  className="d-flex align-items-center gap-3"
-                  style={{ minWidth: 0, flex: 1 }}
-                >
-                  <div
-                    style={{
-                      width: '60px',
-                      height: '60px',
-                      borderRadius: '10px',
-                      overflow: 'hidden',
-                      backgroundColor: 'var(--bg-card)',
-                      border: '1px solid var(--border-color)',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {getCoverImage(item.cover_image) ? (
-                      <img
-                        src={getCoverImage(item.cover_image)!}
-                        alt={item.title}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                    ) : (
-                      <FaImage color="var(--text-muted)" size={18} />
-                    )}
-                  </div>
-
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                      <h6
-                        className="text-truncate mb-0"
-                        style={{
-                          color: 'var(--text-primary)',
-                          fontWeight: 700,
-                          fontSize: '0.92rem',
-                          maxWidth: '300px',
-                          fontFamily: 'Cairo, sans-serif',
-                        }}
-                      >
-                        {item.title}
-                      </h6>
-                      {getFeaturedBadge(item)}
-                      {getStatusBadge(item.status, item.is_disabled)}
-                    </div>
-
-                    <div
-                      className="d-flex align-items-center gap-2"
-                      style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}
-                    >
-                      {item.sub_category && (
-                        <span
-                          className="text-truncate"
-                          style={{ fontFamily: 'Cairo, sans-serif' }}
-                        >
-                          {item.sub_category.name}
-                        </span>
-                      )}
-                      <span>•</span>
-                      <span
-                        className="fw-semibold"
-                        style={{
-                          color: 'var(--primary-orange)',
-                          fontFamily: 'Cairo, sans-serif',
-                        }}
-                      >
-                        {getPriceLabel(item.price_type, item.price)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="d-flex align-items-center gap-3 flex-shrink-0"
-                  style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}
-                >
-                  <span className="d-flex align-items-center gap-1">
-                    <FaEye size={12} /> {item.views}
-                  </span>
-                  <span className="d-flex align-items-center gap-1">
-                    <FaHeart size={11} color="#DC3545" /> {item.likes_count}
-                  </span>
-                  <span className="d-flex align-items-center gap-1">
-                    <FaCalendarAlt size={11} /> {formatDate(item.created_at)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Mobile View */}
-              <div
-                className="d-flex d-md-none flex-column gap-2"
-                style={{ width: '100%', overflow: 'hidden' }}
-              >
-                <div
-                  className="d-flex align-items-center gap-2"
-                  style={{ width: '100%', overflow: 'hidden' }}
-                >
-                  <div
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      backgroundColor: 'var(--bg-card)',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {getCoverImage(item.cover_image) ? (
-                      <img
-                        src={getCoverImage(item.cover_image)!}
-                        alt={item.title}
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'cover',
-                        }}
-                      />
-                    ) : (
-                      <FaImage color="var(--text-muted)" size={16} />
-                    )}
-                  </div>
-
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="d-flex align-items-center gap-1 flex-wrap mb-1">
-                      <h6
-                        className="text-truncate mb-0"
-                        style={{
-                          color: 'var(--text-primary)',
-                          fontWeight: 700,
-                          fontSize: '0.88rem',
-                          maxWidth: '150px',
-                          fontFamily: 'Cairo, sans-serif',
-                        }}
-                      >
-                        {item.title}
-                      </h6>
-                      {getFeaturedBadge(item)}
-                    </div>
-
-                    <div className="d-flex align-items-center gap-2 flex-wrap">
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--primary-orange)',
-                          fontWeight: 600,
-                          fontFamily: 'Cairo, sans-serif',
-                        }}
-                      >
-                        {getPriceLabel(item.price_type, item.price)}
-                      </span>
-                      {getStatusBadge(item.status, item.is_disabled)}
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="d-flex align-items-center justify-content-between pt-2 mt-1"
-                  style={{
-                    borderTop: '1px solid var(--border-color)',
-                    fontSize: '0.72rem',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <span className="d-flex align-items-center gap-1">
-                    <FaEye size={10} /> {item.views}
-                  </span>
-                  <span className="d-flex align-items-center gap-1">
-                    <FaHeart size={10} color="#DC3545" /> {item.likes_count}
-                  </span>
-                  <span className="d-flex align-items-center gap-1">
-                    <FaCalendarAlt size={10} /> {formatDate(item.created_at)}
-                  </span>
-                </div>
-              </div>
+              عرض كل الخدمات
+              <FaChevronLeft size={10} />
             </motion.div>
-          ))}
+          </Link>
         </div>
       )}
-    </Card>
+    </motion.div>
+  );
+};
+
+// ============================================
+// Recent Item
+// ============================================
+interface RecentItemProps {
+  item: DashboardRecentAnnouncement;
+  index: number;
+}
+
+const RecentItem = ({ item, index }: RecentItemProps) => {
+  const isBarter = item.price_type === 'barter';
+  const isNegotiable =
+    item.price_type === 'paid' && item.is_negotiable === true;
+  const isCompleted = item.is_completed || item.status === 'completed';
+
+  const coverImage = getStorageUrl(item.cover_image);
+
+  const statusColor = getAnnouncementStatusColor(item.status);
+  const statusLabel = getAnnouncementStatusLabel(item.status);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
+    >
+      <Link
+        to={`/user/announcements/${item.id}`}
+        style={{ textDecoration: 'none', display: 'block' }}
+      >
+        <motion.div
+          whileHover={{ y: -2 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '10px',
+            borderRadius: '11px',
+            backgroundColor: 'var(--bg-input)',
+            border: '1px solid var(--border-color)',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--primary-orange)';
+            e.currentTarget.style.backgroundColor =
+              'rgba(232,122,32,0.04)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-color)';
+            e.currentTarget.style.backgroundColor = 'var(--bg-input)';
+          }}
+        >
+          {/* Thumbnail */}
+          <div
+            style={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              backgroundColor: 'var(--bg-card)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              border: '1px solid var(--border-color)',
+              position: 'relative',
+            }}
+          >
+            {coverImage ? (
+              <img
+                src={coverImage}
+                alt={item.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  opacity: isCompleted ? 0.75 : 1,
+                }}
+              />
+            ) : (
+              <FaImage size={16} color="var(--text-muted)" opacity={0.4} />
+            )}
+
+            {isCompleted && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(23,162,184,0.75)',
+                  color: '#FFFFFF',
+                }}
+              >
+                <FaFlagCheckered size={16} />
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h5
+              style={{
+                color: 'var(--text-secondary)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                fontFamily: 'Cairo, sans-serif',
+                margin: '0 0 4px',
+                lineHeight: 1.3,
+                display: '-webkit-box',
+                WebkitLineClamp: 1,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {item.title}
+            </h5>
+
+            {/* Meta Row */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '5px',
+                alignItems: 'center',
+                marginBottom: '4px',
+              }}
+            >
+              {/* Status pill */}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  padding: '1px 7px',
+                  borderRadius: '5px',
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  fontFamily: 'Cairo, sans-serif',
+                  backgroundColor: `${statusColor}18`,
+                  color: statusColor,
+                  border: `1px solid ${statusColor}35`,
+                }}
+              >
+                {statusLabel}
+              </span>
+
+              {/* Price / Barter */}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  padding: '1px 7px',
+                  borderRadius: '5px',
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  fontFamily: 'Cairo, sans-serif',
+                  backgroundColor: isBarter
+                    ? 'rgba(156,39,176,0.12)'
+                    : 'rgba(232,122,32,0.12)',
+                  color: isBarter ? '#9C27B0' : 'var(--primary-orange)',
+                }}
+              >
+                {isBarter && <FaExchangeAlt size={7} />}
+                {isBarter
+                  ? getBarterBadgeLabel()
+                  : getPriceLabel(item.price_type, item.price)}
+              </span>
+
+              {isNegotiable && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '1px 7px',
+                    borderRadius: '5px',
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    fontFamily: 'Cairo, sans-serif',
+                    backgroundColor: 'rgba(40,167,69,0.12)',
+                    color: '#28A745',
+                  }}
+                >
+                  <FaHandshake size={7} />
+                  {getNegotiableLabel()}
+                </span>
+              )}
+
+              {/* Category chip (flat) */}
+              {item.category && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '1px 7px',
+                    borderRadius: '5px',
+                    fontSize: '0.6rem',
+                    fontWeight: 600,
+                    fontFamily: 'Cairo, sans-serif',
+                    backgroundColor: 'var(--bg-card)',
+                    color: 'var(--text-muted)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <FaTag size={7} />
+                  {item.category.name}
+                </span>
+              )}
+            </div>
+
+            {/* Stats Row */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'center',
+                color: 'var(--text-muted)',
+                fontSize: '0.65rem',
+                fontFamily: 'Cairo, sans-serif',
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+              >
+                <FaEye size={9} />
+                {item.views}
+              </span>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+              >
+                <FaHeart size={9} />
+                {item.likes_count}
+              </span>
+            </div>
+          </div>
+
+          <FaChevronLeft
+            size={10}
+            style={{ color: 'var(--text-muted)', opacity: 0.4 }}
+          />
+        </motion.div>
+      </Link>
+    </motion.div>
   );
 };
 

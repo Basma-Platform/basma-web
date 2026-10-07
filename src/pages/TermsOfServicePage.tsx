@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { Container, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import {
@@ -15,18 +14,184 @@ import {
   FaStar,
   FaMoneyBillWave,
   FaIdCard,
+  FaHandHoldingHeart,
+  FaNewspaper,
 } from 'react-icons/fa';
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import SEO from '../components/SEO';
+import { useCardBorderAnimation } from '../hooks/useCardBorderAnimation';
+import AnimatedCardBorder from '../components/ui/AnimatedCardBorder';
 
+// ============================================
+// Section Card — with border animation
+// ============================================
+interface SectionCardProps {
+  section: {
+    icon: React.ReactNode;
+    title: string;
+    subtitle?: string;
+    content: any[];
+  };
+  index: number;
+}
+
+const SectionCard = ({ section, index }: SectionCardProps) => {
+  const { attachRef, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
+  return (
+    <div ref={attachRef} {...hoverHandlers}>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ duration: 0.5, delay: index * 0.05 }}
+        style={{
+          position: 'relative',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '16px',
+          padding: '1.75rem 2rem',
+          boxShadow: isDrawn
+            ? '0 8px 32px var(--shadow-md)'
+            : '0 4px 16px var(--shadow-sm)',
+          border: `1px solid ${
+            isDrawn ? 'rgba(232,122,32,0.35)' : 'var(--border-color)'
+          }`,
+          transition: 'all 0.3s ease',
+          overflow: 'hidden',
+        }}
+      >
+        <AnimatedCardBorder
+          isDrawn={isDrawn}
+          side="top"
+          background="linear-gradient(90deg, #E87A20, #F5A623)"
+          drawFrom="start"
+          height={3}
+          duration={0.55}
+          idleOpacity={0}
+          rounded
+          cardRadius={16}
+        />
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            marginBottom: '0.75rem',
+          }}
+        >
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(232,122,32,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {section.icon}
+          </div>
+          <div>
+            <h2
+              style={{
+                color: 'var(--text-secondary)',
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                fontFamily: 'Cairo, sans-serif',
+                margin: 0,
+              }}
+            >
+              {section.title}
+            </h2>
+            {section.subtitle && (
+              <p
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  fontFamily: 'Cairo, sans-serif',
+                  margin: '2px 0 0',
+                  opacity: 0.7,
+                }}
+              >
+                {section.subtitle}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div
+          style={{
+            color: 'var(--text-primary)',
+            fontSize: '0.95rem',
+            lineHeight: 1.9,
+            fontFamily: 'Cairo, sans-serif',
+            paddingRight: '4px',
+          }}
+        >
+          {section.content.map((item, i) => {
+            if (typeof item === 'string') {
+              return (
+                <p key={i} style={{ marginBottom: '0.5rem' }}>
+                  {item}
+                </p>
+              );
+            }
+            if (item.type === 'list') {
+              return (
+                <ul
+                  key={i}
+                  style={{
+                    listStyle: 'none',
+                    padding: '0',
+                    margin: '0 0 0.75rem 0',
+                  }}
+                >
+                  {item.items.map((listItem: string, li: number) => (
+                    <li
+                      key={li}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        marginBottom: '4px',
+                        padding: '4px 0',
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: 'var(--primary-orange)',
+                          fontSize: '1.2rem',
+                          lineHeight: 1.6,
+                          flexShrink: 0,
+                        }}
+                      >
+                        •
+                      </span>
+                      <span>{listItem}</span>
+                    </li>
+                  ))}
+                </ul>
+              );
+            }
+            return null;
+          })}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// ============================================
+// TermsOfServicePage
+// ============================================
 const TermsOfServicePage = () => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
   const sections = [
     {
       icon: <FaFileContract size={22} color="var(--primary-orange)" />,
@@ -57,7 +222,7 @@ const TermsOfServicePage = () => {
         {
           type: 'list',
           items: [
-            'الإعلانات يجب أن تكون حقيقية ودقيقة',
+            'الخدمات يجب أن تكون حقيقية ودقيقة',
             'احترام خصوصية المستخدمين الآخرين',
             'استخدام واتساب للتواصل هو الوسيلة المعتمدة',
             'التقييم يجب أن يكون عادلاً وموضوعياً',
@@ -65,7 +230,7 @@ const TermsOfServicePage = () => {
             'الالتزام بالقوانين والأنظمة المحلية',
           ],
         },
-        'نقوم بمراجعة الإعلانات المخالفة واتخاذ الإجراء المناسب.',
+        'نقوم بمراجعة الخدمات المخالفة واتخاذ الإجراء المناسب.',
       ],
     },
     {
@@ -80,12 +245,14 @@ const TermsOfServicePage = () => {
             'نشر محتوى مسيء أو مخالف للقيم المجتمعية',
             'الاحتيال أو النصب على المستخدمين الآخرين',
             'نشر معلومات شخصية للآخرين دون موافقتهم',
-            'إنشاء إعلانات وهمية أو مضللة',
+            'إنشاء خدمات وهمية أو مضللة',
             'التحرش أو المضايقة بأي شكل من الأشكال',
             'بيع أو ترويج منتجات أو خدمات غير قانونية',
             'محاولة اختراق المنصة أو تعطيل خدماتها',
             'رفع وثائق هوية مزيفة أو مسروقة أو تعود لشخص آخر',
             'استخدام صور معدلة أو مزورة لتوثيق الحساب',
+            'إنشاء طلبات مساعدة وهمية أو مبالغ فيها',
+            'نشر تحذيرات أو منشورات كاذبة في المجتمع',
           ],
         },
         'المخالفات قد تؤدي إلى تعليق أو حظر الحساب بشكل دائم.',
@@ -100,7 +267,8 @@ const TermsOfServicePage = () => {
         {
           type: 'list',
           items: [
-            'التوثيق اختياري، لكنه يمنحك إعلانات غير محدودة وشارة موثق',
+            'التوثيق اختياري، لكنه يمنحك عروضاً وطلبات غير محدودة وشارة موثق',
+            'التوثيق مطلوب إلزامياً للمشاركة في صندوق بصمة ومنشورات المجتمع',
             'يجب تقديم وثيقة هوية رسمية سارية الصلاحية',
             'يجب أن تكون الوثيقة واضحة وتظهر صورتك الشخصية واسمك بالكامل',
             'يجب أن يتطابق الاسم في الوثيقة مع الاسم المسجل في حسابك',
@@ -156,30 +324,94 @@ const TermsOfServicePage = () => {
     },
     {
       icon: <FaStar size={22} color="var(--primary-orange)" />,
-      title: 'الإعلانات المميزة',
-      subtitle: 'ما هي شروط تمييز الإعلانات؟',
+      title: 'القيود والحدود الشهرية',
+      subtitle: 'ما هي حدود النشر على المنصة؟',
       content: [
-        'نوفر خدمة تمييز الإعلانات مقابل رسوم رمزية لدعم استمرارية المنصة:',
+        'لتوفير تجربة عادلة وجودة عالية، تطبق المنصة الحدود التالية:',
+        {
+          type: 'list',
+          items: [
+            'المستخدم غير الموثق: 5 خدمات (عروض/طلبات) شهرياً',
+            'المستخدم الموثق: نشر غير محدود للخدمات',
+            'طلبات المساعدة (صندوق بصمة): 3 طلبات نشطة + 5 شهرياً، وللموثقين فقط',
+            'منشورات المجتمع: 3 منشورات نشطة + 3 شهرياً، وللموثقين فقط',
+            'يتم احتساب الحد الشهري لجميع الخدمات بغض النظر عن حالتها (نشطة/معطلة/محذوفة)',
+            'يتم إعادة ضبط الحد الشهري في بداية كل شهر ميلادي',
+          ],
+        },
+        'التوثيق يمنحك حدوداً أعلى ومزايا إضافية.',
+      ],
+    },
+    {
+      icon: <FaHandHoldingHeart size={22} color="var(--primary-orange)" />,
+      title: 'صندوق بصمة',
+      subtitle: 'ما هي قواعد المشاركة في صندوق بصمة؟',
+      content: [
+        'صندوق بصمة مبادرة خيرية مجتمعية. قواعد المشاركة:',
+        {
+          type: 'list',
+          items: [
+            'تقديم طلبات المساعدة متاح فقط للمستخدمين الموثقين',
+            'يجب تقديم فيديو قصير (60-90 ثانية) يوضح الحالة',
+            'تتم مراجعة الطلب من فريق بصمة قبل النشر',
+            'البيانات التفصيلية مشفرة بالكامل ولا يراها إلا فريق المراجعة',
+            'ما ينشر للعامة هو العنوان والوصف العام والفيديو فقط',
+            'يتم وسم الحالة كـ"إنجاز" بعد اكتمال دعمها',
+            'لا يجوز تقديم طلبات وهمية أو مبالغ فيها',
+          ],
+        },
+        'الشفافية والأمان هما أساس صندوق بصمة.',
+      ],
+    },
+    {
+      icon: <FaNewspaper size={22} color="var(--primary-orange)" />,
+      title: 'منشورات المجتمع',
+      subtitle: 'ما هي قواعد النشر في منشورات المجتمع؟',
+      content: [
+        'منشورات المجتمع مساحة للتوعية والتنبيه. قواعد النشر:',
+        {
+          type: 'list',
+          items: [
+            'النشر متاح فقط للمستخدمين الموثقين',
+            'أنواع المنشورات: تحذير، مفقود، موجود، عام',
+            'تتم مراجعة كل منشور من فريق بصمة قبل النشر',
+            'مدة المراجعة عادة أقل من 24 ساعة',
+            'يمكن وسم المنشور كـ"تم الحل" للمفقود/الموجود',
+            'يجب أن يكون المحتوى حقيقياً وهادفاً',
+            'لا يجوز نشر معلومات كاذبة أو مضللة',
+          ],
+        },
+        'الهدف هو خدمة المجتمع بمحتوى موثوق ومفيد.',
+      ],
+    },
+    {
+      icon: <FaMoneyBillWave size={22} color="var(--primary-orange)" />,
+      title: 'تمييز الخدمات والدفع',
+      subtitle: 'ما هي شروط تمييز الخدمات؟',
+      content: [
+        'نوفر خدمة تمييز الخدمات مقابل رسوم رمزية لدعم استمرارية المنصة:',
         {
           type: 'list',
           items: [
             'التمييز اختياري تماماً وليس إلزامياً',
-            'مدة التمييز محددة مسبقاً (3 / 7 / 30 يوم)',
+            'مدد التمييز المتاحة: 7 أيام، 14 يوماً، 30 يوماً',
+            'الأسعار: 25 شيكل (7 أيام) / 45 شيكل (14 يوماً) / 80 شيكل (30 يوماً)',
+            'طرق الدفع المتاحة: PalPay / Jawwal Pay / Bank of Palestine (BOP)',
             'يتم مراجعة كل طلب تمييز يدوياً من قبل الإدارة',
             'يجب رفع صورة إشعار التحويل لإتمام الطلب',
+            'يتم تفعيل التمييز خلال 24 ساعة من الموافقة',
             'في حال رفض الطلب: لا يتم خصم أي مبلغ',
             'الرسوم غير قابلة للاسترداد بعد الموافقة على الطلب',
             'المنصة تحتفظ بحق رفض أي طلب تمييز دون إبداء الأسباب',
-            'الإعلانات المميزة تخضع لنفس قواعد المنصة',
+            'الخدمات المميزة تخضع لنفس قواعد المنصة',
           ],
         },
-        'الدفع يتم عبر PalPay / Jawwal Pay / Bank of Palestine فقط.',
         'التمييز لا يضمن زيادة المبيعات أو المشاهدات بشكل مؤكد.',
         'لا يوجد دفع نقدي أو تحويل مباشر بين المستخدمين والإدارة.',
       ],
     },
     {
-      icon: <FaMoneyBillWave size={22} color="var(--primary-orange)" />,
+      icon: <FaExclamationTriangle size={22} color="var(--primary-orange)" />,
       title: 'سياسة الاسترداد',
       subtitle: 'ما هي سياسة استرداد المبالغ؟',
       content: [
@@ -198,7 +430,7 @@ const TermsOfServicePage = () => {
       ],
     },
     {
-      icon: <FaExclamationTriangle size={22} color="var(--primary-orange)" />,
+      icon: <FaShieldAlt size={22} color="var(--primary-orange)" />,
       title: 'إخلاء المسؤولية',
       subtitle: 'ما هي حدود مسؤولية منصة بصمة؟',
       content: [
@@ -211,7 +443,7 @@ const TermsOfServicePage = () => {
             'جميع الصفقات تتم بين المستخدمين بشكل مباشر',
             'ننصح باتخاذ إجراءات الأمان اللازمة عند التبادل',
             'نوصي بالاجتماع في أماكن عامة وآمنة',
-            'نقوم بمراجعة الإعلانات المخالفة واتخاذ الإجراء المناسب',
+            'نقوم بمراجعة الخدمات المخالفة واتخاذ الإجراء المناسب',
           ],
         },
         'نحتفظ بالحق في تعديل هذه الشروط في أي وقت.',
@@ -219,25 +451,6 @@ const TermsOfServicePage = () => {
       ],
     },
   ];
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 },
-    },
-  };
 
   return (
     <div
@@ -387,233 +600,87 @@ const TermsOfServicePage = () => {
         </motion.div>
 
         {/* Content Sections */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate={isVisible ? 'visible' : 'hidden'}
-        >
-          <Row className="justify-content-center">
-            <Col xs={12} lg={10}>
+        <Row className="justify-content-center">
+          <Col xs={12} lg={10}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.5rem',
+              }}
+            >
+              {sections.map((section, index) => (
+                <SectionCard key={index} section={section} index={index} />
+              ))}
+            </div>
+
+            {/* Last Updated + Back to Top */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: '2.5rem',
+                padding: '1rem 0',
+                borderTop: '1px solid var(--border-color)',
+                gap: '12px',
+              }}
+            >
               <div
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1.5rem',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  fontFamily: 'Cairo, sans-serif',
+                  opacity: 0.6,
                 }}
               >
-                {sections.map((section, index) => (
-                  <motion.div
-                    key={index}
-                    variants={itemVariants}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.2 }}
-                    style={{
-                      backgroundColor: 'var(--bg-card)',
-                      borderRadius: '16px',
-                      padding: '1.75rem 2rem',
-                      boxShadow: '0 4px 16px var(--shadow-sm)',
-                      border: '1px solid var(--border-color)',
-                      transition: 'all 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow =
-                        '0 8px 32px var(--shadow-md)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow =
-                        '0 4px 16px var(--shadow-sm)';
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '14px',
-                        marginBottom: '0.75rem',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '44px',
-                          height: '44px',
-                          borderRadius: '12px',
-                          backgroundColor: 'rgba(232,122,32,0.08)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          transition: 'all 0.3s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor =
-                            'rgba(232,122,32,0.15)';
-                          e.currentTarget.style.transform = 'scale(1.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor =
-                            'rgba(232,122,32,0.08)';
-                          e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                      >
-                        {section.icon}
-                      </div>
-                      <div>
-                        <h2
-                          style={{
-                            color: 'var(--text-secondary)',
-                            fontSize: '1.25rem',
-                            fontWeight: 700,
-                            fontFamily: 'Cairo, sans-serif',
-                            margin: 0,
-                          }}
-                        >
-                          {section.title}
-                        </h2>
-                        {section.subtitle && (
-                          <p
-                            style={{
-                              color: 'var(--text-muted)',
-                              fontSize: '0.8rem',
-                              fontFamily: 'Cairo, sans-serif',
-                              margin: '2px 0 0',
-                              opacity: 0.7,
-                            }}
-                          >
-                            {section.subtitle}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        color: 'var(--text-primary)',
-                        fontSize: '0.95rem',
-                        lineHeight: 1.9,
-                        fontFamily: 'Cairo, sans-serif',
-                        paddingRight: '4px',
-                      }}
-                    >
-                      {section.content.map((item, i) => {
-                        if (typeof item === 'string') {
-                          return (
-                            <p key={i} style={{ marginBottom: '0.5rem' }}>
-                              {item}
-                            </p>
-                          );
-                        }
-                        if (item.type === 'list') {
-                          return (
-                            <ul
-                              key={i}
-                              style={{
-                                listStyle: 'none',
-                                padding: '0',
-                                margin: '0 0 0.75rem 0',
-                              }}
-                            >
-                              {item.items.map((listItem, li) => (
-                                <li
-                                  key={li}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'flex-start',
-                                    gap: '10px',
-                                    marginBottom: '4px',
-                                    padding: '4px 0',
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      color: 'var(--primary-orange)',
-                                      fontSize: '1.2rem',
-                                      lineHeight: 1.6,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    •
-                                  </span>
-                                  <span>{listItem}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-                  </motion.div>
-                ))}
+                <FaServer size={14} style={{ marginLeft: '6px' }} />
+                آخر تحديث: يوليو ٢٠٢٦
+                <span style={{ margin: '0 8px' }}>•</span>
+                <FaGlobe size={14} style={{ marginLeft: '6px' }} />
+                يسري على جميع مستخدمي المنصة
               </div>
 
-              {/* Last Updated + Back to Top */}
-              <div
+              <button
+                onClick={() =>
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }
                 style={{
+                  padding: '10px 28px',
+                  borderRadius: '999px',
+                  border: `2px solid var(--primary-orange)`,
+                  backgroundColor: 'transparent',
+                  color: 'var(--primary-orange)',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  fontFamily: 'Cairo, sans-serif',
                   display: 'flex',
-                  flexWrap: 'wrap',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: '2.5rem',
-                  padding: '1rem 0',
-                  borderTop: '1px solid var(--border-color)',
-                  gap: '12px',
+                  gap: '8px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    'var(--primary-orange)';
+                  e.currentTarget.style.color = '#FFFFFF';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow =
+                    '0 4px 16px rgba(232,122,32,0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--primary-orange)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                <div
-                  style={{
-                    color: 'var(--text-muted)',
-                    fontSize: '0.8rem',
-                    fontFamily: 'Cairo, sans-serif',
-                    opacity: 0.6,
-                  }}
-                >
-                  <FaServer size={14} style={{ marginLeft: '6px' }} />
-                  آخر تحديث: يوليو ٢٠٢٦
-                  <span style={{ margin: '0 8px' }}>•</span>
-                  <FaGlobe size={14} style={{ marginLeft: '6px' }} />
-                  يسري على جميع مستخدمي المنصة
-                </div>
-
-                <button
-                  onClick={() =>
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }
-                  style={{
-                    padding: '10px 28px',
-                    borderRadius: '999px',
-                    border: `2px solid var(--primary-orange)`,
-                    backgroundColor: 'transparent',
-                    color: 'var(--primary-orange)',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    fontFamily: 'Cairo, sans-serif',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      'var(--primary-orange)';
-                    e.currentTarget.style.color = '#FFFFFF';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow =
-                      '0 4px 16px rgba(232,122,32,0.3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'var(--primary-orange)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  العودة إلى الأعلى ↑
-                </button>
-              </div>
-            </Col>
-          </Row>
-        </motion.div>
+                العودة إلى الأعلى ↑
+              </button>
+            </div>
+          </Col>
+        </Row>
       </Container>
     </div>
   );

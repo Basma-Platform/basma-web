@@ -7,7 +7,13 @@ import {
   FaSortAmountDown,
 } from 'react-icons/fa';
 
-export type AnnouncementStatusFilter = 'all' | 'active' | 'disabled' | 'featured';
+export type AnnouncementStatusFilter =
+  | 'all'
+  | 'active'
+  | 'disabled'
+  | 'completed'
+  | 'featured';
+
 export type AnnouncementSortOption = 'newest' | 'oldest' | 'most_viewed';
 
 interface MyAnnouncementFiltersProps {
@@ -38,24 +44,20 @@ const MyAnnouncementFilters = ({
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ✅ Debounced search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       onSearchChange(localSearch);
     }, 450);
-
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [localSearch, onSearchChange]);
 
-  // Sync external search changes
   useEffect(() => {
     setLocalSearch(search);
   }, [search]);
 
-  // Close sort dropdown on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (
@@ -71,14 +73,22 @@ const MyAnnouncementFilters = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showSortDropdown]);
 
-  const statusTabs: { value: AnnouncementStatusFilter; label: string }[] = [
+  // ✅ Added 'completed'
+  const statusTabs: {
+    value: AnnouncementStatusFilter;
+    label: string;
+  }[] = [
     { value: 'all', label: 'الكل' },
     { value: 'active', label: 'نشط' },
     { value: 'disabled', label: 'معطل' },
+    { value: 'completed', label: 'مكتمل' },
     { value: 'featured', label: 'مميز' },
   ];
 
-  const sortOptions: { value: AnnouncementSortOption; label: string }[] = [
+  const sortOptions: {
+    value: AnnouncementSortOption;
+    label: string;
+  }[] = [
     { value: 'newest', label: 'الأحدث أولاً' },
     { value: 'oldest', label: 'الأقدم أولاً' },
     { value: 'most_viewed', label: 'الأكثر مشاهدة' },
@@ -130,7 +140,7 @@ const MyAnnouncementFilters = ({
           />
           <input
             type="text"
-            placeholder="ابحث في إعلاناتي..."
+            placeholder="ابحث في خدماتي..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
             style={{
@@ -147,7 +157,8 @@ const MyAnnouncementFilters = ({
             }}
             onFocus={(e) => {
               e.currentTarget.style.borderColor = 'var(--primary-orange)';
-              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,122,32,0.1)';
+              e.currentTarget.style.boxShadow =
+                '0 0 0 3px rgba(232,122,32,0.1)';
             }}
             onBlur={(e) => {
               e.currentTarget.style.borderColor = 'var(--border-color)';
@@ -155,7 +166,6 @@ const MyAnnouncementFilters = ({
             }}
           />
 
-          {/* Clear button */}
           {localSearch && (
             <button
               type="button"
@@ -193,7 +203,6 @@ const MyAnnouncementFilters = ({
             </button>
           )}
 
-          {/* Searching indicator */}
           {isSearching && localSearch && (
             <span
               style={{
@@ -239,7 +248,9 @@ const MyAnnouncementFilters = ({
               padding: '10px 14px',
               borderRadius: '11px',
               border: `1px solid ${
-                showSortDropdown ? 'var(--primary-orange)' : 'var(--border-color)'
+                showSortDropdown
+                  ? 'var(--primary-orange)'
+                  : 'var(--border-color)'
               }`,
               backgroundColor: 'var(--bg-input)',
               color: 'var(--text-secondary)',
@@ -283,10 +294,7 @@ const MyAnnouncementFilters = ({
             <motion.span
               animate={{ rotate: showSortDropdown ? 180 : 0 }}
               transition={{ duration: 0.2 }}
-              style={{
-                display: 'inline-flex',
-                opacity: 0.6,
-              }}
+              style={{ display: 'inline-flex', opacity: 0.6 }}
             >
               <FaChevronDown size={10} />
             </motion.span>
@@ -348,13 +356,16 @@ const MyAnnouncementFilters = ({
                         if (!active) {
                           e.currentTarget.style.backgroundColor =
                             'rgba(232,122,32,0.06)';
-                          e.currentTarget.style.color = 'var(--primary-orange)';
+                          e.currentTarget.style.color =
+                            'var(--primary-orange)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (!active) {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          e.currentTarget.style.color = 'var(--text-secondary)';
+                          e.currentTarget.style.backgroundColor =
+                            'transparent';
+                          e.currentTarget.style.color =
+                            'var(--text-secondary)';
                         }
                       }}
                     >
@@ -382,7 +393,7 @@ const MyAnnouncementFilters = ({
         </div>
       </div>
 
-      {/* Row 2: Status Tabs */}
+      {/* Row 2: Status Tabs + Results + Clear */}
       <div
         style={{
           display: 'flex',
@@ -392,7 +403,6 @@ const MyAnnouncementFilters = ({
           flexWrap: 'wrap',
         }}
       >
-        {/* Tabs */}
         <div
           style={{
             display: 'flex',
@@ -449,7 +459,11 @@ const MyAnnouncementFilters = ({
                       borderRadius: '3px',
                       backgroundColor: 'var(--primary-orange)',
                     }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 400,
+                      damping: 30,
+                    }}
                   />
                 )}
               </motion.button>
@@ -457,7 +471,6 @@ const MyAnnouncementFilters = ({
           })}
         </div>
 
-        {/* Results Count + Clear */}
         <div
           style={{
             display: 'flex',
@@ -474,8 +487,7 @@ const MyAnnouncementFilters = ({
                 whiteSpace: 'nowrap',
               }}
             >
-              {resultsCount}{' '}
-              {resultsCount === 1 ? 'نتيجة' : 'نتيجة'}
+              {resultsCount} نتيجة
             </span>
           )}
 

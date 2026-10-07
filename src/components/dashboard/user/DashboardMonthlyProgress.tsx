@@ -69,7 +69,7 @@ const DashboardMonthlyProgress = ({
                 fontFamily: 'Cairo, sans-serif',
               }}
             >
-              الحد الشهري للإعلانات
+              الحد الشهري للخدمات
             </span>
           </div>
 
@@ -119,7 +119,7 @@ const DashboardMonthlyProgress = ({
                   fontSize: '1.25rem',
                 }}
               >
-                إعلانات غير محدودة
+                خدمات غير محدودة
               </span>
             </div>
             <p
@@ -130,7 +130,7 @@ const DashboardMonthlyProgress = ({
                 margin: 0,
               }}
             >
-              حسابك موثق بالكامل، يمكنك نشر عدد غير محدود من الإعلانات شهرياً.
+              حسابك موثق بالكامل، يمكنك نشر عدد غير محدود من العروض والطلبات شهرياً.
             </p>
           </div>
         ) : (
@@ -158,7 +158,7 @@ const DashboardMonthlyProgress = ({
                     fontFamily: 'Cairo, sans-serif',
                   }}
                 >
-                  من <span className="en-nums">{limit}</span> إعلانات
+                  من <span className="en-nums">{limit}</span> عروض أو طلبات
                 </span>
               </div>
 
@@ -230,7 +230,7 @@ const DashboardMonthlyProgress = ({
                   </>
                 ) : (
                   <>
-                    متبقي لديك <strong className="en-nums">{remaining}</strong> إعلانات هذا الشهر
+                    متبقي لديك <strong className="en-nums">{remaining}</strong> عروض وطلبات هذا الشهر
                   </>
                 )}
               </span>

@@ -1,46 +1,71 @@
 import { Row, Col, Form, Button, Spinner } from 'react-bootstrap';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FaFilter, FaTimes, FaChevronDown, FaChevronUp, 
-  FaSearch, FaList, FaThLarge 
+import {
+  FaFilter,
+  FaTimes,
+  FaChevronDown,
+  FaChevronUp,
+  FaSearch,
+  FaList,
+  FaThLarge,
 } from 'react-icons/fa';
-import type { Governorate, City, UserContext } from '../../types';
+import type {
+  Governorate,
+  City,
+  Category,
+  UserContext,
+} from '../../types';
 
 interface AnnouncementFiltersProps {
   // Search
   searchTerm: string;
   setSearchTerm: (value: string) => void;
   isSearching: boolean;
-  
+
   // Sort
   sortBy: string;
   setSortBy: (value: string) => void;
   sortOptions: { value: string; label: string }[];
-  
+
   // View Mode
   viewMode: 'list' | 'grid';
   setViewMode: (mode: 'list' | 'grid') => void;
-  
-  // Filters
+
+  // Filters panel
   showFilters: boolean;
   setShowFilters: (show: boolean) => void;
+
+  // Region
   governorates: Governorate[];
   cities: City[];
   selectedGovernorate: string;
   setSelectedGovernorate: (value: string) => void;
   selectedCity: string;
   setSelectedCity: (value: string) => void;
+
+  // Type
   selectedType: string;
   setSelectedType: (value: string) => void;
+
+  // Payment
   selectedPriceType: string;
   setSelectedPriceType: (value: string) => void;
+
+  // Privacy
   selectedPrivacyType: string;
   setSelectedPrivacyType: (value: string) => void;
+
+  // Reset
   hasActiveFilters: boolean;
   onClearFilters: () => void;
+
+  // Context
   userContext: UserContext | null;
   isLoggedIn: boolean;
   privacyOptions: { value: string; label: string; available: boolean }[];
+
+  // Categories (unused here — handled by CategorySelector)
+  categories?: Category[];
 }
 
 const AnnouncementFilters = ({
@@ -78,47 +103,60 @@ const AnnouncementFilters = ({
     { value: 'request', label: 'طلب' },
   ];
 
+  // ✅ 'free' REMOVED — only 'paid' + 'barter'
   const priceOptions = [
     { value: '', label: 'جميع طرق الدفع' },
-    { value: 'free', label: 'مجاني' },
     { value: 'paid', label: 'مدفوع' },
     { value: 'barter', label: 'مقايضة' },
   ];
 
-  // ✅ تسميات الخصوصية المطلوبة
   const privacyLabels: Record<string, string> = {
-    'public': 'عام - للجميع',
-    'region_only': 'نفس المنطقة فقط',
-    'verified_only': 'للموثقين الهوية فقط',
-    'verified_region': 'موثق الهوية + نفس المنطقة',
+    public: 'عام - للجميع',
+    region_only: 'نفس المنطقة فقط',
+    verified_only: 'للموثقين الهوية فقط',
+    verified_region: 'موثق الهوية + نفس المنطقة',
   };
 
-  const canFilterByGovernorate = userContext?.available_filters?.governorate_id !== false;
+  const canFilterByGovernorate =
+    userContext?.available_filters?.governorate_id !== false;
   const canFilterByCity = userContext?.available_filters?.city_id !== false;
   const canFilterByType = userContext?.available_filters?.type !== false;
-  const canFilterByPaymentType = userContext?.available_filters?.payment_type !== false;
-  const canFilterByPrivacy = userContext?.available_filters?.privacy_type === true && isLoggedIn;
+  const canFilterByPaymentType =
+    userContext?.available_filters?.payment_type !== false;
+  const canFilterByPrivacy =
+    userContext?.available_filters?.privacy_type === true && isLoggedIn;
 
-  const availablePrivacyOptions = privacyOptions.filter(opt => opt.available);
+  const availablePrivacyOptions = privacyOptions.filter((o) => o.available);
 
+  // ============================================
+  // Filter button badge count
+  // Only counts REGION + TYPE + PAYMENT + PRIVACY.
+  // Category selection is decoupled — it has its own
+  // counter badge inside CategorySelector.
+  // ============================================
+  const activeFilterCount = [
+    selectedGovernorate,
+    selectedCity,
+    selectedType,
+    selectedPriceType,
+    selectedPrivacyType,
+  ].filter(Boolean).length;
+
+  // Compute number of visible filter columns
   let visibleFilterCount = 0;
   if (canFilterByGovernorate) visibleFilterCount++;
   if (canFilterByCity) visibleFilterCount++;
   if (canFilterByType) visibleFilterCount++;
   if (canFilterByPaymentType) visibleFilterCount++;
-  if (canFilterByPrivacy && availablePrivacyOptions.length > 0) visibleFilterCount++;
+  if (canFilterByPrivacy && availablePrivacyOptions.length > 0)
+    visibleFilterCount++;
 
+  const isFiveFilters = visibleFilterCount === 5;
   let colSize = 12;
-  let isFiveFilters = false;
-
-  if (visibleFilterCount === 1) colSize = 12;
-  else if (visibleFilterCount === 2) colSize = 6;
+  if (visibleFilterCount === 2) colSize = 6;
   else if (visibleFilterCount === 3) colSize = 4;
   else if (visibleFilterCount === 4) colSize = 3;
-  else if (visibleFilterCount === 5) {
-    colSize = 3;
-    isFiveFilters = true;
-  }
+  else if (visibleFilterCount === 5) colSize = 3;
 
   return (
     <div
@@ -132,25 +170,25 @@ const AnnouncementFilters = ({
         transition: 'all 0.3s ease',
       }}
     >
-      {/* SEARCH + SORT + FILTER BUTTON + VIEW MODE */}
+      {/* SEARCH + SORT + FILTER + VIEW */}
       <Row className="align-items-center g-2">
         {/* Search */}
         <Col xs={12} md={6} lg={7}>
           <div style={{ position: 'relative' }}>
-            <FaSearch 
-              style={{ 
-                position: 'absolute', 
-                right: '14px', 
-                top: '50%', 
-                transform: 'translateY(-50%)', 
-                color: 'var(--text-muted)', 
-                opacity: 0.6, 
-                fontSize: '0.9rem' 
-              }} 
+            <FaSearch
+              style={{
+                position: 'absolute',
+                right: '14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-muted)',
+                opacity: 0.6,
+                fontSize: '0.9rem',
+              }}
             />
             <Form.Control
               type="text"
-              placeholder="ابحث عن إعلان، خدمة، أو سلعة..."
+              placeholder="ابحث عن عرض، طلب، أو خدمة..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -167,26 +205,17 @@ const AnnouncementFilters = ({
               }}
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = 'var(--primary-orange)';
-                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(232,122,32,0.1)';
+                e.currentTarget.style.boxShadow =
+                  '0 0 0 3px rgba(232,122,32,0.1)';
               }}
               onBlur={(e) => {
                 e.currentTarget.style.borderColor = 'var(--border-color)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
             />
-            <style>{`
-              input::placeholder {
-                color: var(--text-muted) !important;
-                opacity: 0.7 !important;
-                font-family: 'Cairo', sans-serif;
-              }
-              [data-theme="dark"] input::placeholder {
-                color: #a08070 !important;
-                opacity: 0.8 !important;
-              }
-            `}</style>
             {searchTerm && (
               <button
+                type="button"
                 onClick={() => setSearchTerm('')}
                 style={{
                   position: 'absolute',
@@ -208,28 +237,54 @@ const AnnouncementFilters = ({
                   justifyContent: 'center',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(220,53,69,0.1)';
+                  e.currentTarget.style.backgroundColor =
+                    'rgba(220,53,69,0.1)';
                   e.currentTarget.style.color = '#DC3545';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.color = 'var(--text-muted)';
                 }}
+                aria-label="مسح البحث"
               >
                 <FaTimes />
               </button>
             )}
             {isSearching && searchTerm && (
-              <div style={{ position: 'absolute', left: '45px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Spinner animation="border" size="sm" style={{ color: 'var(--primary-orange)', width: '16px', height: '16px' }} />
+              <div
+                style={{
+                  position: 'absolute',
+                  left: '45px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Spinner
+                  animation="border"
+                  size="sm"
+                  style={{
+                    color: 'var(--primary-orange)',
+                    width: '16px',
+                    height: '16px',
+                  }}
+                />
               </div>
             )}
           </div>
         </Col>
 
-        {/* Sort + Filter Button + View Mode */}
+        {/* Sort + Filter + View */}
         <Col xs={12} md={6} lg={5}>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+            }}
+          >
             <Form.Select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -247,20 +302,28 @@ const AnnouncementFilters = ({
                 cursor: 'pointer',
               }}
             >
-              {sortOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </Form.Select>
 
+            {/* Filter toggle button */}
             <Button
+              type="button"
               variant={hasActiveFilters ? 'primary' : 'outline-secondary'}
               onClick={() => setShowFilters(!showFilters)}
               style={{
                 borderRadius: '12px',
                 height: '44px',
                 padding: '0 18px',
-                backgroundColor: hasActiveFilters ? 'var(--primary-orange)' : 'transparent',
-                borderColor: hasActiveFilters ? 'var(--primary-orange)' : 'var(--border-color)',
+                backgroundColor: hasActiveFilters
+                  ? 'var(--primary-orange)'
+                  : 'transparent',
+                borderColor: hasActiveFilters
+                  ? 'var(--primary-orange)'
+                  : 'var(--border-color)',
                 color: hasActiveFilters ? '#FFFFFF' : 'var(--text-secondary)',
                 fontFamily: 'Cairo, sans-serif',
                 fontWeight: 600,
@@ -274,7 +337,7 @@ const AnnouncementFilters = ({
             >
               <FaFilter size={14} />
               {showFilters ? 'إخفاء الفلاتر' : 'إظهار الفلاتر'}
-              {hasActiveFilters && (
+              {activeFilterCount > 0 && (
                 <span
                   style={{
                     backgroundColor: 'rgba(255,255,255,0.3)',
@@ -282,76 +345,70 @@ const AnnouncementFilters = ({
                     padding: '0 6px',
                     fontSize: '0.7rem',
                     fontWeight: 700,
+                    minWidth: '18px',
+                    textAlign: 'center',
                   }}
                 >
-                  {[selectedGovernorate, selectedCity, selectedType, selectedPriceType, selectedPrivacyType].filter(Boolean).length}
+                  {activeFilterCount}
                 </span>
               )}
-              {showFilters ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
+              {showFilters ? (
+                <FaChevronUp size={12} />
+              ) : (
+                <FaChevronDown size={12} />
+              )}
             </Button>
 
-            <div 
-              className="view-mode-toggle" 
-              style={{ 
-                display: 'flex', 
-                borderRadius: '12px', 
-                border: '1px solid var(--border-color)', 
-                overflow: 'hidden', 
-                height: '44px' 
+            <div
+              className="view-mode-toggle"
+              style={{
+                display: 'flex',
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+                overflow: 'hidden',
+                height: '44px',
               }}
             >
               <button
+                type="button"
                 onClick={() => setViewMode('list')}
+                aria-label="عرض قائمة"
                 style={{
                   padding: '0 14px',
                   border: 'none',
-                  background: viewMode === 'list' ? 'var(--primary-orange)' : 'transparent',
-                  color: viewMode === 'list' ? '#FFFFFF' : 'var(--text-muted)',
+                  background:
+                    viewMode === 'list'
+                      ? 'var(--primary-orange)'
+                      : 'transparent',
+                  color:
+                    viewMode === 'list' ? '#FFFFFF' : 'var(--text-muted)',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                }}
-                onMouseEnter={(e) => {
-                  if (viewMode !== 'list') {
-                    e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
-                    e.currentTarget.style.color = 'var(--primary-orange)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (viewMode !== 'list') {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-muted)';
-                  }
                 }}
               >
                 <FaList size={16} />
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode('grid')}
+                aria-label="عرض شبكة"
                 style={{
                   padding: '0 14px',
                   border: 'none',
-                  background: viewMode === 'grid' ? 'var(--primary-orange)' : 'transparent',
-                  color: viewMode === 'grid' ? '#FFFFFF' : 'var(--text-muted)',
+                  background:
+                    viewMode === 'grid'
+                      ? 'var(--primary-orange)'
+                      : 'transparent',
+                  color:
+                    viewMode === 'grid' ? '#FFFFFF' : 'var(--text-muted)',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                }}
-                onMouseEnter={(e) => {
-                  if (viewMode !== 'grid') {
-                    e.currentTarget.style.backgroundColor = 'rgba(232,122,32,0.08)';
-                    e.currentTarget.style.color = 'var(--primary-orange)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (viewMode !== 'grid') {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-muted)';
-                  }
                 }}
               >
                 <FaThLarge size={16} />
@@ -361,7 +418,9 @@ const AnnouncementFilters = ({
         </Col>
       </Row>
 
+      {/* ============================================ */}
       {/* FILTERS PANEL */}
+      {/* ============================================ */}
       <AnimatePresence>
         {showFilters && (
           <motion.div
@@ -371,11 +430,26 @@ const AnnouncementFilters = ({
             transition={{ duration: 0.3 }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ paddingTop: '1rem', marginTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+            <div
+              style={{
+                paddingTop: '1rem',
+                marginTop: '1rem',
+                borderTop: '1px solid var(--border-color)',
+              }}
+            >
               <Row className="g-2">
-                {/* Governorate Filter */}
+                {/* Governorate */}
                 {canFilterByGovernorate && (
-                  <Col xs={12} sm={colSize} lg={isFiveFilters ? 2 : colSize} style={isFiveFilters ? { flex: '0 0 20%', maxWidth: '20%' } : {}}>
+                  <Col
+                    xs={12}
+                    sm={colSize}
+                    lg={isFiveFilters ? 2 : colSize}
+                    style={
+                      isFiveFilters
+                        ? { flex: '0 0 20%', maxWidth: '20%' }
+                        : {}
+                    }
+                  >
                     <Form.Select
                       value={selectedGovernorate}
                       onChange={(e) => setSelectedGovernorate(e.target.value)}
@@ -383,7 +457,9 @@ const AnnouncementFilters = ({
                         borderRadius: '10px',
                         height: '42px',
                         backgroundColor: 'var(--bg-input)',
-                        borderColor: selectedGovernorate ? 'var(--primary-orange)' : 'var(--border-color)',
+                        borderColor: selectedGovernorate
+                          ? 'var(--primary-orange)'
+                          : 'var(--border-color)',
                         color: 'var(--text-primary)',
                         fontFamily: 'Cairo, sans-serif',
                         fontSize: '0.85rem',
@@ -392,16 +468,27 @@ const AnnouncementFilters = ({
                       }}
                     >
                       <option value="">جميع المحافظات</option>
-                      {governorates.map(gov => (
-                        <option key={gov.id} value={gov.id}>{gov.name}</option>
+                      {governorates.map((gov) => (
+                        <option key={gov.id} value={gov.id}>
+                          {gov.name}
+                        </option>
                       ))}
                     </Form.Select>
                   </Col>
                 )}
 
-                {/* City Filter */}
+                {/* City */}
                 {canFilterByCity && (
-                  <Col xs={12} sm={colSize} lg={isFiveFilters ? 2 : colSize} style={isFiveFilters ? { flex: '0 0 20%', maxWidth: '20%' } : {}}>
+                  <Col
+                    xs={12}
+                    sm={colSize}
+                    lg={isFiveFilters ? 2 : colSize}
+                    style={
+                      isFiveFilters
+                        ? { flex: '0 0 20%', maxWidth: '20%' }
+                        : {}
+                    }
+                  >
                     <Form.Select
                       value={selectedCity}
                       onChange={(e) => setSelectedCity(e.target.value)}
@@ -410,7 +497,9 @@ const AnnouncementFilters = ({
                         borderRadius: '10px',
                         height: '42px',
                         backgroundColor: 'var(--bg-input)',
-                        borderColor: selectedCity ? 'var(--primary-orange)' : 'var(--border-color)',
+                        borderColor: selectedCity
+                          ? 'var(--primary-orange)'
+                          : 'var(--border-color)',
                         color: 'var(--text-primary)',
                         fontFamily: 'Cairo, sans-serif',
                         fontSize: '0.85rem',
@@ -420,16 +509,27 @@ const AnnouncementFilters = ({
                       }}
                     >
                       <option value="">جميع المدن والأحياء</option>
-                      {cities.map(city => (
-                        <option key={city.id} value={city.id}>{city.name}</option>
+                      {cities.map((city) => (
+                        <option key={city.id} value={city.id}>
+                          {city.name}
+                        </option>
                       ))}
                     </Form.Select>
                   </Col>
                 )}
 
-                {/* Type Filter */}
+                {/* Type */}
                 {canFilterByType && (
-                  <Col xs={12} sm={colSize} lg={isFiveFilters ? 2 : colSize} style={isFiveFilters ? { flex: '0 0 20%', maxWidth: '20%' } : {}}>
+                  <Col
+                    xs={12}
+                    sm={colSize}
+                    lg={isFiveFilters ? 2 : colSize}
+                    style={
+                      isFiveFilters
+                        ? { flex: '0 0 20%', maxWidth: '20%' }
+                        : {}
+                    }
+                  >
                     <Form.Select
                       value={selectedType}
                       onChange={(e) => setSelectedType(e.target.value)}
@@ -437,7 +537,9 @@ const AnnouncementFilters = ({
                         borderRadius: '10px',
                         height: '42px',
                         backgroundColor: 'var(--bg-input)',
-                        borderColor: selectedType ? 'var(--primary-orange)' : 'var(--border-color)',
+                        borderColor: selectedType
+                          ? 'var(--primary-orange)'
+                          : 'var(--border-color)',
                         color: 'var(--text-primary)',
                         fontFamily: 'Cairo, sans-serif',
                         fontSize: '0.85rem',
@@ -445,16 +547,27 @@ const AnnouncementFilters = ({
                         transition: 'all 0.3s ease',
                       }}
                     >
-                      {typeOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      {typeOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
                       ))}
                     </Form.Select>
                   </Col>
                 )}
 
-                {/* Payment Type Filter */}
+                {/* Payment Type */}
                 {canFilterByPaymentType && (
-                  <Col xs={12} sm={colSize} lg={isFiveFilters ? 2 : colSize} style={isFiveFilters ? { flex: '0 0 20%', maxWidth: '20%' } : {}}>
+                  <Col
+                    xs={12}
+                    sm={colSize}
+                    lg={isFiveFilters ? 2 : colSize}
+                    style={
+                      isFiveFilters
+                        ? { flex: '0 0 20%', maxWidth: '20%' }
+                        : {}
+                    }
+                  >
                     <Form.Select
                       value={selectedPriceType}
                       onChange={(e) => setSelectedPriceType(e.target.value)}
@@ -462,7 +575,9 @@ const AnnouncementFilters = ({
                         borderRadius: '10px',
                         height: '42px',
                         backgroundColor: 'var(--bg-input)',
-                        borderColor: selectedPriceType ? 'var(--primary-orange)' : 'var(--border-color)',
+                        borderColor: selectedPriceType
+                          ? 'var(--primary-orange)'
+                          : 'var(--border-color)',
                         color: 'var(--text-primary)',
                         fontFamily: 'Cairo, sans-serif',
                         fontSize: '0.85rem',
@@ -470,16 +585,27 @@ const AnnouncementFilters = ({
                         transition: 'all 0.3s ease',
                       }}
                     >
-                      {priceOptions.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      {priceOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
                       ))}
                     </Form.Select>
                   </Col>
                 )}
 
-                {/* Privacy Filter */}
+                {/* Privacy */}
                 {canFilterByPrivacy && availablePrivacyOptions.length > 0 && (
-                  <Col xs={12} sm={colSize} lg={isFiveFilters ? 2 : colSize} style={isFiveFilters ? { flex: '0 0 20%', maxWidth: '20%' } : {}}>
+                  <Col
+                    xs={12}
+                    sm={colSize}
+                    lg={isFiveFilters ? 2 : colSize}
+                    style={
+                      isFiveFilters
+                        ? { flex: '0 0 20%', maxWidth: '20%' }
+                        : {}
+                    }
+                  >
                     <Form.Select
                       value={selectedPrivacyType}
                       onChange={(e) => setSelectedPrivacyType(e.target.value)}
@@ -487,7 +613,9 @@ const AnnouncementFilters = ({
                         borderRadius: '10px',
                         height: '42px',
                         backgroundColor: 'var(--bg-input)',
-                        borderColor: selectedPrivacyType ? 'var(--primary-orange)' : 'var(--border-color)',
+                        borderColor: selectedPrivacyType
+                          ? 'var(--primary-orange)'
+                          : 'var(--border-color)',
                         color: 'var(--text-primary)',
                         fontFamily: 'Cairo, sans-serif',
                         fontSize: '0.85rem',
@@ -496,7 +624,7 @@ const AnnouncementFilters = ({
                       }}
                     >
                       <option value="">جميع خيارات الخصوصية</option>
-                      {availablePrivacyOptions.map(opt => (
+                      {availablePrivacyOptions.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {privacyLabels[opt.value] || opt.label}
                         </option>
@@ -506,25 +634,30 @@ const AnnouncementFilters = ({
                 )}
               </Row>
 
-              {/* Clear Filters + Quick Tip */}
-              <div style={{ 
-                marginTop: '0.75rem', 
-                display: 'flex', 
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
+              {/* Clear Filters */}
+              <div
+                style={{
+                  marginTop: '0.75rem',
+                  display: 'flex',
+                  justifyContent: 'center',
+                }}
+              >
                 {hasActiveFilters && (
-                  <Button
-                    variant="link"
+                  <button
+                    type="button"
                     onClick={onClearFilters}
                     style={{
+                      background: 'none',
+                      border: 'none',
                       color: 'var(--text-muted)',
-                      textDecoration: 'none',
                       fontFamily: 'Cairo, sans-serif',
                       fontSize: '0.8rem',
                       padding: '4px 8px',
-                      transition: 'all 0.2s ease',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'color 0.2s ease',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.color = '#DC3545';
@@ -533,18 +666,10 @@ const AnnouncementFilters = ({
                       e.currentTarget.style.color = 'var(--text-muted)';
                     }}
                   >
-                    <FaTimes size={12} style={{ marginLeft: '4px' }} /> مسح جميع الفلاتر
-                  </Button>
+                    <FaTimes size={12} />
+                    مسح جميع الفلاتر
+                  </button>
                 )}
-                <div style={{ 
-                  color: 'var(--text-muted)', 
-                  fontSize: '0.7rem', 
-                  fontFamily: 'Cairo, sans-serif', 
-                  opacity: 0.6,
-                  textAlign: 'center',
-                }}>
-                  يمكنك اختيار أكثر من فئة فرعية من الأسفل
-                </div>
               </div>
             </div>
           </motion.div>

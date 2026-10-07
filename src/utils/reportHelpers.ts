@@ -107,7 +107,7 @@ export const getTargetTypeLabel = (
 ): string => {
   const map: Record<ReportTargetType, string> = {
     user: 'مستخدم',
-    announcement: 'إعلان',
+    announcement: 'خدمة',
   };
   return map[targetType];
 };
@@ -280,7 +280,7 @@ export const REPORT_PRIORITY_OPTIONS = [
 export const REPORT_TARGET_TYPE_OPTIONS = [
   { value: 'all', label: 'الكل' },
   { value: 'user', label: 'مستخدم' },
-  { value: 'announcement', label: 'إعلان' },
+  { value: 'announcement', label: 'خدمة' },
 ] as const;
 
 /**

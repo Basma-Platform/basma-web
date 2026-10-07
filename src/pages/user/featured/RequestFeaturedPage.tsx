@@ -17,6 +17,7 @@ import {
   FeaturedRequestForm,
   FeaturedRequestPageSkeleton,
 } from '../../../components/user/announcements';
+import { getEntity } from '../../../utils/announcementNaming';
 
 const RequestFeaturedPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,25 +28,24 @@ const RequestFeaturedPage = () => {
     if (id) fetchAnnouncement(Number(id));
   }, [id, fetchAnnouncement]);
 
-  // ============================================
+  // ✨ Type-aware copy
+  const t = getEntity(announcement?.type);
+
   // Loading
-  // ============================================
   if (loading && !announcement) {
     return (
       <>
-        <SEO title="طلب تمييز الإعلان" />
+        <SEO title={`تمييز ${t.definite}`} />
         <FeaturedRequestPageSkeleton />
       </>
     );
   }
 
-  // ============================================
   // Not Found
-  // ============================================
   if (!announcement) {
     return (
       <>
-        <SEO title="الإعلان غير موجود" />
+        <SEO title="غير موجود" />
         <div
           style={{
             minHeight: '100vh',
@@ -83,7 +83,7 @@ const RequestFeaturedPage = () => {
                 margin: '0.85rem 0 6px',
               }}
             >
-              الإعلان غير موجود
+              غير موجود
             </h3>
             <Link
               to="/user/my-announcements"
@@ -102,7 +102,7 @@ const RequestFeaturedPage = () => {
               }}
             >
               <FaChevronLeft size={10} />
-              العودة إلى إعلاناتي
+              العودة إلى خدماتي
             </Link>
           </div>
         </div>
@@ -110,13 +110,11 @@ const RequestFeaturedPage = () => {
     );
   }
 
-  // ============================================
   // Already Featured
-  // ============================================
   if (announcement.is_currently_featured) {
     return (
       <>
-        <SEO title="الإعلان مميز بالفعل" />
+        <SEO title={`${t.possessive} مميز بالفعل`} />
         <div
           style={{
             minHeight: '100vh',
@@ -156,7 +154,7 @@ const RequestFeaturedPage = () => {
                 margin: '0.85rem 0 6px',
               }}
             >
-              الإعلان مميز بالفعل
+              {t.possessive} مميز بالفعل
             </h3>
             <p
               style={{
@@ -166,7 +164,7 @@ const RequestFeaturedPage = () => {
                 margin: '0 0 1.25rem',
               }}
             >
-              هذا الإعلان يتمتع بخاصية التمييز حالياً. يمكنك إعادة تمييزه بعد
+              هذا {t.noun} يتمتع بخاصية التمييز حالياً. يمكنك إعادة تمييزه بعد
               انتهاء الباقة النشطة.
             </p>
             <Link
@@ -185,7 +183,7 @@ const RequestFeaturedPage = () => {
               }}
             >
               <FaEye size={11} />
-              عرض الإعلان
+              عرض {t.definite}
             </Link>
           </div>
         </div>
@@ -193,9 +191,7 @@ const RequestFeaturedPage = () => {
     );
   }
 
-  // ============================================
   // Pending Request Exists
-  // ============================================
   if (announcement.featured_request_status === 'pending') {
     return (
       <>
@@ -275,7 +271,7 @@ const RequestFeaturedPage = () => {
                 margin: '0 0 8px',
               }}
             >
-              لديك طلب تمييز قيد المراجعة لهذا الإعلان
+              لديك طلب تمييز قيد المراجعة لهذا {t.noun}
             </h3>
 
             <p
@@ -291,7 +287,11 @@ const RequestFeaturedPage = () => {
             </p>
 
             <div
-              style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}
+              style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'center',
+              }}
             >
               <Link
                 to="/user/featured-requests"
@@ -321,14 +321,12 @@ const RequestFeaturedPage = () => {
     );
   }
 
-  // ============================================
-  // Standard Render (Form Page)
-  // ============================================
+  // Standard Render
   return (
     <>
       <SEO
         title={`تمييز: ${announcement.title}`}
-        description="ميّز إعلانك ليصل إلى آلاف المستخدمين"
+        description={`${t.featureCTA} ليصل إلى آلاف المستخدمين`}
       />
 
       <div
@@ -371,7 +369,6 @@ const RequestFeaturedPage = () => {
                 boxSizing: 'border-box',
               }}
             >
-              {/* Breadcrumb */}
               <div
                 style={{
                   display: 'flex',
@@ -403,15 +400,14 @@ const RequestFeaturedPage = () => {
                     fontWeight: 600,
                   }}
                 >
-                  إعلاناتي
+                  خدماتي
                 </Link>
                 <FaChevronLeft size={9} style={{ opacity: 0.4 }} />
                 <span style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-                  تمييز الإعلان
+                  تمييز {t.definite}
                 </span>
               </div>
 
-              {/* Title Container */}
               <div
                 style={{
                   display: 'flex',
@@ -444,6 +440,7 @@ const RequestFeaturedPage = () => {
                   <FaStar size={16} />
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
+                  {/* ✨ Dynamic title */}
                   <h1
                     style={{
                       color: 'var(--text-secondary)',
@@ -457,7 +454,7 @@ const RequestFeaturedPage = () => {
                       textOverflow: 'ellipsis',
                     }}
                   >
-                    ميّز إعلانك الآن
+                    {t.featureCTA}
                   </h1>
                   <p
                     style={{
@@ -470,21 +467,20 @@ const RequestFeaturedPage = () => {
                       textOverflow: 'ellipsis',
                     }}
                   >
-                    اختر الباقة، حوّل المبلغ، وارفع الإشعار لزيادة مبيعاتك
+                    اختر الباقة، حوّل المبلغ، وارفع الإشعار لزيادة وصولك
                   </p>
                 </div>
               </div>
             </motion.div>
 
-            {/* Form Component */}
             <FeaturedRequestForm
               announcement={announcement as any}
               onSuccess={() => {
                 // Navigation handled inside FeaturedRequestForm
-                // Fallback: if for some reason onSuccess fires without navigation
-                // we go to the list.
               }}
-              onCancel={() => navigate(`/user/announcements/${announcement.id}`)}
+              onCancel={() =>
+                navigate(`/user/announcements/${announcement.id}`)
+              }
             />
           </div>
         </Container>
