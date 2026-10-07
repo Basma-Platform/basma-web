@@ -26,18 +26,15 @@ const FeaturedCarousel = ({
   title = 'الخدمات المميزة',
   variant = 'default',
 }: FeaturedCarouselProps) => {
+  // ============================================
+  // ✅ Hooks FIRST — before any early return
+  // ============================================
   const [isPaused, setIsPaused] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // ============================================
-  // Empty state — hide carousel completely
-  // ============================================
-  if (!loading && (!announcements || announcements.length === 0)) {
-    return null;
-  }
-
-  // ============================================
-  // Duplicate items for seamless loop
+  // ✅ Compute derived values BEFORE hooks that use them
+  //    (moved UP so they're available to useEffect)
   // ============================================
   const multipliedAnnouncements =
     announcements && announcements.length < 5
@@ -48,10 +45,15 @@ const FeaturedCarousel = ({
   const dynamicDuration = Math.max(25, itemCount * 3.5);
 
   // ============================================
-  // Set initial scroll position to middle group
+  // ✅ useEffect — now ALWAYS called (before any return)
+  //    Guarded internally so it's a no-op when empty
   // ============================================
   useEffect(() => {
-    if (!loading && scrollRef.current) {
+    if (
+      !loading &&
+      scrollRef.current &&
+      multipliedAnnouncements.length > 0
+    ) {
       const container = scrollRef.current;
       const trackGroup = container.querySelector(
         '.featured-marquee-group'
@@ -63,7 +65,15 @@ const FeaturedCarousel = ({
   }, [loading, multipliedAnnouncements]);
 
   // ============================================
-  // Seamless loop on scroll
+  // ✅ NOW safe to early-return (all hooks called above)
+  //    Empty state — hide carousel completely
+  // ============================================
+  if (!loading && (!announcements || announcements.length === 0)) {
+    return null;
+  }
+
+  // ============================================
+  // Seamless loop on scroll (plain function, not a hook)
   // ============================================
   const handleScroll = () => {
     const container = scrollRef.current;
