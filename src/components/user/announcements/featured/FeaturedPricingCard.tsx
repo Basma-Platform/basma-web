@@ -8,6 +8,8 @@ import {
 } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
 import type { FeaturedPricing } from '../../../../types';
+import { useCardBorderAnimation } from '../../../../hooks/useCardBorderAnimation';
+import AnimatedCardBorder from '../../../ui/AnimatedCardBorder';
 
 interface FeaturedPricingCardProps {
   pricing: FeaturedPricing;
@@ -18,9 +20,9 @@ interface FeaturedPricingCardProps {
 
 /**
  * Returns tier styling based on duration:
- *  - 7 days  → Basic
- *  - 14 days → Popular
- *  - 30 days → Best Value
+ *  - 7 days  → Basic (teal)
+ *  - 14 days → Popular (orange)
+ *  - 30 days → Best Value (purple)
  */
 const getTierConfig = (
   duration: number
@@ -65,7 +67,6 @@ const getTierConfig = (
     };
   }
 
-  // Fallback
   return {
     label: null,
     Icon: FaClock,
@@ -85,8 +86,17 @@ const FeaturedPricingCard = ({
   const tier = getTierConfig(pricing.duration_days);
   const { Icon } = tier;
 
+  // ✨ Reusable animation hook
+  const { ref, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
   return (
     <motion.button
+      ref={ref}
+      {...hoverHandlers}
       type="button"
       onClick={() => !disabled && onSelect()}
       disabled={disabled}
@@ -105,12 +115,11 @@ const FeaturedPricingCard = ({
         border: `2px solid ${
           isSelected ? tier.accent : 'var(--border-color)'
         }`,
-        backgroundColor: isSelected
-          ? `${tier.accent}0A`
-          : 'var(--bg-card)',
+        backgroundColor: isSelected ? `${tier.accent}0A` : 'var(--bg-card)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'Cairo, sans-serif',
-        transition: 'all 0.25s ease',
+        transition:
+          'border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease',
         boxShadow: isSelected
           ? `0 12px 32px ${tier.accent}30, 0 4px 12px ${tier.accent}20`
           : '0 2px 12px var(--shadow-sm)',
@@ -122,23 +131,23 @@ const FeaturedPricingCard = ({
       }}
     >
       {/* ============================================ */}
-      {/* Top Accent Bar */}
+      {/* ✨ Animated Top Accent Bar — Option B */}
+      {/* Idle      → hidden (0%)                     */}
+      {/* Hovered   → draws from right to left        */}
+      {/* Selected  → stays fully drawn               */}
       {/* ============================================ */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          left: 0,
-          height: '4px',
-          background: tier.gradient,
-          opacity: isSelected ? 1 : 0.35,
-          transition: 'opacity 0.25s ease',
-        }}
+      <AnimatedCardBorder
+        isDrawn={isDrawn || isSelected}
+        background={tier.gradient}
+        drawFrom="start"
+        height={4}
+        duration={0.55}
+        idleOpacity={isSelected ? 1 : 0}
+        rounded
       />
 
       {/* ============================================ */}
-      {/* Top-Right Badge (Popular/Best Value) */}
+      {/* Top-Left Badge (Popular/Best Value) */}
       {/* ============================================ */}
       {tier.label && (
         <motion.div
@@ -203,17 +212,13 @@ const FeaturedPricingCard = ({
           width: '46px',
           height: '46px',
           borderRadius: '13px',
-          background: isSelected
-            ? tier.gradient
-            : tier.badgeColor,
+          background: isSelected ? tier.gradient : tier.badgeColor,
           color: isSelected ? '#FFFFFF' : tier.accent,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           transition: 'all 0.25s ease',
-          boxShadow: isSelected
-            ? `0 6px 16px ${tier.accent}40`
-            : 'none',
+          boxShadow: isSelected ? `0 6px 16px ${tier.accent}40` : 'none',
         }}
       >
         <Icon size={20} />
@@ -317,9 +322,7 @@ const FeaturedPricingCard = ({
             تم الاختيار
           </>
         ) : (
-          <>
-            اختر هذه الباقة
-          </>
+          <>اختر هذه الباقة</>
         )}
       </motion.div>
     </motion.button>

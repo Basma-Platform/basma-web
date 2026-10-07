@@ -99,7 +99,7 @@ const FeaturedDetailsBanner = () => {
               letterSpacing: '-0.2px',
             }}
           >
-            إعلان مثبت ومميز
+            خدمة مثبتة ومميزة
           </h3>
           <FaStar size={12} color="#FFD700" style={{ opacity: 0.9 }} />
         </div>
@@ -115,7 +115,7 @@ const FeaturedDetailsBanner = () => {
             lineHeight: 1.4,
           }}
         >
-          يحظى هذا الإعلان بأولوية الظهور وأعلى نسبة مشاهدة في المنصة
+          تحظى هذه الخدمة بأولوية الظهور وأعلى نسبة مشاهدة في المنصة
         </p>
       </div>
     </motion.div>

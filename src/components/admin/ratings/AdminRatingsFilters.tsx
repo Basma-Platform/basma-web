@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { FaSearch, FaTimes, FaSortAmountDown } from 'react-icons/fa';
 
@@ -17,9 +17,7 @@ interface AdminRatingsFiltersProps {
   onRatingFilterChange: (v: AdminRatingValueFilter) => void;
   sort: AdminRatingSort;
   onSortChange: (v: AdminRatingSort) => void;
-  onClear: () => void;
   isSearching?: boolean;
-  resultsCount?: number;
 }
 
 const AdminRatingsFilters = ({
@@ -29,23 +27,29 @@ const AdminRatingsFilters = ({
   onRatingFilterChange,
   sort,
   onSortChange,
-  onClear,
   isSearching = false,
-  resultsCount,
 }: AdminRatingsFiltersProps) => {
   const [localSearch, setLocalSearch] = useState(search);
   const [showSort, setShowSort] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ✅ Stable ref to onSearchChange
+  const onSearchChangeRef = useRef(onSearchChange);
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange;
+  }, [onSearchChange]);
+
   // Debounce search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => onSearchChange(localSearch), 450);
+    debounceRef.current = setTimeout(() => {
+      onSearchChangeRef.current(localSearch);
+    }, 450);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [localSearch, onSearchChange]);
+  }, [localSearch]);
 
   useEffect(() => setLocalSearch(search), [search]);
 
@@ -60,6 +64,16 @@ const AdminRatingsFilters = ({
     return () => document.removeEventListener('mousedown', onClick);
   }, [showSort]);
 
+  const handleClearSearch = useCallback(() => setLocalSearch(''), []);
+
+  const handlePickSort = useCallback(
+    (value: AdminRatingSort) => {
+      onSortChange(value);
+      setShowSort(false);
+    },
+    [onSortChange]
+  );
+
   const sortOptions: { value: AdminRatingSort; label: string }[] = [
     { value: 'newest', label: 'الأحدث أولاً' },
     { value: 'oldest', label: 'الأقدم أولاً' },
@@ -69,8 +83,6 @@ const AdminRatingsFilters = ({
 
   const currentSortLabel =
     sortOptions.find((o) => o.value === sort)?.label || 'الأحدث أولاً';
-
-  const hasFilter = ratingFilter !== 'all' || search.trim() !== '';
 
   return (
     <motion.div
@@ -142,7 +154,7 @@ const AdminRatingsFilters = ({
           {localSearch && (
             <button
               type="button"
-              onClick={() => setLocalSearch('')}
+              onClick={handleClearSearch}
               style={{
                 position: 'absolute',
                 left: '12px',
@@ -251,10 +263,7 @@ const AdminRatingsFilters = ({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => {
-                      onSortChange(opt.value);
-                      setShowSort(false);
-                    }}
+                    onClick={() => handlePickSort(opt.value)}
                     style={{
                       width: '100%',
                       textAlign: 'right',
@@ -282,124 +291,56 @@ const AdminRatingsFilters = ({
         </div>
       </div>
 
-      {/* Row 2: Rating filter tabs */}
+      {/* Row 2: Rating filter tabs (full width) */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
+          gap: '6px',
+          backgroundColor: 'var(--bg-input)',
+          padding: '5px',
+          borderRadius: '12px',
+          border: '1px solid var(--border-color)',
           flexWrap: 'wrap',
+          width: '100%',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            gap: '6px',
-            backgroundColor: 'var(--bg-input)',
-            padding: '5px',
-            borderRadius: '12px',
-            border: '1px solid var(--border-color)',
-            flexWrap: 'wrap',
-            flex: '1 1 auto',
-          }}
-        >
-          {(
-            [
-              { v: 'all' as const, label: 'الكل' },
-              { v: 5 as const, label: '5 ★' },
-              { v: 4 as const, label: '4 ★' },
-              { v: 3 as const, label: '3 ★' },
-              { v: 2 as const, label: '2 ★' },
-              { v: 1 as const, label: '1 ★' },
-            ]
-          ).map((opt) => {
-            const active = ratingFilter === opt.v;
-            return (
-              <button
-                key={String(opt.v)}
-                type="button"
-                onClick={() => onRatingFilterChange(opt.v)}
-                style={{
-                  flex: '1 1 auto',
-                  minWidth: 'fit-content',
-                  padding: '7px 16px',
-                  borderRadius: '9px',
-                  border: 'none',
-                  backgroundColor: active ? 'var(--bg-card)' : 'transparent',
-                  color: active ? 'var(--primary-orange)' : 'var(--text-muted)',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontSize: '0.8rem',
-                  fontWeight: active ? 700 : 600,
-                  cursor: 'pointer',
-                  boxShadow: active ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            flex: '0 1 auto',
-          }}
-        >
-          {typeof resultsCount === 'number' && (
-            <span
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.78rem',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {resultsCount} نتيجة
-            </span>
-          )}
-          {hasFilter && (
+        {(
+          [
+            { v: 'all' as const, label: 'الكل' },
+            { v: 5 as const, label: '5 ★' },
+            { v: 4 as const, label: '4 ★' },
+            { v: 3 as const, label: '3 ★' },
+            { v: 2 as const, label: '2 ★' },
+            { v: 1 as const, label: '1 ★' },
+          ]
+        ).map((opt) => {
+          const active = ratingFilter === opt.v;
+          return (
             <button
+              key={String(opt.v)}
               type="button"
-              onClick={() => {
-                onClear();
-                setLocalSearch('');
-              }}
+              onClick={() => onRatingFilterChange(opt.v)}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '7px 14px',
+                flex: '1 1 auto',
+                minWidth: 'fit-content',
+                padding: '7px 16px',
                 borderRadius: '9px',
-                border: '1px solid rgba(220,53,69,0.3)',
-                backgroundColor: 'rgba(220,53,69,0.06)',
-                color: '#DC3545',
+                border: 'none',
+                backgroundColor: active ? 'var(--bg-card)' : 'transparent',
+                color: active ? 'var(--primary-orange)' : 'var(--text-muted)',
                 fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.75rem',
-                fontWeight: 700,
+                fontSize: '0.8rem',
+                fontWeight: active ? 700 : 600,
                 cursor: 'pointer',
+                boxShadow: active ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.2s ease',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#DC3545';
-                e.currentTarget.style.color = '#FFFFFF';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(220,53,69,0.06)';
-                e.currentTarget.style.color = '#DC3545';
-              }}
             >
-              <FaTimes size={10} />
-              مسح الفلاتر
+              {opt.label}
             </button>
-          )}
-        </div>
+          );
+        })}
       </div>
     </motion.div>
   );

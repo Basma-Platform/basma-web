@@ -44,6 +44,8 @@ export { default as FeaturedPaymentMethods } from './forms/FeaturedPaymentMethod
 // ============================================
 export { default as DeleteConfirmModal } from './modals/DeleteConfirmModal';
 export { default as DisableConfirmModal } from './modals/DisableConfirmModal';
+export { default as CompleteConfirmModal } from './modals/CompleteConfirmModal';
+export { default as ReopenConfirmModal } from './modals/ReopenConfirmModal';
 
 // ============================================
 // Featured

@@ -16,12 +16,15 @@ import {
   MyAnnouncementFilters,
   DeleteConfirmModal,
   DisableConfirmModal,
+  CompleteConfirmModal,
+  ReopenConfirmModal,
   MyAnnouncementsSkeleton,
   type AnnouncementStatusFilter,
   type AnnouncementSortOption,
 } from '../../../components/user/announcements';
 import Pagination from '../../../components/shared/Pagination';
-import type { Announcement } from '../../../types';
+import { DUAL_LABEL } from '../../../utils/announcementNaming';
+import type { Announcement, AnnouncementType } from '../../../types';
 
 const DEFAULT_PER_PAGE = 12;
 
@@ -35,11 +38,11 @@ const MyAnnouncementsPage = () => {
     deleteAnnouncement,
     disableAnnouncement,
     enableAnnouncement,
+    completeAnnouncement,
+    reopenAnnouncement,
   } = useUserAnnouncements();
 
-  // ============================================
   // Local State
-  // ============================================
   const [statusFilter, setStatusFilter] =
     useState<AnnouncementStatusFilter>('all');
   const [search, setSearch] = useState('');
@@ -55,25 +58,36 @@ const MyAnnouncementsPage = () => {
     open: boolean;
     id: number | null;
     title: string;
-  }>({ open: false, id: null, title: '' });
+    type: AnnouncementType | null;
+  }>({ open: false, id: null, title: '', type: null });
 
   const [disableModal, setDisableModal] = useState<{
     open: boolean;
     id: number | null;
     title: string;
+    type: AnnouncementType | null;
     mode: 'disable' | 'enable';
-  }>({ open: false, id: null, title: '', mode: 'disable' });
+  }>({ open: false, id: null, title: '', type: null, mode: 'disable' });
+
+  const [completeModal, setCompleteModal] = useState<{
+    open: boolean;
+    id: number | null;
+    title: string;
+    type: AnnouncementType | null;
+  }>({ open: false, id: null, title: '', type: null });
+
+  const [reopenModal, setReopenModal] = useState<{
+    open: boolean;
+    id: number | null;
+    title: string;
+    type: AnnouncementType | null;
+  }>({ open: false, id: null, title: '', type: null });
 
   const [modalLoading, setModalLoading] = useState(false);
 
-  // ============================================
-  // Fetch Wrapper (with page + perPage)
-  // ============================================
+  // Fetch wrapper
   const loadAnnouncements = useCallback(
-    async (
-      page: number = 1,
-      perPageOverride?: number
-    ) => {
+    async (page: number = 1, perPageOverride?: number) => {
       const pp = perPageOverride ?? perPage;
       await fetchMyAnnouncements({
         status: statusFilter,
@@ -86,18 +100,12 @@ const MyAnnouncementsPage = () => {
     [fetchMyAnnouncements, statusFilter, search, sort, perPage]
   );
 
-  // ============================================
-  // Initial + Filter Changes → Reset to page 1
-  // ============================================
   useEffect(() => {
     setCurrentPage(1);
     loadAnnouncements(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, sort]);
 
-  // ============================================
-  // Debounced Search
-  // ============================================
   useEffect(() => {
     setIsSearching(true);
     const timer = setTimeout(() => {
@@ -110,45 +118,34 @@ const MyAnnouncementsPage = () => {
         per_page: perPage,
       }).finally(() => setIsSearching(false));
     }, 450);
-
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  // ============================================
-  // Page Change Handler
-  // ============================================
+  // Pagination
   const handlePageChange = async (page: number) => {
     setCurrentPage(page);
     await loadAnnouncements(page);
-
     if (gridRef.current) {
-      gridRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
+      gridRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  // ============================================
-  // ✅ NEW: Per-Page Change Handler
-  // ============================================
   const handlePerPageChange = async (newPerPage: number) => {
     setPerPage(newPerPage);
     setCurrentPage(1);
     await loadAnnouncements(1, newPerPage);
   };
 
-  // ============================================
-  // Actions
-  // ============================================
+  // Delete
   const handleDeleteClick = (announcement: Announcement) => {
     setDeleteModal({
       open: true,
       id: announcement.id,
       title: announcement.title,
+      type: announcement.type,
     });
   };
 
@@ -157,8 +154,7 @@ const MyAnnouncementsPage = () => {
     try {
       setModalLoading(true);
       await deleteAnnouncement(deleteModal.id);
-      setDeleteModal({ open: false, id: null, title: '' });
-
+      setDeleteModal({ open: false, id: null, title: '', type: null });
       const targetPage =
         data.length === 1 && currentPage > 1 ? currentPage - 1 : currentPage;
       setCurrentPage(targetPage);
@@ -168,11 +164,13 @@ const MyAnnouncementsPage = () => {
     }
   };
 
+  // Disable / Enable
   const handleDisableClick = (announcement: Announcement) => {
     setDisableModal({
       open: true,
       id: announcement.id,
       title: announcement.title,
+      type: announcement.type,
       mode: 'disable',
     });
   };
@@ -182,6 +180,7 @@ const MyAnnouncementsPage = () => {
       open: true,
       id: announcement.id,
       title: announcement.title,
+      type: announcement.type,
       mode: 'enable',
     });
   };
@@ -195,8 +194,59 @@ const MyAnnouncementsPage = () => {
       } else {
         await enableAnnouncement(disableModal.id);
       }
-      setDisableModal({ open: false, id: null, title: '', mode: 'disable' });
+      setDisableModal({
+        open: false,
+        id: null,
+        title: '',
+        type: null,
+        mode: 'disable',
+      });
+      await loadAnnouncements(currentPage);
+    } finally {
+      setModalLoading(false);
+    }
+  };
 
+  // Complete
+  const handleCompleteClick = (id: number) => {
+    const target = data.find((a) => a.id === id);
+    setCompleteModal({
+      open: true,
+      id,
+      title: target?.title || '',
+      type: target?.type || null,
+    });
+  };
+
+  const handleCompleteConfirm = async () => {
+    if (!completeModal.id) return;
+    try {
+      setModalLoading(true);
+      await completeAnnouncement(completeModal.id);
+      setCompleteModal({ open: false, id: null, title: '', type: null });
+      await loadAnnouncements(currentPage);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Reopen
+  const handleReopenClick = (id: number) => {
+    const target = data.find((a) => a.id === id);
+    setReopenModal({
+      open: true,
+      id,
+      title: target?.title || '',
+      type: target?.type || null,
+    });
+  };
+
+  const handleReopenConfirm = async () => {
+    if (!reopenModal.id) return;
+    try {
+      setModalLoading(true);
+      await reopenAnnouncement(reopenModal.id);
+      setReopenModal({ open: false, id: null, title: '', type: null });
       await loadAnnouncements(currentPage);
     } finally {
       setModalLoading(false);
@@ -214,26 +264,20 @@ const MyAnnouncementsPage = () => {
     setCurrentPage(1);
   }, []);
 
-  // ============================================
-  // Initial Loading Skeleton
-  // ============================================
   const showInitialSkeleton = loading && !stats && data.length === 0;
 
   if (showInitialSkeleton) {
     return (
       <>
-        <SEO title="إعلاناتي" description="إدارة جميع إعلاناتك في منصة بصمة" />
+        <SEO title="خدماتي" description="إدارة جميع عروضك وطلباتك في منصة بصمة" />
         <MyAnnouncementsSkeleton variant="page" count={6} />
       </>
     );
   }
 
-  // ============================================
-  // Render
-  // ============================================
   return (
     <>
-      <SEO title="إعلاناتي" description="إدارة جميع إعلاناتك في منصة بصمة" />
+      <SEO title="خدماتي" description="إدارة جميع عروضك وطلباتك في منصة بصمة" />
 
       <div
         style={{
@@ -244,16 +288,13 @@ const MyAnnouncementsPage = () => {
         }}
       >
         <Container fluid="xl" className="px-3 px-md-4">
-          {/* ============================================ */}
-          {/* Page Header */}
-          {/* ============================================ */}
+          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
             style={{ marginBottom: '1.5rem' }}
           >
-            {/* Breadcrumb */}
             <div
               style={{
                 display: 'flex',
@@ -278,11 +319,10 @@ const MyAnnouncementsPage = () => {
               </Link>
               <FaChevronLeft size={10} style={{ opacity: 0.4 }} />
               <span style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-                إعلاناتي
+                خدماتي
               </span>
             </div>
 
-            {/* Title + CTA */}
             <div
               style={{
                 display: 'flex',
@@ -321,7 +361,7 @@ const MyAnnouncementsPage = () => {
                       lineHeight: 1.2,
                     }}
                   >
-                    إعلاناتي
+                    خدماتي
                   </h1>
                   <p
                     style={{
@@ -331,12 +371,11 @@ const MyAnnouncementsPage = () => {
                       margin: 0,
                     }}
                   >
-                    إدارة جميع إعلاناتك من مكان واحد
+                    إدارة جميع عروضك وطلباتك من مكان واحد
                   </p>
                 </div>
               </div>
 
-              {/* Create Button */}
               {stats?.can_create_more !== false && (
                 <Link
                   to="/user/announcements/create"
@@ -363,14 +402,13 @@ const MyAnnouncementsPage = () => {
                     }}
                   >
                     <FaPlusCircle size={14} />
-                    نشر إعلان جديد
+                    {DUAL_LABEL.createCTA}
                   </motion.button>
                 </Link>
               )}
             </div>
           </motion.div>
 
-          {/* Stats */}
           {stats && (
             <MyAnnouncementStats
               stats={stats}
@@ -379,7 +417,6 @@ const MyAnnouncementsPage = () => {
             />
           )}
 
-          {/* Filters */}
           <MyAnnouncementFilters
             search={search}
             onSearchChange={setSearch}
@@ -392,7 +429,6 @@ const MyAnnouncementsPage = () => {
             resultsCount={data.length}
           />
 
-          {/* Announcements Grid */}
           <div ref={gridRef}>
             <AnimatePresence mode="wait">
               {loading && data.length === 0 ? (
@@ -447,7 +483,7 @@ const MyAnnouncementsPage = () => {
                   >
                     {search || statusFilter !== 'all'
                       ? 'لا توجد نتائج مطابقة'
-                      : 'لا توجد إعلانات بعد'}
+                      : DUAL_LABEL.emptyTitle}
                   </h3>
                   <p
                     style={{
@@ -459,7 +495,7 @@ const MyAnnouncementsPage = () => {
                   >
                     {search || statusFilter !== 'all'
                       ? 'حاول تغيير الفلاتر أو كلمات البحث'
-                      : 'ابدأ بنشر إعلانك الأول وشارك مجتمعك'}
+                      : DUAL_LABEL.emptyDescription}
                   </p>
 
                   {search || statusFilter !== 'all' ? (
@@ -504,7 +540,7 @@ const MyAnnouncementsPage = () => {
                         }}
                       >
                         <FaPlusCircle size={13} />
-                        انشر إعلانك الأول
+                        {DUAL_LABEL.createCTA}
                       </button>
                     </Link>
                   )}
@@ -516,7 +552,6 @@ const MyAnnouncementsPage = () => {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {/* Grid */}
                   <div
                     style={{
                       display: 'grid',
@@ -544,14 +579,13 @@ const MyAnnouncementsPage = () => {
                           onDisable={() => handleDisableClick(announcement)}
                           onEnable={() => handleEnableClick(announcement)}
                           onFeature={handleFeatureClick}
+                          onComplete={handleCompleteClick}
+                          onReopen={handleReopenClick}
                         />
                       </motion.div>
                     ))}
                   </div>
 
-                  {/* ============================================ */}
-                  {/* ✅ NEW: Shared Pagination */}
-                  {/* ============================================ */}
                   {meta && (
                     <Pagination
                       currentPage={meta.current_page}
@@ -562,7 +596,7 @@ const MyAnnouncementsPage = () => {
                       onPerPageChange={handlePerPageChange}
                       isLoading={loading}
                       perPageOptions={[6, 12, 24, 48]}
-                      itemLabel="إعلان"
+                      itemLabel="عنصر"
                     />
                   )}
                 </motion.div>
@@ -572,18 +606,21 @@ const MyAnnouncementsPage = () => {
         </Container>
       </div>
 
-      {/* Modals */}
       <DeleteConfirmModal
         isOpen={deleteModal.open}
         announcementTitle={deleteModal.title}
+        type={deleteModal.type}
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteModal({ open: false, id: null, title: '' })}
+        onCancel={() =>
+          setDeleteModal({ open: false, id: null, title: '', type: null })
+        }
         isLoading={modalLoading}
       />
 
       <DisableConfirmModal
         isOpen={disableModal.open}
         announcementTitle={disableModal.title}
+        type={disableModal.type}
         mode={disableModal.mode}
         onConfirm={handleDisableConfirm}
         onCancel={() =>
@@ -591,8 +628,31 @@ const MyAnnouncementsPage = () => {
             open: false,
             id: null,
             title: '',
+            type: null,
             mode: 'disable',
           })
+        }
+        isLoading={modalLoading}
+      />
+
+      <CompleteConfirmModal
+        isOpen={completeModal.open}
+        announcementTitle={completeModal.title}
+        type={completeModal.type}
+        onConfirm={handleCompleteConfirm}
+        onCancel={() =>
+          setCompleteModal({ open: false, id: null, title: '', type: null })
+        }
+        isLoading={modalLoading}
+      />
+
+      <ReopenConfirmModal
+        isOpen={reopenModal.open}
+        announcementTitle={reopenModal.title}
+        type={reopenModal.type}
+        onConfirm={handleReopenConfirm}
+        onCancel={() =>
+          setReopenModal({ open: false, id: null, title: '', type: null })
         }
         isLoading={modalLoading}
       />

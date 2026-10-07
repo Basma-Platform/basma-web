@@ -95,7 +95,7 @@ const FeaturedRequestsHistoryPage = () => {
     <>
       <SEO
         title="طلبات التمييز"
-        description="سجل جميع طلبات تمييز إعلاناتك"
+        description="سجل جميع طلبات تمييز خدماتك"
       />
 
       <div className="featured-history-page" dir="rtl">
@@ -182,7 +182,7 @@ const FeaturedRequestsHistoryPage = () => {
                     textOverflow: 'ellipsis',
                   }}
                 >
-                  سجل كامل لطلبات تمييز إعلاناتك
+                  سجل كامل لطلبات تمييز خدماتك
                 </p>
               </div>
             </div>
@@ -349,7 +349,7 @@ const FeaturedRequestsHistoryPage = () => {
                   }}
                 >
                   {statusFilter === 'all'
-                    ? 'عند طلب تمييز إعلان، ستظهر حالة الطلب هنا.'
+                    ? 'عند طلب تمييز خدمة، ستظهر حالة الطلب هنا.'
                     : 'حاول تغيير الفلتر لعرض نتائج أخرى.'}
                 </p>
 
@@ -372,7 +372,7 @@ const FeaturedRequestsHistoryPage = () => {
                     }}
                   >
                     <FaStar size={13} />
-                    اذهب إلى إعلاناتي
+                    اذهب إلى خدماتي
                   </Link>
                 ) : (
                   <button

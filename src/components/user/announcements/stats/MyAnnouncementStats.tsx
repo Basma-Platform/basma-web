@@ -4,18 +4,23 @@ import {
   FaCheckCircle,
   FaPauseCircle,
   FaStar,
+  FaFlagCheckered,
 } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
 import type { UserAnnouncementStats } from '../../../../types';
+import { useCardBorderAnimation } from '../../../../hooks/useCardBorderAnimation';
+import AnimatedCardBorder from '../../../ui/AnimatedCardBorder';
 
 interface MyAnnouncementStatsProps {
   stats: UserAnnouncementStats;
-  activeFilter?: 'all' | 'active' | 'disabled' | 'featured';
-  onFilterClick?: (filter: 'all' | 'active' | 'disabled' | 'featured') => void;
+  activeFilter?: 'all' | 'active' | 'disabled' | 'completed' | 'featured';
+  onFilterClick?: (
+    filter: 'all' | 'active' | 'disabled' | 'completed' | 'featured'
+  ) => void;
 }
 
 interface StatCard {
-  key: 'all' | 'active' | 'disabled' | 'featured';
+  key: 'all' | 'active' | 'disabled' | 'completed' | 'featured';
   label: string;
   value: number;
   color: string;
@@ -58,6 +63,15 @@ const MyAnnouncementStats = ({
       Icon: FaPauseCircle,
     },
     {
+      key: 'completed',
+      label: 'مكتمل',
+      value: stats.completed || 0,
+      color: '#17A2B8',
+      bg: 'rgba(23, 162, 184, 0.1)',
+      gradient: 'linear-gradient(135deg, #17A2B8, #20C9E0)',
+      Icon: FaFlagCheckered,
+    },
+    {
       key: 'featured',
       label: 'مميز',
       value: stats.featured,
@@ -92,7 +106,7 @@ const MyAnnouncementStats = ({
       animate="visible"
       dir="rtl"
     >
-      {/* Responsive Grid: 2 cols mobile, 4 cols desktop */}
+      {/* 5 cards → responsive auto-fit grid */}
       <div
         style={{
           display: 'grid',
@@ -101,140 +115,19 @@ const MyAnnouncementStats = ({
           marginBottom: '1rem',
         }}
       >
-        {cards.map((card) => {
-          const isActive = activeFilter === card.key;
-          const Icon = card.Icon;
-          const clickable = !!onFilterClick;
-
-          return (
-            <motion.button
-              key={card.key}
-              variants={itemVariants}
-              whileHover={clickable ? { y: -3 } : {}}
-              whileTap={clickable ? { scale: 0.98 } : {}}
-              onClick={() => clickable && onFilterClick(card.key)}
-              style={{
-                position: 'relative',
-                backgroundColor: isActive ? card.bg : 'var(--bg-card)',
-                border: isActive
-                  ? `1.5px solid ${card.color}`
-                  : '1px solid var(--border-color)',
-                borderRadius: '14px',
-                padding: '14px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                cursor: clickable ? 'pointer' : 'default',
-                transition: 'all 0.25s ease',
-                overflow: 'hidden',
-                boxShadow: isActive
-                  ? `0 4px 16px ${card.color}25`
-                  : '0 2px 8px var(--shadow-sm)',
-                fontFamily: 'Cairo, sans-serif',
-                textAlign: 'right',
-              }}
-              onMouseEnter={(e) => {
-                if (!clickable || isActive) return;
-                e.currentTarget.style.borderColor = card.color + '60';
-                e.currentTarget.style.backgroundColor = card.bg;
-              }}
-              onMouseLeave={(e) => {
-                if (!clickable || isActive) return;
-                e.currentTarget.style.borderColor = 'var(--border-color)';
-                e.currentTarget.style.backgroundColor = 'var(--bg-card)';
-              }}
-            >
-              {/* Top Gradient Accent */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  left: 0,
-                  height: '3px',
-                  background: card.gradient,
-                  opacity: isActive ? 1 : 0.5,
-                  transition: 'opacity 0.25s ease',
-                }}
-              />
-
-              {/* Icon Container */}
-              <motion.div
-                whileHover={clickable ? { rotate: 6, scale: 1.08 } : {}}
-                transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  background: card.gradient,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFFFFF',
-                  fontSize: '1rem',
-                  flexShrink: 0,
-                  boxShadow: `0 4px 12px ${card.color}35`,
-                }}
-              >
-                <Icon size={17} />
-              </motion.div>
-
-              {/* Value + Label */}
-              <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
-                <div
-                  style={{
-                    color: 'var(--text-primary)',
-                    fontSize: '1.4rem',
-                    fontWeight: 900,
-                    lineHeight: 1.1,
-                    fontFamily:
-                      "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-                    fontVariantNumeric: 'lining-nums tabular-nums',
-                    direction: 'ltr',
-                    textAlign: 'right',
-                    marginBottom: '2px',
-                  }}
-                >
-                  {card.value.toLocaleString('en-US')}
-                </div>
-                <div
-                  style={{
-                    color: isActive ? card.color : 'var(--text-muted)',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {card.label}
-                </div>
-              </div>
-
-              {/* Active Indicator Dot */}
-              {isActive && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 400 }}
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    left: '8px',
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: card.color,
-                    boxShadow: `0 0 8px ${card.color}80`,
-                  }}
-                />
-              )}
-            </motion.button>
-          );
-        })}
+        {cards.map((card) => (
+          <motion.div key={card.key} variants={itemVariants}>
+            <StatCardItem
+              card={card}
+              isActive={activeFilter === card.key}
+              clickable={!!onFilterClick}
+              onClick={() => onFilterClick?.(card.key)}
+            />
+          </motion.div>
+        ))}
       </div>
 
-      {/* ✅ Monthly Limit Indicator Inline */}
+      {/* Monthly Limit Indicator */}
       {!stats.is_verified && stats.monthly_limit !== null && (
         <div style={{ marginBottom: '1rem' }}>
           <MonthlyLimitInline
@@ -246,7 +139,7 @@ const MyAnnouncementStats = ({
         </div>
       )}
 
-      {/* ✅ Verified User Unlimited Banner */}
+      {/* Verified Unlimited Banner */}
       {stats.is_verified && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -274,7 +167,7 @@ const MyAnnouncementStats = ({
               fontWeight: 700,
             }}
           >
-            حسابك موثق - إعلانات غير محدودة ✨
+            حسابك موثق - خدمات غير محدودة ✨
           </span>
         </motion.div>
       )}
@@ -283,9 +176,171 @@ const MyAnnouncementStats = ({
 };
 
 // ============================================
-// Inline Monthly Limit Component
+// StatCardItem — one card, with its own hook instance
 // ============================================
+interface StatCardItemProps {
+  card: StatCard;
+  isActive: boolean;
+  clickable: boolean;
+  onClick: () => void;
+}
 
+const StatCardItem = ({
+  card,
+  isActive,
+  clickable,
+  onClick,
+}: StatCardItemProps) => {
+  const Icon = card.Icon;
+
+  // ✨ Single hook drives BOTH:
+  //    - top border draw animation
+  //    - background/border hover highlight
+  const { ref, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
+  // Card is "highlighted" when: active filter OR being drawn (hover/in-view)
+  // But if it's touch (in-view trigger), we don't want to auto-highlight all cards
+  // → only apply highlight on hover devices
+  const isHoverHighlighted = isDrawn && !isActive && clickable;
+  const isVisuallyActive = isActive || isHoverHighlighted;
+
+  return (
+    // ✨ The outer div carries the IntersectionObserver ref
+    //    and the hover handlers — the button is pure presentation
+    <div ref={ref} {...hoverHandlers} style={{ height: '100%' }}>
+      <motion.button
+        type="button"
+        whileHover={clickable ? { y: -3 } : {}}
+        whileTap={clickable ? { scale: 0.98 } : {}}
+        onClick={() => clickable && onClick()}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          backgroundColor: isVisuallyActive ? card.bg : 'var(--bg-card)',
+          border: isVisuallyActive
+            ? `1.5px solid ${card.color}`
+            : '1px solid var(--border-color)',
+          borderRadius: '14px',
+          padding: '14px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          cursor: clickable ? 'pointer' : 'default',
+          transition:
+            'background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
+          overflow: 'hidden',
+          boxShadow: isVisuallyActive
+            ? `0 4px 16px ${card.color}25`
+            : '0 2px 8px var(--shadow-sm)',
+          fontFamily: 'Cairo, sans-serif',
+          textAlign: 'right',
+        }}
+      >
+        {/* ============================================ */}
+        {/* ✨ Animated Top Accent Bar */}
+        {/* Idle       → hidden                    */}
+        {/* Hovered    → draws from right to left  */}
+        {/* Active     → stays fully drawn         */}
+        {/* ============================================ */}
+        <AnimatedCardBorder
+          isDrawn={isDrawn || isActive}
+          background={card.gradient}
+          drawFrom="start"
+          height={3}
+          duration={0.55}
+          idleOpacity={isActive ? 1 : 0}
+          rounded
+        />
+
+        {/* Icon */}
+        <motion.div
+          whileHover={clickable ? { rotate: 6, scale: 1.08 } : {}}
+          transition={{
+            type: 'spring',
+            stiffness: 300,
+            damping: 15,
+          }}
+          style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            background: card.gradient,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            fontSize: '1rem',
+            flexShrink: 0,
+            boxShadow: `0 4px 12px ${card.color}35`,
+          }}
+        >
+          <Icon size={17} />
+        </motion.div>
+
+        {/* Value + Label */}
+        <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+          <div
+            style={{
+              color: 'var(--text-primary)',
+              fontSize: '1.4rem',
+              fontWeight: 900,
+              lineHeight: 1.1,
+              fontFamily:
+                "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+              fontVariantNumeric: 'lining-nums tabular-nums',
+              direction: 'ltr',
+              textAlign: 'right',
+              marginBottom: '2px',
+            }}
+          >
+            {card.value.toLocaleString('en-US')}
+          </div>
+          <div
+            style={{
+              color: isVisuallyActive ? card.color : 'var(--text-muted)',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              transition: 'color 0.3s ease',
+            }}
+          >
+            {card.label}
+          </div>
+        </div>
+
+        {/* Active dot — only for the currently-active filter */}
+        {isActive && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 400 }}
+            style={{
+              position: 'absolute',
+              top: '8px',
+              left: '8px',
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: card.color,
+              boxShadow: `0 0 8px ${card.color}80`,
+            }}
+          />
+        )}
+      </motion.button>
+    </div>
+  );
+};
+
+// ============================================
+// Inline Monthly Limit Component (unchanged)
+// ============================================
 interface MonthlyLimitInlineProps {
   used: number;
   limit: number;
@@ -327,7 +382,6 @@ const MonthlyLimitInline = ({
         fontFamily: 'Cairo, sans-serif',
       }}
     >
-      {/* Left: Text */}
       <div
         style={{
           display: 'flex',
@@ -372,14 +426,13 @@ const MonthlyLimitInline = ({
           >
             {canCreateMore
               ? `يمكنك نشر ${remaining} ${
-                  remaining === 1 ? 'إعلان' : 'إعلانات'
+                  remaining === 1 ? 'عرض/طلب' : 'عروض/طلبات'
                 } إضافية`
               : 'لقد وصلت للحد الأقصى هذا الشهر'}
           </div>
         </div>
       </div>
 
-      {/* Right: Counter + Progress */}
       <div
         style={{
           display: 'flex',
@@ -388,7 +441,6 @@ const MonthlyLimitInline = ({
           flex: '0 1 auto',
         }}
       >
-        {/* Big Counter Fixed with isolate and split slash */}
         <div
           style={{
             display: 'flex',
@@ -431,7 +483,6 @@ const MonthlyLimitInline = ({
           </span>
         </div>
 
-        {/* Progress Bar */}
         <div
           style={{
             width: '100px',

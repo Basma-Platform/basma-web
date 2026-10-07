@@ -1,14 +1,36 @@
 import { Container, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { FaFacebookF, FaXTwitter, FaInstagram, FaYoutube, FaWhatsapp, FaArrowUp } from 'react-icons/fa6';
+import {
+  FaFacebookF,
+  FaXTwitter,
+  FaInstagram,
+  FaYoutube,
+  FaWhatsapp,
+  FaArrowUp,
+  FaHeadset,
+} from 'react-icons/fa6';
 import { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
+
+// ============================================
+// Columns content
+// ============================================
+const COMMUNITY_LINKS = [
+  { path: '/announcements', label: 'تبادل الخدمات' },
+  { path: '/basma-fund', label: 'صندوق بصمة' },
+  { path: '/community', label: 'منشورات المجتمع' },
+];
+
+const QUICK_LINKS = [
+  { path: '/about', label: 'من نحن' },
+  { path: '/faq', label: 'الأسئلة الشائعة' },
+  { path: '/contact', label: 'اتصل بنا' },
+];
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  // Show scroll to top button after scrolling 300px
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
@@ -22,23 +44,36 @@ const Footer = () => {
   };
 
   const socialLinks = [
-    { icon: <FaFacebookF size={18} />, url: '#', color: '#1877F2', label: 'فيسبوك' },
-    { icon: <FaXTwitter size={18} />, url: '#', color: '#000000', label: 'X' },
-    { icon: <FaInstagram size={18} />, url: '#', color: '#E4405F', label: 'انستغرام' },
-    { icon: <FaYoutube size={18} />, url: '#', color: '#FF0000', label: 'يوتيوب' },
-    { icon: <FaWhatsapp size={18} />, url: '#', color: '#25D366', label: 'واتساب' },
-  ];
-
-  const quickLinks = [
-    { path: '/announcements', label: 'الإعلانات' },
-    { path: '/about', label: 'من نحن' },
-    { path: '/faq', label: 'الأسئلة الشائعة' },
-    { path: '/contact', label: 'اتصل بنا' },
-  ];
-
-  const legalLinks = [
-    { path: '/privacy-policy', label: 'سياسة الخصوصية' },
-    { path: '/terms', label: 'شروط الخدمة' },
+    {
+      icon: <FaFacebookF size={18} />,
+      url: '#',
+      color: '#1877F2',
+      label: 'فيسبوك',
+    },
+    {
+      icon: <FaXTwitter size={18} />,
+      url: '#',
+      color: '#000000',
+      label: 'X',
+    },
+    {
+      icon: <FaInstagram size={18} />,
+      url: '#',
+      color: '#E4405F',
+      label: 'انستغرام',
+    },
+    {
+      icon: <FaYoutube size={18} />,
+      url: '#',
+      color: '#FF0000',
+      label: 'يوتيوب',
+    },
+    {
+      icon: <FaWhatsapp size={18} />,
+      url: '#',
+      color: '#25D366',
+      label: 'واتساب',
+    },
   ];
 
   return (
@@ -52,9 +87,12 @@ const Footer = () => {
         transition: 'background-color 0.3s ease, color 0.3s ease',
       }}
     >
-      <Container>
-        <Row className="g-5">
-          {/* Brand Column */}
+      <Container style={{ maxWidth: '1200px' }}>
+        {/* ============================================ */}
+        {/* Top grid: Brand + Community + Quick + Contact */}
+        {/* ============================================ */}
+        <Row className="g-4">
+          {/* ---------- Brand ---------- */}
           <Col xs={12} lg={4}>
             <div
               style={{
@@ -73,7 +111,8 @@ const Footer = () => {
                   transition: 'transform 0.3s ease',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'rotate(-8deg) scale(1.1)';
+                  e.currentTarget.style.transform =
+                    'rotate(-8deg) scale(1.1)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'rotate(0) scale(1)';
@@ -96,16 +135,17 @@ const Footer = () => {
                 fontSize: '0.95rem',
                 opacity: 0.8,
                 lineHeight: 1.8,
-                maxWidth: '350px',
+                maxWidth: '360px',
                 fontFamily: 'Cairo, sans-serif',
                 color: 'var(--text-footer)',
                 transition: 'color 0.3s ease',
               }}
             >
-              منصة تبادل مجتمعية لأهل غزة، نساهم في بناء مجتمع أقوى من خلال التبادل والتعاون.
+              منصة مجتمعية متكاملة لأهل غزة — تبادل الخدمات، صندوق بصمة
+              للتبرعات، ومنشورات المجتمع. نساهم في بناء مجتمع أقوى من خلال
+              التكافل والتعاون.
             </p>
 
-            {/* Social Icons */}
             <div
               className="d-flex gap-3 mt-3"
               style={{ flexWrap: 'wrap' }}
@@ -132,16 +172,20 @@ const Footer = () => {
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = social.color;
-                    e.currentTarget.style.transform = 'translateY(-4px) scale(1.1)';
+                    e.currentTarget.style.transform =
+                      'translateY(-4px) scale(1.1)';
                     e.currentTarget.style.boxShadow = `0 8px 24px ${social.color}40`;
                     e.currentTarget.style.borderColor = social.color;
                     e.currentTarget.style.color = '#FFFFFF';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
-                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                    e.currentTarget.style.backgroundColor =
+                      'rgba(255,255,255,0.08)';
+                    e.currentTarget.style.transform =
+                      'translateY(0) scale(1)';
                     e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
+                    e.currentTarget.style.borderColor =
+                      'rgba(255,255,255,0.05)';
                     e.currentTarget.style.color = 'var(--text-footer)';
                   }}
                 >
@@ -151,8 +195,63 @@ const Footer = () => {
             </div>
           </Col>
 
-          {/* Quick Links */}
-          <Col xs={6} lg={2}>
+          {/* ---------- مجتمع بصمة ---------- */}
+          <Col xs={6} sm={4} lg={2}>
+            <h6
+              style={{
+                color: '#E87A20',
+                fontSize: '1rem',
+                fontWeight: 700,
+                fontFamily: 'Cairo, sans-serif',
+                marginBottom: '1.2rem',
+                position: 'relative',
+              }}
+            >
+              مجتمع بصمة
+              <span
+                style={{
+                  display: 'block',
+                  width: '30px',
+                  height: '2px',
+                  backgroundColor: '#E87A20',
+                  marginTop: '6px',
+                  borderRadius: '1px',
+                }}
+              />
+            </h6>
+            <div className="d-flex flex-column gap-2">
+              {COMMUNITY_LINKS.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  style={{
+                    color: 'var(--text-footer)',
+                    textDecoration: 'none',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.3s ease',
+                    fontFamily: 'Cairo, sans-serif',
+                    display: 'inline-block',
+                    opacity: 0.8,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#E87A20';
+                    e.currentTarget.style.transform = 'translateX(-6px)';
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--text-footer)';
+                    e.currentTarget.style.transform = 'translateX(0)';
+                    e.currentTarget.style.opacity = '0.8';
+                  }}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </Col>
+
+          {/* ---------- روابط سريعة ---------- */}
+          <Col xs={6} sm={4} lg={2}>
             <h6
               style={{
                 color: '#E87A20',
@@ -176,7 +275,7 @@ const Footer = () => {
               />
             </h6>
             <div className="d-flex flex-column gap-2">
-              {quickLinks.map((link) => (
+              {QUICK_LINKS.map((link) => (
                 <Link
                   key={link.path}
                   to={link.path}
@@ -206,62 +305,7 @@ const Footer = () => {
             </div>
           </Col>
 
-          {/* Legal Links */}
-          <Col xs={6} lg={2}>
-            <h6
-              style={{
-                color: '#E87A20',
-                fontSize: '1rem',
-                fontWeight: 700,
-                fontFamily: 'Cairo, sans-serif',
-                marginBottom: '1.2rem',
-                position: 'relative',
-              }}
-            >
-              روابط قانونية
-              <span
-                style={{
-                  display: 'block',
-                  width: '30px',
-                  height: '2px',
-                  backgroundColor: '#E87A20',
-                  marginTop: '6px',
-                  borderRadius: '1px',
-                }}
-              />
-            </h6>
-            <div className="d-flex flex-column gap-2">
-              {legalLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  style={{
-                    color: 'var(--text-footer)',
-                    textDecoration: 'none',
-                    fontSize: '0.9rem',
-                    transition: 'all 0.3s ease',
-                    fontFamily: 'Cairo, sans-serif',
-                    display: 'inline-block',
-                    opacity: 0.8,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#E87A20';
-                    e.currentTarget.style.transform = 'translateX(-6px)';
-                    e.currentTarget.style.opacity = '1';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'var(--text-footer)';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                    e.currentTarget.style.opacity = '0.8';
-                  }}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </Col>
-
-          {/* Newsletter / Contact */}
+          {/* ---------- تواصل معنا ---------- */}
           <Col xs={12} lg={4}>
             <h6
               style={{
@@ -291,91 +335,71 @@ const Footer = () => {
                 color: 'var(--text-footer)',
                 fontSize: '0.9rem',
                 fontFamily: 'Cairo, sans-serif',
-                marginBottom: '1rem',
+                marginBottom: '1.25rem',
                 transition: 'color 0.3s ease',
-                opacity: 0.8,
+                opacity: 0.85,
+                lineHeight: 1.75,
               }}
             >
-              تابعنا على وسائل التواصل الاجتماعي
+              هل لديك استفسار، ملاحظة، أو فكرة تخدم مجتمعنا؟
               <br />
-              للبقاء على اطلاع بآخر الإعلانات والفعاليات.
+              فريق بصمة جاهز لمساعدتك.
             </p>
 
-            <div
+            <Link
+              to="/contact"
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: 'rgba(255,255,255,0.06)',
+                padding: '12px 24px',
                 borderRadius: '12px',
-                padding: '4px',
-                maxWidth: '320px',
-                transition: 'background-color 0.3s ease',
+                backgroundColor: '#E87A20',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                fontFamily: 'Cairo, sans-serif',
+                textDecoration: 'none',
+                boxShadow: '0 4px 16px rgba(232, 122, 32, 0.25)',
+                maxWidth: 'fit-content',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#D46A1A';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow =
+                  '0 8px 24px rgba(232, 122, 32, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#E87A20';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow =
+                  '0 4px 16px rgba(232, 122, 32, 0.25)';
               }}
             >
-              <input
-                type="email"
-                placeholder="بريدك الإلكتروني"
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  padding: '10px 16px',
-                  border: 'none',
-                  borderRadius: '10px',
-                  backgroundColor: 'transparent',
-                  color: 'var(--text-footer)',
-                  fontSize: '0.9rem',
-                  outline: 'none',
-                  fontFamily: 'Cairo, sans-serif',
-                  direction: 'rtl',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              />
-              <button
-                style={{
-                  padding: '10px 20px',
-                  border: 'none',
-                  borderRadius: '10px',
-                  backgroundColor: '#E87A20',
-                  color: 'white',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  fontFamily: 'Cairo, sans-serif',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#D46A1A';
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#E87A20';
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
-              >
-                اشترك
-              </button>
-            </div>
+              <FaHeadset size={15} />
+              تواصل معنا
+            </Link>
           </Col>
         </Row>
 
+        {/* ============================================ */}
         {/* Divider */}
+        {/* ============================================ */}
         <hr
           style={{
             border: 'none',
             height: '1px',
-            background: 'linear-gradient(to left, transparent, rgba(255,255,255,0.1), transparent)',
+            background:
+              'linear-gradient(to left, transparent, rgba(255,255,255,0.1), transparent)',
             margin: '2.5rem 0 1.5rem',
           }}
         />
 
-        {/* Bottom Bar */}
+        {/* ============================================ */}
+        {/* Bottom bar */}
+        {/* ============================================ */}
         <Row className="align-items-center">
           <Col xs={12} md={6}>
             <div
@@ -388,12 +412,16 @@ const Footer = () => {
                 transition: 'color 0.3s ease',
               }}
             >
-              © {currentYear} بصمة - منصة تبادل مجتمعية لأهل غزة.
+              © {currentYear} بصمة — منصة مجتمعية لأهل غزة.
               <br className="d-md-none" />
               جميع الحقوق محفوظة.
             </div>
           </Col>
-          <Col xs={12} md={6} className="text-center text-md-start mt-3 mt-md-0">
+          <Col
+            xs={12}
+            md={6}
+            className="text-center text-md-start mt-3 mt-md-0"
+          >
             <div
               className="d-flex flex-wrap justify-content-center justify-content-md-start"
               style={{
@@ -468,9 +496,12 @@ const Footer = () => {
         </Row>
       </Container>
 
-      {/* Scroll to Top Button */}
+      {/* ============================================ */}
+      {/* Scroll to Top */}
+      {/* ============================================ */}
       {showScrollTop && (
         <button
+          type="button"
           onClick={scrollToTop}
           style={{
             position: 'fixed',
@@ -495,12 +526,14 @@ const Footer = () => {
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = '#D46A1A';
             e.currentTarget.style.transform = 'translateY(-4px) scale(1.05)';
-            e.currentTarget.style.boxShadow = '0 8px 32px rgba(232, 122, 32, 0.5)';
+            e.currentTarget.style.boxShadow =
+              '0 8px 32px rgba(232, 122, 32, 0.5)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = '#E87A20';
             e.currentTarget.style.transform = 'translateY(0) scale(1)';
-            e.currentTarget.style.boxShadow = '0 4px 16px rgba(232, 122, 32, 0.4)';
+            e.currentTarget.style.boxShadow =
+              '0 4px 16px rgba(232, 122, 32, 0.4)';
           }}
           aria-label="العودة إلى الأعلى"
         >

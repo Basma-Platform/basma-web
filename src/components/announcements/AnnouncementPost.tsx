@@ -15,6 +15,9 @@ import {
   FaClock,
   FaStar,
   FaUser,
+  FaExchangeAlt,
+  FaCheckCircle,
+  FaHandshake,
 } from 'react-icons/fa';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../context/ThemeContext';
@@ -25,6 +28,14 @@ import { getStorageUrl } from '../../utils/storageHelpers';
 import {
   isOwnAnnouncement,
   getOwnBadgeStyle,
+  getTypeLabel,
+  getTypeColor,
+  getPriceLabel,
+  getBarterBadgeLabel,
+  getPrivacyLabel,
+  getPrivacyColor,
+  getCategoryLabel,
+  formatAnnouncementDateShort,
 } from '../../utils/announcementHelpers';
 
 interface AnnouncementPostProps {
@@ -46,138 +57,140 @@ const AnnouncementPost = ({
   const isVerifiedUser = user?.is_verified === true;
   const isGrid = viewMode === 'grid';
 
-  // ✅ Owner check — controls "إعلانك" badge
   const isOwn = isOwnAnnouncement(announcement, user?.id);
+  const isAdmin = user?.role === 'admin';
   const ownBadgeStyle = getOwnBadgeStyle(isDark);
 
+  const isCompleted =
+    announcement.is_completed || announcement.status === 'completed';
+  const isBarter = announcement.price_type === 'barter';
+  const isNegotiable =
+    announcement.price_type === 'paid' && announcement.is_negotiable;
+
+  // WhatsApp visibility
   const canViewWhatsApp = (): boolean => {
+    // Owner or Admin → ALWAYS can view
+    if (isOwn || isAdmin) return true;
+
+    // Guests / unverified email → blocked
     if (!isLoggedIn) return false;
     if (!isEmailVerified) return false;
 
-    switch (announcement.privacy_type) {
+    // Privacy rules for everyone else
+    const privacy = announcement.privacy_type || 'public';
+
+    switch (privacy) {
       case 'public':
         return true;
       case 'region_only':
         return user?.city_id === announcement.city_id;
       case 'verified_only':
-        return isVerifiedUser && announcement.user?.is_verified === true;
+        return isVerifiedUser;
       case 'verified_region':
-        return (
-          isVerifiedUser &&
-          user?.city_id === announcement.city_id &&
-          announcement.user?.is_verified === true
-        );
+        return isVerifiedUser && user?.city_id === announcement.city_id;
       default:
-        return false;
+        return true; // fallback → treat unknown as public
     }
   };
 
-  const getContactButtonConfig = () => {
-    const canView = canViewWhatsApp();
+    const getContactButtonConfig = () => {
+    // Owner or Admin → direct WhatsApp
+    if (isOwn || isAdmin) {
+      return {
+        label: 'واتساب',
+        icon: <FaWhatsapp size={15} />,
+        variant: 'whatsapp' as const,
+        to: `https://wa.me/${announcement.whatsapp}`,
+        disabled: false,
+        href: true,
+      };
+    }
 
+    // Guest → prompt to log in
     if (!isLoggedIn) {
       return {
         label: 'سجل للتواصل',
         icon: <FaLock size={12} />,
-        variant: 'outline',
+        variant: 'outline' as const,
         to: '/login',
         disabled: false,
       };
     }
 
+    // Email not verified
     if (!isEmailVerified) {
       return {
         label: 'فعّل بريدك',
         icon: <FaEnvelope size={12} />,
-        variant: 'warning',
+        variant: 'warning' as const,
         to: '/verify-email',
         disabled: false,
       };
     }
 
-    if (!canView) {
+    // Privacy blocked — clear reason in label
+    if (!canViewWhatsApp()) {
+      let label = 'غير متاح';
+      let tooltip = 'لا يمكنك التواصل مع هذا المعلن';
+
+      switch (announcement.privacy_type) {
+        case 'region_only':
+          label = '📍 خارج منطقتك';
+          tooltip = 'هذا الإعلان مخصص لمن هم في نفس المنطقة فقط';
+          break;
+        case 'verified_only':
+          label = '🛡️ يتطلب توثيق';
+          tooltip = 'هذا الإعلان مخصص للموثقين فقط';
+          break;
+        case 'verified_region':
+          label = isVerifiedUser
+            ? '📍 خارج منطقتك'
+            : '🛡️ يتطلب توثيق';
+          tooltip = isVerifiedUser
+            ? 'هذا الإعلان مخصص للموثقين في نفس المنطقة فقط'
+            : 'هذا الإعلان مخصص للموثقين في نفس المنطقة فقط — وثّق حسابك';
+          break;
+      }
+
       return {
-        label: 'غير متاح',
+        label,
         icon: <FaShieldAlt size={12} />,
-        variant: 'disabled',
+        variant: 'disabled' as const,
         to: '#',
         disabled: true,
+        tooltip,
       };
     }
 
+    // Allowed — direct WhatsApp
     return {
       label: 'واتساب',
       icon: <FaWhatsapp size={15} />,
-      variant: 'whatsapp',
+      variant: 'whatsapp' as const,
       to: `https://wa.me/${announcement.whatsapp}`,
       disabled: false,
       href: true,
     };
   };
 
-  const getPriceLabel = () => {
-    switch (announcement.price_type) {
-      case 'free':
-        return 'مجاني';
-      case 'paid':
-        return `${announcement.price} شيكل`;
-      case 'barter':
-        return 'مقايضة';
-      default:
-        return '';
-    }
-  };
+  // ============================================
+  // Price / Barter label
+  // ============================================
+  const priceOrBarterLabel = isBarter
+    ? getBarterBadgeLabel()
+    : getPriceLabel(announcement.price_type, announcement.price);
 
-  const getCategoryLabel = (category: string) => {
-    return category === 'goods' ? 'سلع' : 'خدمات';
-  };
-
-  const getTypeLabel = (type: string) => {
-    return type === 'offer' ? 'عرض' : 'طلب';
-  };
-
-  const getTypeColor = (type: string) => {
-    return type === 'offer' ? 'var(--success)' : 'var(--error)';
-  };
-
-  // ✅ Privacy Labels
-  const getPrivacyLabel = (privacyType: string) => {
-    const map: Record<string, string> = {
-      public: 'عام - للجميع',
-      region_only: 'نفس المنطقة فقط',
-      verified_only: 'للموثقين الهوية فقط',
-      verified_region: 'موثق الهوية + نفس المنطقة',
-    };
-    return map[privacyType] || privacyType;
-  };
-
-  // ✅ Privacy Colors
-  const getPrivacyColor = (privacyType: string) => {
-    const map: Record<string, string> = {
-      public: 'var(--success)',
-      region_only: 'var(--info)',
-      verified_only: 'var(--primary-orange)',
-      verified_region: 'var(--warning)',
-    };
-    return map[privacyType] || 'var(--text-muted)';
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('ar-EG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  // ✅ Use getStorageUrl for cover image
+  // ============================================
+  // Image + avatar helpers
+  // ============================================
   const coverImage =
     announcement.images && announcement.images.length > 0
-      ? getStorageUrl(announcement.images[0].image_path, '/placeholder-image.png') ||
-        '/placeholder-image.png'
+      ? getStorageUrl(
+          announcement.images[0].image_path,
+          '/placeholder-image.png'
+        ) || '/placeholder-image.png'
       : '/placeholder-image.png';
 
-  // ✅ Use getStorageUrl for user avatar
   const userAvatar = getStorageUrl(announcement.user?.profile_image);
 
   const userInitials = (announcement.user?.name || 'مستخدم')
@@ -185,6 +198,95 @@ const AnnouncementPost = ({
     .toUpperCase();
 
   const contactConfig = getContactButtonConfig();
+
+  // ============================================
+  // Shared Badges — reused in list + grid
+  // ============================================
+  const renderStatusBadges = () => (
+    <>
+      {/* Type Badge */}
+      <span
+        style={{
+          backgroundColor: getTypeColor(announcement.type),
+          color: '#FFFFFF',
+          padding: '3px 10px',
+          borderRadius: '6px',
+          fontSize: '0.6rem',
+          fontWeight: 700,
+          fontFamily: 'Cairo, sans-serif',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+        }}
+      >
+        {getTypeLabel(announcement.type)}
+      </span>
+
+      {/* Price / Barter Badge */}
+      <span
+        style={{
+          backgroundColor: isBarter
+            ? '#9C27B0'
+            : 'var(--primary-orange)',
+          color: '#FFFFFF',
+          padding: '3px 10px',
+          borderRadius: '6px',
+          fontSize: '0.6rem',
+          fontWeight: 700,
+          fontFamily: 'Cairo, sans-serif',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+        }}
+      >
+        {isBarter && <FaExchangeAlt size={9} />}
+        {priceOrBarterLabel}
+      </span>
+
+      {/* Completed Badge */}
+      {isCompleted && (
+        <span
+          style={{
+            backgroundColor: '#17A2B8',
+            color: '#FFFFFF',
+            padding: '3px 10px',
+            borderRadius: '6px',
+            fontSize: '0.6rem',
+            fontWeight: 700,
+            fontFamily: 'Cairo, sans-serif',
+            boxShadow: '0 2px 8px rgba(23,162,184,0.4)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          <FaCheckCircle size={9} />
+          مكتمل
+        </span>
+      )}
+
+      {/* High-Risk Badge */}
+      {announcement.category?.is_high_risk && (
+        <span
+          style={{
+            backgroundColor: 'var(--warning)',
+            color: '#856404',
+            padding: '3px 10px',
+            borderRadius: '6px',
+            fontSize: '0.55rem',
+            fontWeight: 700,
+            fontFamily: 'Cairo, sans-serif',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+          }}
+        >
+          <FaExclamationTriangle size={8} />
+          تحقق
+        </span>
+      )}
+    </>
+  );
 
   // ============================================
   // LIST VIEW
@@ -245,6 +347,7 @@ const AnnouncementPost = ({
                 height: '100%',
                 objectFit: 'cover',
                 transition: 'transform 0.3s ease',
+                opacity: isCompleted ? 0.85 : 1,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'scale(1.05)';
@@ -254,7 +357,35 @@ const AnnouncementPost = ({
               }}
             />
 
-            {/* "إعلانك" badge — top-left */}
+            {/* Completed Overlay Badge */}
+            {isCompleted && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(23,162,184,0.92)',
+                  color: '#FFFFFF',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  fontFamily: 'Cairo, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 16px rgba(23,162,184,0.5)',
+                  backdropFilter: 'blur(4px)',
+                  zIndex: 6,
+                }}
+              >
+                <FaCheckCircle size={12} />
+                تم التبادل
+              </div>
+            )}
+
+            {/* "إعلانك" badge */}
             {isOwn && (
               <div
                 style={{
@@ -285,7 +416,7 @@ const AnnouncementPost = ({
               </div>
             )}
 
-            {/* Privacy badge — top-right */}
+            {/* Privacy badge */}
             <div
               style={{
                 position: 'absolute',
@@ -314,6 +445,7 @@ const AnnouncementPost = ({
               </span>
             </div>
 
+            {/* Pinned */}
             {announcement.pinned_at && (
               <div
                 style={{
@@ -344,6 +476,7 @@ const AnnouncementPost = ({
               </div>
             )}
 
+            {/* Type + Price + Completed + High-Risk badges row */}
             <div
               style={{
                 position: 'absolute',
@@ -356,68 +489,15 @@ const AnnouncementPost = ({
                 maxWidth: 'calc(100% - 16px)',
               }}
             >
-              <span
-                style={{
-                  backgroundColor: getTypeColor(announcement.type),
-                  color: '#FFFFFF',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.6rem',
-                  fontWeight: 700,
-                  fontFamily: 'Cairo, sans-serif',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                }}
-              >
-                {getTypeLabel(announcement.type)}
-              </span>
-
-              <span
-                style={{
-                  backgroundColor:
-                    announcement.price_type === 'free'
-                      ? 'var(--success)'
-                      : announcement.price_type === 'paid'
-                        ? 'var(--primary-orange)'
-                        : '#9C27B0',
-                  color: '#FFFFFF',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.6rem',
-                  fontWeight: 700,
-                  fontFamily: 'Cairo, sans-serif',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                }}
-              >
-                {getPriceLabel()}
-              </span>
-
-              {announcement.sub_category?.is_high_risk && (
-                <span
-                  style={{
-                    backgroundColor: 'var(--warning)',
-                    color: '#856404',
-                    padding: '3px 10px',
-                    borderRadius: '6px',
-                    fontSize: '0.55rem',
-                    fontWeight: 700,
-                    fontFamily: 'Cairo, sans-serif',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <FaExclamationTriangle size={8} />
-                  تحقق
-                </span>
-              )}
+              {renderStatusBadges()}
             </div>
 
+            {/* Views */}
             <div
               style={{
                 position: 'absolute',
                 bottom: '8px',
-                left: '8px',
+                left: isCompleted ? '8px' : '8px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -429,7 +509,7 @@ const AnnouncementPost = ({
                 fontWeight: 500,
                 fontFamily: 'Cairo, sans-serif',
                 backdropFilter: 'blur(4px)',
-                zIndex: 5,
+                zIndex: 7,
               }}
             >
               <FaEye size={10} />
@@ -447,6 +527,7 @@ const AnnouncementPost = ({
               minWidth: 0,
             }}
           >
+            {/* Owner Row */}
             <div
               style={{
                 display: 'flex',
@@ -489,21 +570,6 @@ const AnnouncementPost = ({
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
-                      }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent) {
-                          const fallback = document.createElement('span');
-                          fallback.style.cssText = `
-                            color: var(--text-muted);
-                            font-size: 13px;
-                            font-weight: 700;
-                            font-family: 'Cairo', sans-serif;
-                          `;
-                          fallback.textContent = userInitials;
-                          parent.appendChild(fallback);
-                        }
                       }}
                     />
                   ) : (
@@ -561,7 +627,7 @@ const AnnouncementPost = ({
                     }}
                   >
                     <FaClock size={9} />
-                    {formatDate(announcement.created_at)}
+                    {formatAnnouncementDateShort(announcement.created_at)}
                   </div>
                 </div>
               </div>
@@ -589,6 +655,17 @@ const AnnouncementPost = ({
                     >
                       {(announcement.user.average_rating ?? 0).toFixed(1)}
                     </span>
+                    <span
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: '0.65rem',
+                        fontFamily: 'system-ui, sans-serif',
+                        fontVariantNumeric: 'tabular-nums',
+                        opacity: 0.8,
+                      }}
+                    >
+                      ({announcement.user.total_ratings})
+                    </span>
                   </>
                 ) : (
                   <span
@@ -596,15 +673,19 @@ const AnnouncementPost = ({
                       color: 'var(--text-muted)',
                       fontSize: '0.65rem',
                       fontFamily: 'Cairo, sans-serif',
-                      opacity: 0.7,
+                      opacity: 0.8,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
                     }}
                   >
-                    لا تقييم
+                    عضو جديد
                   </span>
                 )}
               </div>
             </div>
 
+            {/* Title */}
             <Link
               to={`/announcements/${announcement.id}`}
               style={{
@@ -637,6 +718,7 @@ const AnnouncementPost = ({
               </h3>
             </Link>
 
+            {/* Description */}
             <p
               style={{
                 color: 'var(--text-muted)',
@@ -654,6 +736,7 @@ const AnnouncementPost = ({
               {announcement.description}
             </p>
 
+            {/* Meta row: category + region */}
             <div
               style={{
                 display: 'flex',
@@ -682,20 +765,24 @@ const AnnouncementPost = ({
                 {getCategoryLabel(announcement.category)}
               </span>
 
-              {announcement.sub_category && (
+              {isNegotiable && (
                 <span
                   style={{
-                    backgroundColor: 'var(--bg-input)',
-                    color: 'var(--text-muted)',
+                    backgroundColor: 'rgba(232,122,32,0.12)',
+                    color: 'var(--primary-orange)',
                     padding: '2px 10px',
                     borderRadius: '4px',
                     fontSize: '0.6rem',
-                    fontWeight: 500,
+                    fontWeight: 600,
                     fontFamily: 'Cairo, sans-serif',
-                    border: '1px solid var(--border-color)',
+                    border: '1px solid rgba(232,122,32,0.25)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
                   }}
                 >
-                  {announcement.sub_category.name}
+                  <FaHandshake size={9} />
+                  قابل للتفاوض
                 </span>
               )}
 
@@ -716,6 +803,7 @@ const AnnouncementPost = ({
               </span>
             </div>
 
+            {/* Action Row */}
             <div
               style={{
                 display: 'flex',
@@ -770,7 +858,7 @@ const AnnouncementPost = ({
                 }}
               >
                 <FaChevronLeft size={10} />
-                تفاصيل
+                التفاصيل
               </Button>
 
               {contactConfig.disabled ? (
@@ -933,6 +1021,7 @@ const AnnouncementPost = ({
           e.currentTarget.style.boxShadow = '0 2px 8px var(--shadow-sm)';
         }}
       >
+        {/* Image */}
         <Link
           to={`/announcements/${announcement.id}`}
           style={{
@@ -954,6 +1043,7 @@ const AnnouncementPost = ({
               height: '100%',
               objectFit: 'cover',
               transition: 'transform 0.3s ease',
+              opacity: isCompleted ? 0.85 : 1,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'scale(1.05)';
@@ -962,6 +1052,34 @@ const AnnouncementPost = ({
               e.currentTarget.style.transform = 'scale(1)';
             }}
           />
+
+          {/* Completed overlay */}
+          {isCompleted && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                padding: '5px 12px',
+                borderRadius: '9px',
+                backgroundColor: 'rgba(23,162,184,0.92)',
+                color: '#FFFFFF',
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                fontFamily: 'Cairo, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                boxShadow: '0 4px 16px rgba(23,162,184,0.5)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 6,
+              }}
+            >
+              <FaCheckCircle size={11} />
+              تم التبادل
+            </div>
+          )}
 
           {isOwn && (
             <div
@@ -993,6 +1111,7 @@ const AnnouncementPost = ({
             </div>
           )}
 
+          {/* Privacy */}
           <div
             style={{
               position: 'absolute',
@@ -1051,6 +1170,7 @@ const AnnouncementPost = ({
             </div>
           )}
 
+          {/* Type + Price + Completed + High-Risk */}
           <div
             style={{
               position: 'absolute',
@@ -1063,63 +1183,10 @@ const AnnouncementPost = ({
               maxWidth: 'calc(100% - 16px)',
             }}
           >
-            <span
-              style={{
-                backgroundColor: getTypeColor(announcement.type),
-                color: '#FFFFFF',
-                padding: '3px 10px',
-                borderRadius: '6px',
-                fontSize: '0.6rem',
-                fontWeight: 700,
-                fontFamily: 'Cairo, sans-serif',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-              }}
-            >
-              {getTypeLabel(announcement.type)}
-            </span>
-
-            <span
-              style={{
-                backgroundColor:
-                  announcement.price_type === 'free'
-                    ? 'var(--success)'
-                    : announcement.price_type === 'paid'
-                      ? 'var(--primary-orange)'
-                      : '#9C27B0',
-                color: '#FFFFFF',
-                padding: '3px 10px',
-                borderRadius: '6px',
-                fontSize: '0.6rem',
-                fontWeight: 700,
-                fontFamily: 'Cairo, sans-serif',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-              }}
-            >
-              {getPriceLabel()}
-            </span>
-
-            {announcement.sub_category?.is_high_risk && (
-              <span
-                style={{
-                  backgroundColor: 'var(--warning)',
-                  color: '#856404',
-                  padding: '3px 10px',
-                  borderRadius: '6px',
-                  fontSize: '0.55rem',
-                  fontWeight: 700,
-                  fontFamily: 'Cairo, sans-serif',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <FaExclamationTriangle size={8} />
-                تحقق
-              </span>
-            )}
+            {renderStatusBadges()}
           </div>
 
+          {/* Views */}
           <div
             style={{
               position: 'absolute',
@@ -1136,7 +1203,7 @@ const AnnouncementPost = ({
               fontWeight: 500,
               fontFamily: 'Cairo, sans-serif',
               backdropFilter: 'blur(4px)',
-              zIndex: 5,
+              zIndex: 7,
             }}
           >
             <FaEye size={10} />
@@ -1144,6 +1211,7 @@ const AnnouncementPost = ({
           </div>
         </Link>
 
+        {/* Body */}
         <Card.Body
           style={{
             padding: '0.8rem 0.9rem 0.9rem',
@@ -1152,6 +1220,7 @@ const AnnouncementPost = ({
             flex: 1,
           }}
         >
+          {/* Owner Row */}
           <div
             style={{
               display: 'flex',
@@ -1186,21 +1255,6 @@ const AnnouncementPost = ({
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const parent = e.currentTarget.parentElement;
-                    if (parent) {
-                      const fallback = document.createElement('span');
-                      fallback.style.cssText = `
-                        color: var(--text-muted);
-                        font-size: 11px;
-                        font-weight: 700;
-                        font-family: 'Cairo', sans-serif;
-                      `;
-                      fallback.textContent = userInitials;
-                      parent.appendChild(fallback);
-                    }
                   }}
                 />
               ) : (
@@ -1258,7 +1312,7 @@ const AnnouncementPost = ({
                 }}
               >
                 <FaClock size={7} />
-                {formatDate(announcement.created_at)}
+                {formatAnnouncementDateShort(announcement.created_at)}
               </div>
             </div>
 
@@ -1285,6 +1339,17 @@ const AnnouncementPost = ({
                   >
                     {(announcement.user.average_rating ?? 0).toFixed(1)}
                   </span>
+                  <span
+                    style={{
+                      color: 'var(--text-muted)',
+                      fontSize: '0.55rem',
+                      fontFamily: 'system-ui, sans-serif',
+                      fontVariantNumeric: 'tabular-nums',
+                      opacity: 0.8,
+                    }}
+                  >
+                    ({announcement.user.total_ratings})
+                  </span>
                 </>
               ) : (
                 <span
@@ -1292,15 +1357,16 @@ const AnnouncementPost = ({
                     color: 'var(--text-muted)',
                     fontSize: '0.55rem',
                     fontFamily: 'Cairo, sans-serif',
-                    opacity: 0.7,
+                    opacity: 0.8,
                   }}
                 >
-                  لا تقييم
+                  عضو جديد
                 </span>
               )}
             </div>
           </div>
 
+          {/* Title */}
           <Link
             to={`/announcements/${announcement.id}`}
             style={{
@@ -1333,6 +1399,7 @@ const AnnouncementPost = ({
             </h3>
           </Link>
 
+          {/* Meta */}
           <div
             style={{
               display: 'flex',
@@ -1362,20 +1429,24 @@ const AnnouncementPost = ({
               {getCategoryLabel(announcement.category)}
             </span>
 
-            {announcement.sub_category && (
+            {isNegotiable && (
               <span
                 style={{
-                  backgroundColor: 'var(--bg-input)',
-                  color: 'var(--text-muted)',
+                  backgroundColor: 'rgba(232,122,32,0.12)',
+                  color: 'var(--primary-orange)',
                   padding: '1px 8px',
                   borderRadius: '4px',
                   fontSize: '0.55rem',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   fontFamily: 'Cairo, sans-serif',
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid rgba(232,122,32,0.25)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
                 }}
               >
-                {announcement.sub_category.name}
+                <FaHandshake size={8} />
+                تفاوض
               </span>
             )}
 
@@ -1396,6 +1467,7 @@ const AnnouncementPost = ({
             </span>
           </div>
 
+          {/* Action Row */}
           <div
             style={{
               display: 'flex',
@@ -1447,7 +1519,7 @@ const AnnouncementPost = ({
               }}
             >
               <FaChevronLeft size={8} />
-              تفاصيل
+              التفاصيل
             </Button>
 
             {contactConfig.disabled ? (

@@ -9,6 +9,8 @@ import {
 } from 'react-icons/fa';
 import { formatRatingTime } from '../../../utils/ratingHelpers';
 import { getStorageUrl } from '../../../utils/storageHelpers';
+import { useCardBorderAnimation } from '../../../hooks/useCardBorderAnimation';
+import AnimatedCardBorder from '../../ui/AnimatedCardBorder';
 import type { Rating } from '../../../types';
 
 interface AdminRatingCardProps {
@@ -30,11 +32,18 @@ const AdminRatingCard = ({ rating, onDelete }: AdminRatingCardProps) => {
   const raterInitials = getUserInitials(rating.rater?.name || '');
   const ratedInitials = getUserInitials(rating.rated?.name || '');
 
-  // ✅ Use storage helper for both avatars
+  // ✅ One hook instance per card
+  const { attachRef, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
+  // ✅ Storage URLs
   const raterImage = getStorageUrl(rating.rater?.profile_image);
   const ratedImage = getStorageUrl(rating.rated?.profile_image);
 
-  // Get rating color based on value
+  // Rating color
   const ratingColor =
     rating.rating >= 4
       ? '#28A745'
@@ -49,346 +58,375 @@ const AdminRatingCard = ({ rating, onDelete }: AdminRatingCardProps) => {
       ? 'rgba(255,193,7,0.1)'
       : 'rgba(220,53,69,0.08)';
 
+  // ✅ Vertical gradient for right border
+  const ratingGradient =
+    rating.rating >= 4
+      ? 'linear-gradient(180deg, #28A745, #51cf66)'
+      : rating.rating === 3
+      ? 'linear-gradient(180deg, #FFC107, #ffec99)'
+      : 'linear-gradient(180deg, #DC3545, #ff6b6b)';
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -3 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
-        borderRadius: '16px',
-        padding: '1.25rem',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
-        transition: 'all 0.25s ease',
-        fontFamily: 'Cairo, sans-serif',
-        overflow: 'hidden',
-        minWidth: 0,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.08)';
-        e.currentTarget.style.borderColor = `${ratingColor}50`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.03)';
-        e.currentTarget.style.borderColor = 'var(--border-color)';
-      }}
+    // ✅ OUTER: owns ref + hover detection. NO motion.
+    <div
+      ref={attachRef}
+      {...hoverHandlers}
+      style={{ height: '100%', minWidth: 0 }}
     >
-      {/* ============================================ */}
-      {/* Users Row: Rater → Rated */}
-      {/* ============================================ */}
-      <div
+      {/* ✅ INNER: motion only. NO ref. */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -3 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
         style={{
+          height: '100%',
           display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '1rem',
+          flexDirection: 'column',
+          backgroundColor: 'var(--bg-card)',
+          border: `1px solid ${
+            isDrawn ? ratingColor + '50' : 'var(--border-color)'
+          }`,
+          borderRadius: '16px',
+          padding: '1.25rem',
+          boxShadow: isDrawn
+            ? '0 12px 32px rgba(0, 0, 0, 0.08)'
+            : '0 4px 16px rgba(0, 0, 0, 0.03)',
+          transition: 'all 0.25s ease',
+          fontFamily: 'Cairo, sans-serif',
+          overflow: 'hidden',
           minWidth: 0,
-          backgroundColor: 'var(--bg-input)',
-          padding: '8px 10px',
-          borderRadius: '12px',
-          border: '1px solid var(--border-color)',
+          position: 'relative',
         }}
       >
-        {/* Rater */}
+        {/* ✅ Animated RIGHT border — rating-color driven */}
+        <AnimatedCardBorder
+          isDrawn={isDrawn}
+          side="right"
+          background={ratingGradient}
+          drawFrom="start"
+          height={4}
+          duration={0.55}
+          idleOpacity={0}
+          rounded
+          cardRadius={16}
+        />
+
+        {/* ============================================ */}
+        {/* Users Row: Rater → Rated */}
+        {/* ============================================ */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            minWidth: 0,
-            flex: 1,
-          }}
-        >
-          <Avatar
-            imageUrl={raterImage}
-            initials={raterInitials}
-            isVerified={rating.rater?.is_verified}
-            size={34}
-          />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                color: 'var(--text-secondary)',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                lineHeight: 1.2,
-              }}
-              title={rating.rater?.name}
-            >
-              {rating.rater?.name || 'مستخدم'}
-            </div>
-            <div
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.6rem',
-                fontWeight: 600,
-                opacity: 0.8,
-              }}
-            >
-              المُقيِّم
-            </div>
-          </div>
-        </div>
-
-        {/* Arrow */}
-        <div
-          style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-          }}
-        >
-          <FaArrowLeft size={9} color="var(--primary-orange)" />
-        </div>
-
-        {/* Rated */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            minWidth: 0,
-            flex: 1,
-          }}
-        >
-          <Avatar
-            imageUrl={ratedImage}
-            initials={ratedInitials}
-            isVerified={rating.rated?.is_verified}
-            size={34}
-          />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                color: 'var(--text-secondary)',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                lineHeight: 1.2,
-              }}
-              title={rating.rated?.name}
-            >
-              {rating.rated?.name || 'مستخدم'}
-            </div>
-            <div
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.6rem',
-                fontWeight: 600,
-                opacity: 0.8,
-              }}
-            >
-              المُقيَّم
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ============================================ */}
-      {/* Rating Value — prominent */}
-      {/* ============================================ */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '8px',
-          padding: '10px 14px',
-          backgroundColor: ratingBg,
-          borderRadius: '12px',
-          border: `1px solid ${ratingColor}25`,
-          marginBottom: '1rem',
-          minWidth: 0,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            direction: 'ltr',
-            flexShrink: 0,
-          }}
-        >
-          {[1, 2, 3, 4, 5].map((star) => (
-            <FaStar
-              key={star}
-              size={13}
-              color={star <= rating.rating ? ratingColor : 'var(--border-color)'}
-              style={{ opacity: star <= rating.rating ? 1 : 0.35 }}
-            />
-          ))}
-        </div>
-
-        <span
-          style={{
-            color: ratingColor,
-            fontSize: '0.82rem',
-            fontWeight: 800,
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            fontVariantNumeric: 'tabular-nums',
-            flexShrink: 0,
-          }}
-        >
-          {rating.rating}.0 / 5
-        </span>
-      </div>
-
-      {/* ============================================ */}
-      {/* Comment (optional) */}
-      {/* ============================================ */}
-      {rating.comment && (
-        <div
-          style={{
-            padding: '10px 12px',
-            backgroundColor: 'var(--bg-input)',
-            borderRadius: '10px',
-            border: '1px solid var(--border-color)',
-            fontSize: '0.78rem',
-            color: 'var(--text-secondary)',
-            lineHeight: 1.6,
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
             marginBottom: '1rem',
-            wordBreak: 'break-word',
-          }}
-          title={rating.comment}
-        >
-          "{rating.comment}"
-        </div>
-      )}
-
-      {/* ============================================ */}
-      {/* Footer: Time + Announcement + Delete */}
-      {/* ============================================ */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '8px',
-          marginTop: 'auto',
-          paddingTop: '10px',
-          borderTop: '1px solid var(--border-color)',
-          flexWrap: 'wrap',
-          minWidth: 0,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
             minWidth: 0,
-            flex: 1,
+            backgroundColor: 'var(--bg-input)',
+            padding: '8px 10px',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
           }}
         >
-          <span
+          {/* Rater */}
+          <div
             style={{
-              color: 'var(--text-muted)',
-              fontSize: '0.68rem',
-              whiteSpace: 'nowrap',
-              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              minWidth: 0,
+              flex: 1,
             }}
           >
-            {formatRatingTime(rating.created_at)}
-          </span>
-
-          {rating.announcement && (
-            <Link
-              to={`/announcements/${rating.announcement.id}`}
-              target="_blank"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                color: 'var(--text-muted)',
-                fontSize: '0.68rem',
-                textDecoration: 'none',
-                minWidth: 0,
-                overflow: 'hidden',
-                transition: 'color 0.2s ease',
-                fontWeight: 600,
-              }}
-              title={rating.announcement.title}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--primary-orange)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-muted)';
-              }}
-            >
-              <FaExternalLinkAlt size={8} style={{ flexShrink: 0 }} />
-              <span
+            <Avatar
+              imageUrl={raterImage}
+              initials={raterInitials}
+              isVerified={rating.rater?.is_verified}
+              size={34}
+            />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
                 style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  maxWidth: '130px',
+                  lineHeight: 1.2,
+                }}
+                title={rating.rater?.name}
+              >
+                {rating.rater?.name || 'مستخدم'}
+              </div>
+              <div
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.6rem',
+                  fontWeight: 600,
+                  opacity: 0.8,
                 }}
               >
-                {rating.announcement.title}
-              </span>
-            </Link>
-          )}
+                المُقيِّم
+              </div>
+            </div>
+          </div>
+
+          {/* Arrow */}
+          <div
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '50%',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+            }}
+          >
+            <FaArrowLeft size={9} color="var(--primary-orange)" />
+          </div>
+
+          {/* Rated */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              minWidth: 0,
+              flex: 1,
+            }}
+          >
+            <Avatar
+              imageUrl={ratedImage}
+              initials={ratedInitials}
+              isVerified={rating.rated?.is_verified}
+              size={34}
+            />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  lineHeight: 1.2,
+                }}
+                title={rating.rated?.name}
+              >
+                {rating.rated?.name || 'مستخدم'}
+              </div>
+              <div
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.6rem',
+                  fontWeight: 600,
+                  opacity: 0.8,
+                }}
+              >
+                المُقيَّم
+              </div>
+            </div>
+          </div>
         </div>
 
-        <motion.button
-          type="button"
-          onClick={() => onDelete(rating)}
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
+        {/* ============================================ */}
+        {/* Rating Value */}
+        {/* ============================================ */}
+        <div
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: '5px',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            border: '1px solid rgba(220,53,69,0.3)',
-            backgroundColor: 'rgba(220,53,69,0.06)',
-            color: '#DC3545',
-            fontFamily: 'Cairo, sans-serif',
-            fontSize: '0.72rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#DC3545';
-            e.currentTarget.style.color = '#FFFFFF';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(220,53,69,0.25)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(220,53,69,0.06)';
-            e.currentTarget.style.color = '#DC3545';
-            e.currentTarget.style.boxShadow = 'none';
+            justifyContent: 'space-between',
+            gap: '8px',
+            padding: '10px 14px',
+            backgroundColor: ratingBg,
+            borderRadius: '12px',
+            border: `1px solid ${ratingColor}25`,
+            marginBottom: '1rem',
+            minWidth: 0,
           }}
         >
-          <FaTrash size={10} />
-          حذف
-        </motion.button>
-      </div>
-    </motion.div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              direction: 'ltr',
+              flexShrink: 0,
+            }}
+          >
+            {[1, 2, 3, 4, 5].map((star) => (
+              <FaStar
+                key={star}
+                size={13}
+                color={
+                  star <= rating.rating ? ratingColor : 'var(--border-color)'
+                }
+                style={{ opacity: star <= rating.rating ? 1 : 0.35 }}
+              />
+            ))}
+          </div>
+
+          <span
+            style={{
+              color: ratingColor,
+              fontSize: '0.82rem',
+              fontWeight: 800,
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+              fontVariantNumeric: 'tabular-nums',
+              flexShrink: 0,
+            }}
+          >
+            {rating.rating}.0 / 5
+          </span>
+        </div>
+
+        {/* ============================================ */}
+        {/* Comment */}
+        {/* ============================================ */}
+        {rating.comment && (
+          <div
+            style={{
+              padding: '10px 12px',
+              backgroundColor: 'var(--bg-input)',
+              borderRadius: '10px',
+              border: '1px solid var(--border-color)',
+              fontSize: '0.78rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.6,
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              marginBottom: '1rem',
+              wordBreak: 'break-word',
+            }}
+            title={rating.comment}
+          >
+            "{rating.comment}"
+          </div>
+        )}
+
+        {/* ============================================ */}
+        {/* Footer */}
+        {/* ============================================ */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            marginTop: 'auto',
+            paddingTop: '10px',
+            borderTop: '1px solid var(--border-color)',
+            flexWrap: 'wrap',
+            minWidth: 0,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              minWidth: 0,
+              flex: 1,
+            }}
+          >
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.68rem',
+                whiteSpace: 'nowrap',
+                fontWeight: 600,
+              }}
+            >
+              {formatRatingTime(rating.created_at)}
+            </span>
+
+            {rating.announcement && (
+              <Link
+                to={`/announcements/${rating.announcement.id}`}
+                target="_blank"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.68rem',
+                  textDecoration: 'none',
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  transition: 'color 0.2s ease',
+                  fontWeight: 600,
+                }}
+                title={rating.announcement.title}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--primary-orange)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                }}
+              >
+                <FaExternalLinkAlt size={8} style={{ flexShrink: 0 }} />
+                <span
+                  style={{
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '130px',
+                  }}
+                >
+                  {rating.announcement.title}
+                </span>
+              </Link>
+            )}
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={() => onDelete(rating)}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              border: '1px solid rgba(220,53,69,0.3)',
+              backgroundColor: 'rgba(220,53,69,0.06)',
+              color: '#DC3545',
+              fontFamily: 'Cairo, sans-serif',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#DC3545';
+              e.currentTarget.style.color = '#FFFFFF';
+              e.currentTarget.style.boxShadow =
+                '0 4px 12px rgba(220,53,69,0.25)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(220,53,69,0.06)';
+              e.currentTarget.style.color = '#DC3545';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <FaTrash size={10} />
+            حذف
+          </motion.button>
+        </div>
+      </motion.div>
+    </div>
   );
 };
 

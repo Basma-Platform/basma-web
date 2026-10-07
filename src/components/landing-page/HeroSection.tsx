@@ -8,11 +8,10 @@ import { getPostAuthPath } from '../../utils/authRedirect';
 import {
   FaHandshake,
   FaExchangeAlt,
-  FaShieldAlt,
   FaWhatsapp,
   FaUsers,
-  FaCheckCircle,
-  FaChevronLeft,
+  FaHandHoldingHeart,
+  FaBullhorn,
 } from 'react-icons/fa';
 
 const HeroSection = () => {
@@ -21,18 +20,18 @@ const HeroSection = () => {
   const { stats, loading: statsLoading } = usePublicStats();
   const authedLink = user ? getPostAuthPath(user) : '/register';
 
-  // ✅ Trust points — user count shows shimmer while loading
+  // Three pillars — Trust badge shows user count
   const trustPoints = [
     {
       icon: <FaUsers size={12} />,
       label: 'مستخدم',
-      // Show the number only when stats loaded; otherwise null
-      number: !statsLoading && stats?.users.display_format
-        ? stats.users.display_format
-        : null,
+      number:
+        !statsLoading && stats?.users.display_format
+          ? stats.users.display_format
+          : null,
     },
-    { icon: <FaCheckCircle size={12} />, label: 'هوية موثّقة' },
-    { icon: <FaWhatsapp size={12} />, label: 'واتساب مباشر' },
+    { icon: <FaHandshake size={12} />, label: 'تكافل اجتماعي' },
+    { icon: <FaWhatsapp size={12} />, label: 'تواصل مباشر' },
   ];
 
   return (
@@ -50,19 +49,20 @@ const HeroSection = () => {
     >
       <Container>
         <Row className="align-items-center w-100 g-4">
-          {/* Text Content Column */}
+          {/* ============================================ */}
+          {/* Text column */}
+          {/* ============================================ */}
           <Col xs={12} lg={6}>
             <div
               className="text-center text-lg-end"
-              style={{
-                padding: '0.5rem',
-              }}
+              style={{ padding: '0.5rem' }}
             >
+              {/* Typed headline */}
               <h1
                 className="hero-main-title"
                 style={{
                   color: 'var(--text-secondary)',
-                  fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+                  fontSize: 'clamp(2.3rem, 4.8vw, 3.8rem)',
                   fontWeight: 900,
                   lineHeight: 1.25,
                   marginBottom: '1.25rem',
@@ -71,41 +71,47 @@ const HeroSection = () => {
                 }}
               >
                 <TypeAnimation
-                  sequence={[
-                    'تواصل إنساني',
-                    800,
-                    'تواصل إنساني\nبلمسة رقمية',
-                    200,
-                  ]}
-                  wrapper="span"
-                  speed={50}
-                  repeat={0}
-                  cursor={true}
-                  className="hero-typing-cursor"
-                  style={{
-                    display: 'inline-block',
-                    whiteSpace: 'pre-line',
-                    fontFamily: 'Cairo, sans-serif',
-                    fontWeight: 800,
-                  }}
-                />
+		  sequence={[
+		    'تواصل إنساني',
+		    900,
+		    'تواصل إنساني\nبلمسة رقمية',
+		    200,
+		  ]}
+		  wrapper="span"
+		  speed={50}
+		  repeat={0}
+		  cursor={true}
+		  className="hero-typing-cursor"
+		  style={{
+		    display: 'inline-block',
+		    whiteSpace: 'pre-line',
+		    fontFamily: 'Cairo, sans-serif',
+		    fontWeight: 800,
+		  }}
+		/>
               </h1>
 
+              {/* Subheadline — 3-pillar pitch */}
               <p
                 className="hero-desc-text mx-auto ms-lg-auto me-lg-0"
                 style={{
                   color: 'var(--text-muted)',
-                  fontSize: 'clamp(1rem, 1.3vw, 1.2rem)',
-                  lineHeight: '1.8',
+                  fontSize: 'clamp(1rem, 1.3vw, 1.15rem)',
+                  lineHeight: '1.9',
                   marginBottom: '1.75rem',
-                  maxWidth: '550px',
+                  maxWidth: '560px',
+                  fontFamily: 'Cairo, sans-serif',
+                  textAlign: 'justify',
+                  textJustify: 'inter-word',
                 }}
               >
-                منصة بصمة تهدف إلى تعزيز التكافل الاجتماعي وتسهيل تبادل الموارد
-                والخدمات داخل المجتمع بروح التعاون والمحبة.
+                بصمة منصّة مجتمعية متكاملة لأهل غزة، تجمع ثلاث ركائز لبناء
+                مجتمع متكافل ومترابط: تبادل الخدمات بين الأفراد، صندوق بصمة
+                لدعم المحتاجين ومنشورات المجتمع لنشر
+                الوعي والتعاون. انضم إلينا وساهم في بناء مجتمع أقوى.
               </p>
 
-              {/* CTA Buttons */}
+              {/* CTAs */}
               <div className="hero-cta-group d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
                 <Button
                   as={Link as any}
@@ -134,7 +140,7 @@ const HeroSection = () => {
                       '0 4px 16px rgba(232, 122, 32, 0.3)';
                   }}
                 >
-                  {isAuthenticated ? 'لوحة التحكم' : 'انضم إلينا الآن'}
+                  {isAuthenticated ? 'لوحة التحكم' : 'انضم إلى مجتمعنا'}
                 </Button>
 
                 <Button
@@ -162,11 +168,11 @@ const HeroSection = () => {
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
-                  تصفح الإعلانات
+                  تصفّح الخدمات
                 </Button>
               </div>
 
-              {/* Trust Points */}
+              {/* Trust points */}
               <div
                 className="trust-points-container"
                 style={{
@@ -210,7 +216,6 @@ const HeroSection = () => {
                       {point.icon}
                     </span>
 
-                    {/* ✅ Number + label with shimmer while loading */}
                     {point.number !== undefined ? (
                       point.number ? (
                         <>
@@ -231,7 +236,6 @@ const HeroSection = () => {
                         </>
                       ) : (
                         <>
-                          {/* Shimmer placeholder while stats load */}
                           <span
                             className="hero-trust-shimmer"
                             aria-label="جاري التحميل"
@@ -259,11 +263,13 @@ const HeroSection = () => {
             </div>
           </Col>
 
-          {/* Desktop Visual Column (Hidden on Mobile) */}
+          {/* ============================================ */}
+          {/* Desktop visual — three pillars triangle */}
+          {/* ============================================ */}
           <Col
             lg={6}
             className="d-none d-lg-flex justify-content-center align-items-center"
-            style={{ minHeight: '420px' }}
+            style={{ minHeight: '460px' }}
           >
             <div className="hero-triangle-wrap">
               <div className="hero-triangle">
@@ -301,7 +307,7 @@ const HeroSection = () => {
                       refY="4.5"
                       orient="auto"
                     >
-                      <path d="M0,0 L9,4.5 L0,9 Z" fill="#28A745" />
+                      <path d="M0,0 L9,4.5 L0,9 Z" fill="#17A2B8" />
                     </marker>
                   </defs>
 
@@ -330,7 +336,7 @@ const HeroSection = () => {
                     className="hero-arrow-path path-3"
                     d="M115,272 Q110,180 195,138"
                     fill="none"
-                    stroke="#28A745"
+                    stroke="#17A2B8"
                     strokeWidth="3"
                     strokeLinecap="round"
                     markerEnd="url(#basma-arrow-3)"
@@ -362,7 +368,7 @@ const HeroSection = () => {
                       <mpath href="#basma-path-2" />
                     </animateMotion>
                   </circle>
-                  <circle r="5" fill="#28A745" opacity="0">
+                  <circle r="5" fill="#17A2B8" opacity="0">
                     <animate
                       attributeName="opacity"
                       from="0"
@@ -377,6 +383,7 @@ const HeroSection = () => {
                   </circle>
                 </svg>
 
+                {/* Pillar 1 — تبادل الخدمات */}
                 <div className="hero-bubble-wrap bubble-1">
                   <div
                     className="hero-bubble"
@@ -384,32 +391,34 @@ const HeroSection = () => {
                       background: 'linear-gradient(135deg, #E87A20, #F5A623)',
                     }}
                   >
-                    <FaHandshake size={30} color="#FFFFFF" />
-                    <span className="hero-bubble-label">تعاون</span>
-                  </div>
-                </div>
-
-                <div className="hero-bubble-wrap bubble-2">
-                  <div
-                    className="hero-bubble"
-                    style={{
-                      background: 'linear-gradient(135deg, #8B5A2B, #C49A6C)',
-                    }}
-                  >
                     <FaExchangeAlt size={28} color="#FFFFFF" />
                     <span className="hero-bubble-label">تبادل</span>
                   </div>
                 </div>
 
+                {/* Pillar 2 — منشورات المجتمع */}
+                <div className="hero-bubble-wrap bubble-2">
+                  <div
+                    className="hero-bubble"
+                    style={{
+                      background: 'linear-gradient(135deg, #9C27B0, #BA68C8)',
+                    }}
+                  >
+                    <FaBullhorn size={28} color="#FFFFFF" />
+                    <span className="hero-bubble-label">مجتمع</span>
+                  </div>
+                </div>
+
+                {/* Pillar 3 — صندوق بصمة */}
                 <div className="hero-bubble-wrap bubble-3">
                   <div
                     className="hero-bubble"
                     style={{
-                      background: 'linear-gradient(135deg, #28A745, #4FCB6E)',
+                      background: 'linear-gradient(135deg, #17A2B8, #20C9E0)',
                     }}
                   >
-                    <FaShieldAlt size={28} color="#FFFFFF" />
-                    <span className="hero-bubble-label">ثقة</span>
+                    <FaHandHoldingHeart size={28} color="#FFFFFF" />
+                    <span className="hero-bubble-label">تكافل</span>
                   </div>
                 </div>
               </div>
@@ -422,9 +431,9 @@ const HeroSection = () => {
                   sequence={[
                     'من التعاون يبدأ التبادل،',
                     700,
-                    'من التعاون يبدأ التبادل، ومن التبادل تُبنى الثقة،',
+                    'من التعاون يبدأ التبادل، ومن العطاء تولد الرحمة،',
                     700,
-                    'من التعاون يبدأ التبادل، ومن التبادل تُبنى الثقة، سعياً نحو مجتمع متكافل ومترابط',
+                    'من التعاون يبدأ التبادل، ومن العطاء تولد الرحمة، ومن الكلمة يزدهر المجتمع — بصمة، نحو مجتمع متكافل ومترابط.',
                     200,
                   ]}
                   wrapper="span"
@@ -434,7 +443,7 @@ const HeroSection = () => {
                   className="hero-caption-cursor"
                   style={{
                     fontFamily: 'Cairo, sans-serif',
-                    fontSize: 'clamp(0.85rem, 1.1vw, 1rem)',
+                    fontSize: 'clamp(0.85rem, 1.05vw, 1rem)',
                     fontWeight: 600,
                     lineHeight: 1.8,
                   }}
@@ -443,25 +452,25 @@ const HeroSection = () => {
             </div>
           </Col>
 
-          {/* Mobile Connected Chain Cards Row with Typing Caption */}
+          {/* ============================================ */}
+          {/* Mobile pillars — 3 cards in a row */}
+          {/* ============================================ */}
           <Col xs={12} className="d-lg-none mt-4">
             <div
               className="mobile-cards-wrapper"
               style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '6px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
                 padding: '0.5rem 0',
                 width: '100%',
                 margin: '0 auto',
               }}
             >
-              {/* Card 1: تعاون */}
+              {/* Card 1 — تبادل */}
               <div
                 className="mobile-card-item mobile-card-1"
                 style={{
-                  flex: '0 1 96px',
                   background: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '16px',
@@ -483,64 +492,11 @@ const HeroSection = () => {
                     color: '#FFF',
                   }}
                 >
-                  <FaHandshake size={15} />
-                </div>
-                <span
-                  style={{
-                    fontSize: '0.78rem',
-                    fontWeight: 800,
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  تعاون
-                </span>
-              </div>
-
-              {/* Connecting Link Arrow 1 */}
-              <div
-                className="mobile-card-item mobile-card-link-1"
-                style={{
-                  color: '#E87A20',
-                  opacity: 0.7,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <FaChevronLeft size={13} />
-              </div>
-
-              {/* Card 2: تبادل */}
-              <div
-                className="mobile-card-item mobile-card-2"
-                style={{
-                  flex: '0 1 96px',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '16px',
-                  padding: '12px 4px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 12px var(--shadow-sm)',
-                }}
-              >
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    margin: '0 auto 6px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #8B5A2B, #C49A6C)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#FFF',
-                  }}
-                >
                   <FaExchangeAlt size={14} />
                 </div>
                 <span
                   style={{
-                    fontSize: '0.78rem',
+                    fontSize: '0.72rem',
                     fontWeight: 800,
                     color: 'var(--text-secondary)',
                   }}
@@ -549,25 +505,10 @@ const HeroSection = () => {
                 </span>
               </div>
 
-              {/* Connecting Link Arrow 2 */}
+              {/* Card 2 — مجتمع */}
               <div
-                className="mobile-card-item mobile-card-link-2"
+                className="mobile-card-item mobile-card-2"
                 style={{
-                  color: '#8B5A2B',
-                  opacity: 0.7,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <FaChevronLeft size={13} />
-              </div>
-
-              {/* Card 3: ثقة */}
-              <div
-                className="mobile-card-item mobile-card-3"
-                style={{
-                  flex: '0 1 96px',
                   background: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '16px',
@@ -582,23 +523,61 @@ const HeroSection = () => {
                     height: '36px',
                     margin: '0 auto 6px',
                     borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #28A745, #4FCB6E)',
+                    background: 'linear-gradient(135deg, #9C27B0, #BA68C8)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#FFF',
                   }}
                 >
-                  <FaShieldAlt size={14} />
+                  <FaBullhorn size={14} />
                 </div>
                 <span
                   style={{
-                    fontSize: '0.78rem',
+                    fontSize: '0.72rem',
                     fontWeight: 800,
                     color: 'var(--text-secondary)',
                   }}
                 >
-                  ثقة
+                  مجتمع
+                </span>
+              </div>
+
+              {/* Card 3 — تكافل */}
+              <div
+                className="mobile-card-item mobile-card-3"
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  padding: '12px 4px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 12px var(--shadow-sm)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    margin: '0 auto 6px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #17A2B8, #20C9E0)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#FFF',
+                  }}
+                >
+                  <FaHandHoldingHeart size={14} />
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    color: 'var(--text-secondary)',
+                  }}
+                >
+                  تكافل
                 </span>
               </div>
             </div>
@@ -623,9 +602,9 @@ const HeroSection = () => {
                 sequence={[
                   'من التعاون يبدأ التبادل،',
                   700,
-                  'من التعاون يبدأ التبادل، ومن التبادل تُبنى الثقة،',
+                  'من التعاون يبدأ التبادل، ومن العطاء تولد الرحمة،',
                   700,
-                  'من التعاون يبدأ التبادل، ومن التبادل تُبنى الثقة، سعياً نحو مجتمع متكافل ومترابط',
+                  'من التعاون يبدأ التبادل، ومن العطاء تولد الرحمة، ومن الكلمة يزدهر المجتمع.',
                   200,
                 ]}
                 wrapper="span"
@@ -746,10 +725,8 @@ const HeroSection = () => {
         }
 
         .hero-section .mobile-card-1 { animation-delay: 0.15s; }
-        .hero-section .mobile-card-link-1 { animation-delay: 0.3s; }
-        .hero-section .mobile-card-2 { animation-delay: 0.45s; }
-        .hero-section .mobile-card-link-2 { animation-delay: 0.6s; }
-        .hero-section .mobile-card-3 { animation-delay: 0.75s; }
+        .hero-section .mobile-card-2 { animation-delay: 0.35s; }
+        .hero-section .mobile-card-3 { animation-delay: 0.55s; }
 
         .hero-section .hero-typing-cursor::after {
           content: '|';
@@ -762,7 +739,6 @@ const HeroSection = () => {
           animation: blink 0.8s step-end 3, hideCursor 0s 5s forwards;
         }
 
-        /* ✅ Shimmer for the user-count placeholder */
         .hero-section .hero-trust-shimmer::after {
           content: '';
           position: absolute;
@@ -830,7 +806,8 @@ const HeroSection = () => {
         @media (max-width: 991px) {
           .hero-section p.hero-desc-text {
             font-size: 0.95rem !important;
-            line-height: 1.7 !important;
+            line-height: 1.75 !important;
+            text-align: center !important;
           }
 
           .hero-section .hero-btn-primary,
@@ -855,8 +832,8 @@ const HeroSection = () => {
 
         @media (max-width: 380px) {
           .hero-main-title {
-            font-size: 2.3rem !important;
-            min-height: 5.5rem !important;
+            font-size: 2.1rem !important;
+            min-height: 5rem !important;
           }
 
           .hero-cta-group {
@@ -867,16 +844,6 @@ const HeroSection = () => {
           .hero-btn-outline {
             padding: 10px 10px !important;
             font-size: 0.82rem !important;
-          }
-
-          .mobile-cards-wrapper {
-            gap: 4px !important;
-            padding: 0 2px !important;
-          }
-
-          .mobile-cards-wrapper > div.mobile-card-item:not(.mobile-card-link-1):not(.mobile-card-link-2) {
-            flex: 0 1 88px !important;
-            padding: 10px 2px !important;
           }
         }
 

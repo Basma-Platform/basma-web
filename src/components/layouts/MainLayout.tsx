@@ -15,7 +15,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const [isMobile, setIsMobile] = useState(false);
 
   const isAdmin = user?.role === 'admin';
-  const isVerified = user?.is_verified === true;
 
   // ============================================
   // Responsive: sync `isMobile` on mount + resize
@@ -62,7 +61,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
   const getTitle = () => {
     if (isAdmin) return 'لوحة الإدارة';
-    if (isVerified) return 'لوحة التحكم - موثق';
     return 'لوحة التحكم';
   };
 

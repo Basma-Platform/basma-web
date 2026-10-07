@@ -262,7 +262,7 @@ const PublicUserProfilePage = () => {
               }}
             >
               <FaArrowRight size={11} />
-              العودة للإعلانات
+              العودة للخدمات
             </Link>
           </div>
         </div>
@@ -328,7 +328,7 @@ const PublicUserProfilePage = () => {
                 fontWeight: 600,
               }}
             >
-              الإعلانات
+              تبادل الخدمات
             </Link>
             <FaChevronLeft size={9} style={{ opacity: 0.4 }} />
             <span style={{ opacity: 0.7 }}>{user.name}</span>

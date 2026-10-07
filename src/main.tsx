@@ -12,6 +12,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from './context/AuthContext';
 import { AccountStatusProvider } from './context/AccountStatusContext';
 import { NotificationsProvider } from './context/NotificationsContext';
+import { VerificationGuardProvider } from './context/VerificationGuardContext';
 import CookieConsent from './components/CookieConsent';
 
 // Apply saved theme before first paint, so there's no flash of the wrong theme
@@ -37,12 +38,15 @@ createRoot(document.getElementById('root')!).render(
               {/* NotificationsProvider: central polling for unread count.
                   Must be inside AuthProvider to access useAuth(). */}
               <NotificationsProvider>
-                <App />
-                {/* Mounted once, globally, outside the route tree — shows on
-                    every page the same way a real cookie notice does on
-                    production sites, instead of being tied to one layout. */}
-                <CookieConsent />
-              </NotificationsProvider>
+		            {/* Verification Guard — global modal for locked features */}
+                <VerificationGuardProvider>
+                  <App />
+                  {/* Mounted once, globally, outside the route tree — shows on
+                      every page the same way a real cookie notice does on
+                      production sites, instead of being tied to one layout. */}
+                  <CookieConsent />
+                </VerificationGuardProvider>
+	            </NotificationsProvider>
             </AuthProvider>
           </AccountStatusProvider>
         </ThemeProvider>

@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaBars, FaTimes, FaSun, FaMoon, FaCog, FaSignOutAlt, FaChevronDown } from 'react-icons/fa';
+import {
+  FaBars,
+  FaTimes,
+  FaSun,
+  FaMoon,
+  FaCog,
+  FaSignOutAlt,
+  FaChevronDown,
+  FaExchangeAlt,
+  FaHandHoldingHeart,
+  FaBullhorn,
+} from 'react-icons/fa';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { getDashboardPath } from '../utils/authRedirect';
@@ -8,43 +19,116 @@ import { getStorageUrl } from '../utils/storageHelpers';
 import WarningBadge from './shared/WarningBadge';
 import logo from '../assets/logo.png';
 
-const NAV_LINKS = [
-  { path: "/", label: "الرئيسية" },
-  { path: "/announcements", label: "الإعلانات" },
-  { path: "/about", label: "من نحن" },
-  { path: "/faq", label: "الأسئلة الشائعة" },
-  { path: "/contact", label: "اتصل بنا" },
+// ============================================
+// مجتمع بصمة — 3 pillars, each with its own accent color
+// ============================================
+const COMMUNITY_LINKS = [
+  {
+    path: '/announcements',
+    label: 'تبادل الخدمات',
+    Icon: FaExchangeAlt,
+    // Orange — the flagship pillar
+    accent: '#E87A20',
+    accentSoft: 'rgba(232, 122, 32, 0.10)',
+    accentSoftDark: 'rgba(232, 122, 32, 0.18)',
+  },
+  {
+    path: '/basma-fund',
+    label: 'صندوق بصمة',
+    Icon: FaHandHoldingHeart,
+    // Teal — warmth + care
+    accent: '#17A2B8',
+    accentSoft: 'rgba(23, 162, 184, 0.10)',
+    accentSoftDark: 'rgba(23, 162, 184, 0.18)',
+  },
+  {
+    path: '/community',
+    label: 'منشورات المجتمع',
+    Icon: FaBullhorn,
+    // Purple — community voice
+    accent: '#9C27B0',
+    accentSoft: 'rgba(156, 39, 176, 0.10)',
+    accentSoftDark: 'rgba(156, 39, 176, 0.18)',
+  },
+];
+
+// Simple links around the dropdown
+const LINKS_BEFORE = [{ path: '/', label: 'الرئيسية' }];
+const LINKS_AFTER = [
+  { path: '/about', label: 'من نحن' },
+  { path: '/faq', label: 'الأسئلة الشائعة' },
+  { path: '/contact', label: 'اتصل بنا' },
 ];
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [communityOpen, setCommunityOpen] = useState(false);
   const { isDark: darkMode, toggleDarkMode } = useTheme();
   const { isAuthenticated, user, logout, isLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const communityRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const communityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
+  // ============================================
   // Scroll effect
+  // ============================================
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close drawer and dropdown on route change
+  // ============================================
+  // Close drawer + dropdowns on route change
+  // ============================================
   useEffect(() => {
     setOpen(false);
     setDropdownOpen(false);
+    setCommunityOpen(false);
   }, [location]);
+
+  // ============================================
+  // Close community dropdown on outside click
+  // ============================================
+  useEffect(() => {
+    const handleOutside = (event: MouseEvent | TouchEvent) => {
+      if (
+        communityRef.current &&
+        !communityRef.current.contains(event.target as Node)
+      ) {
+        setCommunityOpen(false);
+      }
+    };
+
+    if (communityOpen) {
+      document.addEventListener('mousedown', handleOutside);
+      document.addEventListener('touchstart', handleOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+    };
+  }, [communityOpen]);
 
   const dashboardPath = getDashboardPath(user?.role);
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Is the user on any of the 3 community sub-routes?
+  const isCommunityActive = COMMUNITY_LINKS.some(
+    (link) =>
+      location.pathname === link.path ||
+      location.pathname.startsWith(link.path + '/')
+  );
 
   const handleLogout = async () => {
     setDropdownOpen(false);
@@ -56,7 +140,9 @@ const Navbar = () => {
     if (!user?.name) return 'U';
     const names = user.name.split(' ');
     if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    return (
+      names[0].charAt(0) + names[names.length - 1].charAt(0)
+    ).toUpperCase();
   };
 
   const getUserAvatar = () => {
@@ -66,6 +152,26 @@ const Navbar = () => {
   const userAvatar = getUserAvatar();
   const userInitials = getUserInitials();
 
+  // ============================================
+  // Community dropdown hover handlers
+  // ============================================
+  const handleCommunityEnter = () => {
+    if (communityTimeoutRef.current) {
+      clearTimeout(communityTimeoutRef.current);
+      communityTimeoutRef.current = null;
+    }
+    setCommunityOpen(true);
+  };
+
+  const handleCommunityLeave = () => {
+    communityTimeoutRef.current = setTimeout(() => {
+      setCommunityOpen(false);
+    }, 200);
+  };
+
+  // ============================================
+  // User dropdown hover handlers
+  // ============================================
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -80,9 +186,10 @@ const Navbar = () => {
     }, 200);
   };
 
-  // ✅ عرض مكان شاغر أثناء تحميل حالة المستخدم
+  // ============================================
+  // Auth section
+  // ============================================
   const renderAuthSection = () => {
-    // ✅ أثناء التحميل: عرض مكان شاغر مع تأثير نبض
     if (isLoading) {
       return (
         <div className="site-navbar__auth-loading">
@@ -91,7 +198,6 @@ const Navbar = () => {
       );
     }
 
-    // ✅ المستخدم مسجل دخول: عرض الـ Dropdown
     if (isAuthenticated) {
       return (
         <div
@@ -101,7 +207,9 @@ const Navbar = () => {
           onMouseLeave={handleMouseLeave}
         >
           <button
-            className={`site-navbar__dropdown-toggle ${dropdownOpen ? 'is-active' : ''}`}
+            className={`site-navbar__dropdown-toggle ${
+              dropdownOpen ? 'is-active' : ''
+            }`}
             onClick={() => setDropdownOpen(!dropdownOpen)}
             type="button"
           >
@@ -123,14 +231,15 @@ const Navbar = () => {
                   }}
                 />
               ) : (
-                <span className="site-navbar__avatar-fallback">{userInitials}</span>
+                <span className="site-navbar__avatar-fallback">
+                  {userInitials}
+                </span>
               )}
             </div>
             <span className="site-navbar__username">
               {user?.name?.split(' ')[0] || 'حسابي'}
             </span>
 
-            {/* ✅ Warning badge — only renders when user has warnings */}
             <WarningBadge
               warnings={user?.warnings}
               variant="icon"
@@ -139,7 +248,9 @@ const Navbar = () => {
 
             <FaChevronDown
               size={12}
-              className={`site-navbar__dropdown-arrow ${dropdownOpen ? 'is-rotated' : ''}`}
+              className={`site-navbar__dropdown-arrow ${
+                dropdownOpen ? 'is-rotated' : ''
+              }`}
             />
           </button>
 
@@ -157,19 +268,26 @@ const Navbar = () => {
                         const parent = e.currentTarget.parentElement;
                         if (parent) {
                           const fallback = document.createElement('span');
-                          fallback.className = 'site-navbar__dropdown-avatar-fallback';
+                          fallback.className =
+                            'site-navbar__dropdown-avatar-fallback';
                           fallback.textContent = userInitials;
                           parent.appendChild(fallback);
                         }
                       }}
                     />
                   ) : (
-                    <span className="site-navbar__dropdown-avatar-fallback">{userInitials}</span>
+                    <span className="site-navbar__dropdown-avatar-fallback">
+                      {userInitials}
+                    </span>
                   )}
                 </div>
                 <div className="site-navbar__dropdown-userinfo">
-                  <div className="site-navbar__dropdown-name">{user?.name || 'مستخدم'}</div>
-                  <div className="site-navbar__dropdown-email">{user?.email}</div>
+                  <div className="site-navbar__dropdown-name">
+                    {user?.name || 'مستخدم'}
+                  </div>
+                  <div className="site-navbar__dropdown-email">
+                    {user?.email}
+                  </div>
                 </div>
               </div>
 
@@ -197,7 +315,6 @@ const Navbar = () => {
       );
     }
 
-    // ✅ مستخدم غير مسجل: عرض أزرار تسجيل الدخول
     return (
       <>
         <Link
@@ -219,20 +336,112 @@ const Navbar = () => {
   return (
     <>
       <header
-        className={`site-navbar ${scrolled ? "is-scrolled" : ""} ${darkMode ? "is-dark" : ""}`}
+        className={`site-navbar ${scrolled ? 'is-scrolled' : ''} ${
+          darkMode ? 'is-dark' : ''
+        }`}
       >
         <div className="site-navbar__inner">
-          <Link to="/" className="site-navbar__brand" aria-label="بصمة - الصفحة الرئيسية">
+          <Link
+            to="/"
+            className="site-navbar__brand"
+            aria-label="بصمة - الصفحة الرئيسية"
+          >
             <img src={logo} alt="بصمة" className="site-navbar__logo" />
             <span className="site-navbar__wordmark">بصمة</span>
           </Link>
 
+          {/* ============================================ */}
+          {/* Desktop navigation — community sits right after الرئيسية */}
+          {/* ============================================ */}
           <nav className="site-navbar__links" aria-label="القائمة الرئيسية">
-            {NAV_LINKS.map((link) => (
+            {/* الرئيسية */}
+            {LINKS_BEFORE.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`site-navbar__link ${isActive(link.path) ? "is-active" : ""}`}
+                className={`site-navbar__link ${
+                  isActive(link.path) ? 'is-active' : ''
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+
+            {/* مجتمع بصمة — hover dropdown */}
+            <div
+              ref={communityRef}
+              className="site-navbar__community"
+              onMouseEnter={handleCommunityEnter}
+              onMouseLeave={handleCommunityLeave}
+            >
+              <button
+                type="button"
+                className={`site-navbar__link site-navbar__community-toggle ${
+                  isCommunityActive ? 'is-active' : ''
+                } ${communityOpen ? 'is-open' : ''}`}
+                aria-haspopup="menu"
+                aria-expanded={communityOpen}
+                onClick={() => setCommunityOpen((v) => !v)}
+              >
+                مجتمع بصمة
+                <FaChevronDown
+                  size={10}
+                  className={`site-navbar__community-arrow ${
+                    communityOpen ? 'is-rotated' : ''
+                  }`}
+                />
+              </button>
+
+              {communityOpen && (
+                <div
+                  className="site-navbar__community-menu"
+                  role="menu"
+                  aria-label="مجتمع بصمة"
+                >
+                  {COMMUNITY_LINKS.map(
+                    ({ path, label, Icon, accent, accentSoft, accentSoftDark }) => {
+                      const active =
+                        location.pathname === path ||
+                        location.pathname.startsWith(path + '/');
+                      return (
+                        <Link
+                          key={path}
+                          to={path}
+                          role="menuitem"
+                          className={`site-navbar__community-item ${
+                            active ? 'is-active' : ''
+                          }`}
+                          onClick={() => setCommunityOpen(false)}
+                          style={{
+                            // Per-pillar accent passed as CSS vars
+                            ['--community-accent' as any]: accent,
+                            ['--community-accent-soft' as any]: darkMode
+                              ? accentSoftDark
+                              : accentSoft,
+                          }}
+                        >
+                          <span className="site-navbar__community-item-icon">
+                            <Icon size={14} />
+                          </span>
+                          <span className="site-navbar__community-item-label">
+                            {label}
+                          </span>
+                        </Link>
+                      );
+                    }
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* من نحن / الأسئلة الشائعة / اتصل بنا */}
+            {LINKS_AFTER.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`site-navbar__link ${
+                  isActive(link.path) ? 'is-active' : ''
+                }`}
               >
                 {link.label}
               </Link>
@@ -243,7 +452,9 @@ const Navbar = () => {
             <button
               onClick={toggleDarkMode}
               className="site-navbar__icon-btn"
-              aria-label={darkMode ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"}
+              aria-label={
+                darkMode ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'
+              }
               type="button"
             >
               {darkMode ? <FaSun /> : <FaMoon />}
@@ -255,7 +466,7 @@ const Navbar = () => {
           <button
             className="site-navbar__toggle"
             onClick={() => setOpen((v) => !v)}
-            aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
+            aria-label={open ? 'إغلاق القائمة' : 'فتح القائمة'}
             aria-expanded={open}
             aria-controls="mobile-drawer"
             type="button"
@@ -268,14 +479,19 @@ const Navbar = () => {
       <div className="site-navbar__spacer" aria-hidden="true" />
 
       <div
-        className={`site-navbar__backdrop ${open ? "is-visible" : ""}`}
+        className={`site-navbar__backdrop ${open ? 'is-visible' : ''}`}
         onClick={() => setOpen(false)}
         aria-hidden="true"
       />
 
+      {/* ============================================ */}
+      {/* Mobile drawer */}
+      {/* ============================================ */}
       <div
         id="mobile-drawer"
-        className={`site-navbar__drawer ${open ? 'is-open' : ''} ${darkMode ? 'is-dark' : ''}`}
+        className={`site-navbar__drawer ${open ? 'is-open' : ''} ${
+          darkMode ? 'is-dark' : ''
+        }`}
         role="dialog"
         aria-modal="true"
         aria-label="القائمة"
@@ -303,12 +519,65 @@ const Navbar = () => {
           className="site-navbar__drawer-links"
           aria-label="القائمة الرئيسية - جوال"
         >
-          {NAV_LINKS.map((link, i) => (
+          {/* الرئيسية */}
+          {LINKS_BEFORE.map((link, i) => (
             <Link
               key={link.path}
               to={link.path}
-              className={`site-navbar__drawer-link ${isActive(link.path) ? "is-active" : ""}`}
-              style={{ transitionDelay: open ? `${i * 40}ms` : "0ms" }}
+              className={`site-navbar__drawer-link ${
+                isActive(link.path) ? 'is-active' : ''
+              }`}
+              style={{ transitionDelay: open ? `${i * 40}ms` : '0ms' }}
+            >
+              {link.label}
+            </Link>
+          ))}
+
+          {/* مجتمع بصمة — flat section, still right after الرئيسية */}
+          <div className="site-navbar__drawer-section">
+            <div className="site-navbar__drawer-section-title">
+              مجتمع بصمة
+            </div>
+            {COMMUNITY_LINKS.map(
+              ({ path, label, Icon, accent, accentSoft, accentSoftDark }) => {
+                const active =
+                  location.pathname === path ||
+                  location.pathname.startsWith(path + '/');
+                return (
+                  <Link
+                    key={path}
+                    to={path}
+                    className={`site-navbar__drawer-link site-navbar__drawer-link--sub ${
+                      active ? 'is-active' : ''
+                    }`}
+                    style={{
+                      ['--community-accent' as any]: accent,
+                      ['--community-accent-soft' as any]: darkMode
+                        ? accentSoftDark
+                        : accentSoft,
+                    }}
+                  >
+                    <span className="site-navbar__drawer-link-icon">
+                      <Icon size={14} />
+                    </span>
+                    {label}
+                  </Link>
+                );
+              }
+            )}
+          </div>
+
+          {/* من نحن / الأسئلة الشائعة / اتصل بنا */}
+          {LINKS_AFTER.map((link, i) => (
+            <Link
+              key={link.path}
+              to={link.path}
+              className={`site-navbar__drawer-link ${
+                isActive(link.path) ? 'is-active' : ''
+              }`}
+              style={{
+                transitionDelay: open ? `${(i + 1) * 40}ms` : '0ms',
+              }}
             >
               {link.label}
             </Link>
@@ -321,7 +590,7 @@ const Navbar = () => {
             className="site-navbar__theme-row"
             type="button"
           >
-            <span>{darkMode ? "الوضع الفاتح" : "الوضع الداكن"}</span>
+            <span>{darkMode ? 'الوضع الفاتح' : 'الوضع الداكن'}</span>
             {darkMode ? <FaSun /> : <FaMoon />}
           </button>
 
@@ -345,22 +614,28 @@ const Navbar = () => {
                         const parent = e.currentTarget.parentElement;
                         if (parent) {
                           const fallback = document.createElement('span');
-                          fallback.className = 'site-navbar__drawer-avatar-fallback';
+                          fallback.className =
+                            'site-navbar__drawer-avatar-fallback';
                           fallback.textContent = userInitials;
                           parent.appendChild(fallback);
                         }
                       }}
                     />
                   ) : (
-                    <span className="site-navbar__drawer-avatar-fallback">{userInitials}</span>
+                    <span className="site-navbar__drawer-avatar-fallback">
+                      {userInitials}
+                    </span>
                   )}
                 </div>
                 <div className="site-navbar__drawer-userinfo">
-                  <div className="site-navbar__drawer-username">{user?.name || 'مستخدم'}</div>
-                  <div className="site-navbar__drawer-useremail">{user?.email}</div>
+                  <div className="site-navbar__drawer-username">
+                    {user?.name || 'مستخدم'}
+                  </div>
+                  <div className="site-navbar__drawer-useremail">
+                    {user?.email}
+                  </div>
                 </div>
 
-                {/* ✅ Warning badge in mobile drawer */}
                 <WarningBadge
                   warnings={user?.warnings}
                   variant="chip"
@@ -371,7 +646,10 @@ const Navbar = () => {
                 />
               </div>
 
-              <Link to={dashboardPath} className="site-navbar__btn site-navbar__btn--ghost site-navbar__btn--block">
+              <Link
+                to={dashboardPath}
+                className="site-navbar__btn site-navbar__btn--ghost site-navbar__btn--block"
+              >
                 لوحة التحكم
               </Link>
               <button
@@ -404,7 +682,9 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ... ALL your existing <style> block — unchanged ... */}
+      {/* ============================================ */}
+      {/* Styles */}
+      {/* ============================================ */}
       <style>{`
         :root { --nav-h: 70px; }
 
@@ -478,7 +758,7 @@ const Navbar = () => {
         }
 
         /* ============================================ */
-        /* LINKS */
+        /* NAV LINKS */
         /* ============================================ */
         .site-navbar__links { display: none; }
         .site-navbar__link {
@@ -490,6 +770,9 @@ const Navbar = () => {
           text-decoration: none;
           padding: 8px 4px;
           transition: color 0.2s ease;
+          background: none;
+          border: none;
+          cursor: pointer;
         }
         .site-navbar.is-dark .site-navbar__link {
           color: var(--text-muted);
@@ -515,7 +798,116 @@ const Navbar = () => {
         .site-navbar__link.is-active::after { transform: scaleX(1); }
 
         /* ============================================ */
-        /* DROPDOWN */
+        /* COMMUNITY DROPDOWN */
+        /* ============================================ */
+        .site-navbar__community {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+        }
+        .site-navbar__community-toggle {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 4px;
+        }
+        .site-navbar__community-toggle.is-open {
+          color: var(--primary-orange);
+        }
+        .site-navbar__community-toggle.is-open::after {
+          transform: scaleX(1);
+        }
+        .site-navbar__community-arrow {
+          transition: transform 0.25s ease;
+          opacity: 0.6;
+        }
+        .site-navbar__community-arrow.is-rotated {
+          transform: rotate(180deg);
+        }
+
+        .site-navbar__community-menu {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          min-width: 260px;
+          background: var(--bg-white);
+          border-radius: 16px;
+          box-shadow: 0 12px 48px var(--shadow-md);
+          border: 1px solid var(--border-color);
+          padding: 8px;
+          z-index: 1000;
+          direction: rtl;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          animation: communityFadeIn 0.2s ease;
+          transform-origin: top center;
+        }
+        @keyframes communityFadeIn {
+          from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .site-navbar__community-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          text-decoration: none;
+          font-family: 'Cairo', sans-serif;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: var(--text-secondary);
+          transition: all 0.2s ease;
+          position: relative;
+        }
+        .site-navbar.is-dark .site-navbar__community-item {
+          color: var(--text-muted);
+        }
+        .site-navbar__community-item:hover {
+          background: var(--community-accent-soft, rgba(232, 122, 32, 0.08));
+          color: var(--community-accent, var(--primary-orange));
+          transform: translateX(-3px);
+        }
+        .site-navbar__community-item.is-active {
+          background: var(--community-accent-soft, rgba(232, 122, 32, 0.12));
+          color: var(--community-accent, var(--primary-orange));
+          font-weight: 700;
+        }
+        .site-navbar__community-item.is-active::before {
+          content: '';
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 60%;
+          border-radius: 3px;
+          background: var(--community-accent, var(--primary-orange));
+        }
+
+        .site-navbar__community-item-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          background: var(--community-accent-soft, rgba(232, 122, 32, 0.1));
+          color: var(--community-accent, var(--primary-orange));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: all 0.2s ease;
+        }
+        .site-navbar__community-item:hover .site-navbar__community-item-icon {
+          transform: scale(1.08) rotate(-3deg);
+        }
+        .site-navbar__community-item-label {
+          white-space: nowrap;
+        }
+
+        /* ============================================ */
+        /* DROPDOWN (user account) */
         /* ============================================ */
         .site-navbar__dropdown {
           position: relative;
@@ -619,7 +1011,7 @@ const Navbar = () => {
         }
         @keyframes dropdownFade {
           from { opacity: 0; transform: translateY(-8px) scale(0.97); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .site-navbar__dropdown-header {
@@ -871,7 +1263,7 @@ const Navbar = () => {
         .site-navbar__backdrop.is-visible { opacity: 1; pointer-events: auto; }
 
         /* ============================================ */
-        /* DRAWER */
+        /* DRAWER (mobile) */
         /* ============================================ */
         .site-navbar__drawer {
           position: fixed;
@@ -923,6 +1315,9 @@ const Navbar = () => {
           padding: 14px 12px;
           border-radius: 10px;
           transition: background-color 0.2s ease, color 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
         .site-navbar__drawer.is-dark .site-navbar__drawer-link {
           color: var(--text-muted);
@@ -935,6 +1330,41 @@ const Navbar = () => {
           background: rgba(232, 122, 32, 0.12);
           color: var(--primary-orange);
           font-weight: 700;
+        }
+
+        /* Nested community section in mobile drawer */
+        .site-navbar__drawer-section {
+          margin-top: 8px;
+          padding-top: 8px;
+          border-top: 1px solid var(--border-color);
+        }
+        .site-navbar__drawer-section-title {
+          font-family: 'Cairo', sans-serif;
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          padding: 12px 12px 6px;
+          opacity: 0.7;
+        }
+        .site-navbar__drawer-link--sub {
+          font-size: 15px;
+          padding: 12px 12px 12px 24px;
+        }
+        .site-navbar__drawer-link-icon {
+          width: 26px;
+          height: 26px;
+          border-radius: 7px;
+          background: var(--community-accent-soft, rgba(232, 122, 32, 0.1));
+          color: var(--community-accent, var(--primary-orange));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .site-navbar__drawer-link--sub.is-active .site-navbar__drawer-link-icon {
+          transform: scale(1.06);
         }
 
         .site-navbar__drawer-user {
@@ -1028,7 +1458,11 @@ const Navbar = () => {
         }
 
         @media (min-width: 992px) {
-          .site-navbar__links { display: flex; align-items: center; gap: 28px; }
+          .site-navbar__links {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+          }
           .site-navbar__actions { display: flex; }
           .site-navbar__toggle,
           .site-navbar__backdrop,
@@ -1041,7 +1475,10 @@ const Navbar = () => {
           .site-navbar__icon-btn,
           .site-navbar__link::after,
           .site-navbar__dropdown-menu,
-          .site-navbar__dropdown-arrow {
+          .site-navbar__dropdown-arrow,
+          .site-navbar__community-menu,
+          .site-navbar__community-arrow,
+          .site-navbar__community-item-icon {
             transition: none !important;
             animation: none !important;
           }

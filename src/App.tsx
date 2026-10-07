@@ -26,6 +26,21 @@ import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
+// Basma Fund (Public)
+import {
+  BasmaFundPage,
+  HelpRequestDetailsPage,
+  VideoAccessPage,
+  AchievementsPage,
+} from './pages/basma-fund';
+
+// Basma Fund (User)
+import {
+  MyHelpRequestsPage,
+  CreateHelpRequestPage,
+  MyHelpRequestDetailsPage,
+} from './pages/user/basma-fund';
+
 // Dashboard
 import UserDashboard from './pages/dashboard/UserDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
@@ -57,6 +72,15 @@ import {
   AdminReportDetailPage,
 } from './pages/admin';
 
+// ✅ Basma Fund (Admin)
+import {
+  AdminHelpRequestsListPage,
+  AdminHelpRequestDetailPage,
+  AdminInquiriesListPage,
+  AdminInquiryDetailPage,
+  AdminAchievementsListPage,
+} from './pages/admin/basma-fund';
+
 // Error Pages
 import NotAuthorizedPage from './pages/NotAuthorizedPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -64,10 +88,10 @@ import NotFoundPage from './pages/NotFoundPage';
 function App() {
   return (
     <>
-      {/* يعيد التمرير إلى الأعلى عند تغيير الصفحة */}
+      {/* Scrolls to top on route change */}
       <ScrollToTop />
 
-      {/* THE TOAST CONTAINER */}
+      {/* Global toast container */}
       <ToastContainer
         position="bottom-right"
         autoClose={3000}
@@ -80,11 +104,12 @@ function App() {
         pauseOnHover
       />
 
+      {/* Global modals */}
       <AccountStatusModal />
 
       <Routes>
         {/* ============================================ */}
-        {/* Public Routes - مع Navbar + Footer */}
+        {/* Public Routes — Navbar + Footer */}
         {/* ============================================ */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<HomePage />} />
@@ -98,10 +123,25 @@ function App() {
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+
+          {/* Basma Fund — Public */}
+          <Route path="/basma-fund" element={<BasmaFundPage />} />
+          <Route
+            path="/basma-fund/help-requests/:id"
+            element={<HelpRequestDetailsPage />}
+          />
+          <Route
+            path="/basma-fund/video/:token"
+            element={<VideoAccessPage />}
+          />
+          <Route
+            path="/basma-fund/achievements"
+            element={<AchievementsPage />}
+          />
         </Route>
 
         {/* ============================================ */}
-        {/* Auth Routes - بدون Navbar + Footer */}
+        {/* Auth Routes — no Navbar + Footer */}
         {/* ============================================ */}
         <Route element={<AuthLayout />}>
           <Route path="/register" element={<RegisterPage />} />
@@ -116,7 +156,7 @@ function App() {
         </Route>
 
         {/* ============================================ */}
-        {/* Public User Profile - logged-in users only, but with PublicLayout */}
+        {/* Public User Profile — logged-in users only */}
         {/* ============================================ */}
         <Route element={<PrivateRoute roles={['user', 'admin']} />}>
           <Route element={<PublicLayout />}>
@@ -125,7 +165,7 @@ function App() {
         </Route>
 
         {/* ============================================ */}
-        {/* Protected Routes - Notifications */}
+        {/* Notifications — any authenticated user */}
         {/* ============================================ */}
         <Route element={<PrivateRoute />}>
           <Route element={<MainLayout />}>
@@ -134,7 +174,7 @@ function App() {
         </Route>
 
         {/* ============================================ */}
-        {/* Protected Routes - User */}
+        {/* Protected Routes — User */}
         {/* ============================================ */}
         <Route element={<PrivateRoute roles={['user']} />}>
           <Route element={<MainLayout />}>
@@ -185,11 +225,25 @@ function App() {
               path="/user/featured-requests/:id"
               element={<FeaturedRequestDetailPage />}
             />
+
+            {/* Basma Fund — User */}
+            <Route
+              path="/user/basma-fund/help-requests"
+              element={<MyHelpRequestsPage />}
+            />
+            <Route
+              path="/user/basma-fund/help-requests/create"
+              element={<CreateHelpRequestPage />}
+            />
+            <Route
+              path="/user/basma-fund/help-requests/:id"
+              element={<MyHelpRequestDetailsPage />}
+            />
           </Route>
         </Route>
 
         {/* ============================================ */}
-        {/* Protected Routes - Admin */}
+        {/* Protected Routes — Admin */}
         {/* ============================================ */}
         <Route element={<PrivateRoute roles={['admin']} />}>
           <Route element={<MainLayout />}>
@@ -232,7 +286,35 @@ function App() {
               element={<AdminReportDetailPage />}
             />
 
-            {/* Future admin routes will go here */}
+            {/* ============================================ */}
+            {/* Basma Fund — Admin */}
+            {/* ============================================ */}
+
+            {/* Help Requests */}
+            <Route
+              path="/admin/help-requests"
+              element={<AdminHelpRequestsListPage />}
+            />
+            <Route
+              path="/admin/help-requests/:id"
+              element={<AdminHelpRequestDetailPage />}
+            />
+
+            {/* Donation Inquiries */}
+            <Route
+              path="/admin/donation-inquiries"
+              element={<AdminInquiriesListPage />}
+            />
+            <Route
+              path="/admin/donation-inquiries/:id"
+              element={<AdminInquiryDetailPage />}
+            />
+
+            {/* Achievements */}
+            <Route
+              path="/admin/donation-achievements"
+              element={<AdminAchievementsListPage />}
+            />
           </Route>
         </Route>
 

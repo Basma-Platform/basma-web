@@ -376,7 +376,7 @@ const FeaturedRequestForm = ({
                   fontWeight: 600,
                 }}
               >
-                الإعلان المراد تمييزه
+                الخدمة المراد تمييزها
               </div>
               <div
                 style={{
@@ -474,7 +474,7 @@ const FeaturedRequestForm = ({
                       marginTop: '1px',
                     }}
                   >
-                    حدد الباقة الزمنية المناسبة لظهور إعلانك بقمة النتائج
+                    حدد الباقة الزمنية المناسبة لظهور خدمتك بقمة النتائج
                   </div>
                 </div>
               </div>
@@ -1061,7 +1061,7 @@ const FeaturedRequestForm = ({
                 lineHeight: 1.55,
               }}
             >
-              سيتم مراجعة طلبك وتفعيل تمييز الإعلان خلال{' '}
+              سيتم مراجعة طلبك وتفعيل تمييز الخدمة خلال{' '}
               <strong style={{ color: 'var(--text-secondary)' }}>
                 24 ساعة
               </strong>{' '}

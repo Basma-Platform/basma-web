@@ -13,6 +13,7 @@ import SEO from '../../../components/SEO';
 import { useUserAnnouncement } from '../../../hooks/useUserAnnouncement';
 import { FeaturedCTACard } from '../../../components/user/announcements';
 import { getStorageUrl } from '../../../utils/storageHelpers';
+import { getEntity, DUAL_LABEL } from '../../../utils/announcementNaming';
 import type { CreateAnnouncementResponse } from '../../../types';
 
 const AnnouncementSuccessPage = () => {
@@ -22,18 +23,14 @@ const AnnouncementSuccessPage = () => {
     CreateAnnouncementResponse['suggestion'] | null
   >(null);
 
-  // ============================================
-  // Load Announcement + Suggestion
-  // ============================================
   useEffect(() => {
     if (!id) return;
 
     const load = async () => {
       try {
         const data = await fetchAnnouncement(Number(id));
-        // Try to load fresh suggestion from API (fallback to default in CTA)
         setSuggestion({
-          message: 'اجعل إعلانك مميزاً ليصل إلى آلاف المستخدمين',
+          message: 'اجعله مميزاً ليصل إلى آلاف المستخدمين',
           feature_url: `/user/announcements/${id}/feature`,
           feature_benefits: [
             'ظهور في أعلى نتائج البحث',
@@ -42,8 +39,7 @@ const AnnouncementSuccessPage = () => {
           ],
         });
         return data;
-      } catch (err) {
-        // Fallback silently
+      } catch {
         return null;
       }
     };
@@ -51,9 +47,6 @@ const AnnouncementSuccessPage = () => {
     load();
   }, [id, fetchAnnouncement]);
 
-  // ============================================
-  // Loading
-  // ============================================
   if (loading && !announcement) {
     return (
       <div
@@ -78,9 +71,6 @@ const AnnouncementSuccessPage = () => {
     );
   }
 
-  // ============================================
-  // Not Found
-  // ============================================
   if (!announcement) {
     return (
       <>
@@ -93,7 +83,7 @@ const AnnouncementSuccessPage = () => {
                 fontFamily: 'Cairo, sans-serif',
               }}
             >
-              لم يتم العثور على الإعلان.
+              لم يتم العثور على البيانات.
             </p>
             <Link
               to="/user/my-announcements"
@@ -103,7 +93,7 @@ const AnnouncementSuccessPage = () => {
                 fontWeight: 700,
               }}
             >
-              العودة إلى إعلاناتي
+              العودة إلى خدماتي
             </Link>
           </div>
         </Container>
@@ -111,19 +101,18 @@ const AnnouncementSuccessPage = () => {
     );
   }
 
-  // ✅ Resolve cover image
+  // ✨ Type-aware copy
+  const t = getEntity(announcement.type);
+
   const coverImage = announcement.images?.[0]
     ? getStorageUrl(announcement.images[0].image_path)
     : null;
 
-  // ============================================
-  // Render
-  // ============================================
   return (
     <>
       <SEO
         title="تم النشر بنجاح"
-        description="تم نشر إعلانك بنجاح على منصة بصمة"
+        description={`تم نشر ${t.possessive} بنجاح على منصة بصمة`}
       />
 
       <div
@@ -144,9 +133,7 @@ const AnnouncementSuccessPage = () => {
               gap: '1.25rem',
             }}
           >
-            {/* ============================================ */}
             {/* Success Header */}
-            {/* ============================================ */}
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -156,7 +143,6 @@ const AnnouncementSuccessPage = () => {
                 padding: '2.5rem 1.5rem 1.5rem',
               }}
             >
-              {/* Success Icon */}
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -182,7 +168,6 @@ const AnnouncementSuccessPage = () => {
               >
                 <FaCheckCircle size={44} />
 
-                {/* Smooth, continuous breathing pulse */}
                 <motion.div
                   animate={{
                     scale: [1, 1.35, 1],
@@ -203,6 +188,7 @@ const AnnouncementSuccessPage = () => {
                 />
               </motion.div>
 
+              {/* ✨ Dynamic heading */}
               <h1
                 style={{
                   color: 'var(--text-secondary)',
@@ -212,9 +198,10 @@ const AnnouncementSuccessPage = () => {
                   margin: '0 0 8px',
                 }}
               >
-                تم نشر إعلانك بنجاح! 🎉
+                {t.published} بنجاح! 🎉
               </h1>
 
+              {/* ✨ Dynamic subtitle */}
               <p
                 style={{
                   color: 'var(--text-muted)',
@@ -227,14 +214,12 @@ const AnnouncementSuccessPage = () => {
                   marginRight: 'auto',
                 }}
               >
-                إعلانك الآن مرئي للمستخدمين حسب إعدادات الخصوصية. يمكنك التواصل
-                مع المهتمين عبر واتساب.
+                {t.possessive} الآن مرئي للمستخدمين حسب إعدادات الخصوصية.
+                يمكنك التواصل مع المهتمين عبر واتساب.
               </p>
             </motion.div>
 
-            {/* ============================================ */}
-            {/* Announcement Summary Card */}
-            {/* ============================================ */}
+            {/* Summary Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -250,7 +235,6 @@ const AnnouncementSuccessPage = () => {
                 gap: '14px',
               }}
             >
-              {/* Cover */}
               <div
                 style={{
                   width: '80px',
@@ -266,7 +250,11 @@ const AnnouncementSuccessPage = () => {
                   <img
                     src={coverImage}
                     alt={announcement.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
                   />
                 ) : (
                   <div
@@ -285,7 +273,6 @@ const AnnouncementSuccessPage = () => {
                 )}
               </div>
 
-              {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h3
                   style={{
@@ -322,7 +309,6 @@ const AnnouncementSuccessPage = () => {
                 </div>
               </div>
 
-              {/* View Button */}
               <Link
                 to={`/user/announcements/${announcement.id}`}
                 style={{ textDecoration: 'none', flexShrink: 0 }}
@@ -361,18 +347,15 @@ const AnnouncementSuccessPage = () => {
               </Link>
             </motion.div>
 
-            {/* ============================================ */}
-            {/* Featured CTA */}
-            {/* ============================================ */}
+            {/* ✨ Featured CTA — pass type for dynamic copy */}
             <FeaturedCTACard
               announcementId={announcement.id}
               benefits={suggestion?.feature_benefits}
               variant="success"
+              type={announcement.type}
             />
 
-            {/* ============================================ */}
             {/* Actions */}
-            {/* ============================================ */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -386,15 +369,15 @@ const AnnouncementSuccessPage = () => {
               <ActionLink
                 to="/user/announcements/create"
                 icon={<FaPlusCircle size={15} />}
-                title="نشر إعلان آخر"
-                subtitle="يمكنك نشر إعلانات إضافية هذا الشهر"
+                title={DUAL_LABEL.createCTA}
+                subtitle="يمكنك نشر المزيد من العروض والطلبات"
                 variant="primary"
               />
               <ActionLink
                 to="/user/my-announcements"
                 icon={<FaBullhorn size={15} />}
-                title="إدارة إعلاناتي"
-                subtitle="تعديل، تعطيل، أو حذف الإعلانات"
+                title="إدارة خدماتي"
+                subtitle="تعديل، تعطيل، أو حذف"
                 variant="secondary"
               />
               <ActionLink
@@ -413,7 +396,7 @@ const AnnouncementSuccessPage = () => {
 };
 
 // ============================================
-// Helper: Action Link
+// Action Link
 // ============================================
 const ActionLink = ({
   to,

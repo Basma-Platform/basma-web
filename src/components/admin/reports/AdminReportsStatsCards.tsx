@@ -13,6 +13,8 @@ import {
 import type { IconType } from 'react-icons';
 import type { AdminReportsStats } from '../../../types';
 import { formatReportNumber } from '../../../utils/reportHelpers';
+import { useCardBorderAnimation } from '../../../hooks/useCardBorderAnimation';
+import AnimatedCardBorder from '../../ui/AnimatedCardBorder';
 
 interface AdminReportsStatsCardsProps {
   stats: AdminReportsStats;
@@ -60,7 +62,7 @@ const AdminReportsStatsCards = ({
       label: 'الكل',
       value: stats.reports.total,
       color: '#8B5A2B',
-      gradient: 'linear-gradient(135deg, #8B5A2B, #C49A6C)',
+      gradient: 'linear-gradient(90deg, #8B5A2B, #C49A6C)',
       bg: 'rgba(139, 90, 43, 0.1)',
       Icon: FaLayerGroup,
     },
@@ -69,7 +71,7 @@ const AdminReportsStatsCards = ({
       label: 'قيد المراجعة',
       value: stats.reports.pending,
       color: '#FFC107',
-      gradient: 'linear-gradient(135deg, #FFC107, #FFD966)',
+      gradient: 'linear-gradient(90deg, #FFC107, #FFD966)',
       bg: 'rgba(255, 193, 7, 0.1)',
       Icon: FaHourglassHalf,
     },
@@ -78,7 +80,7 @@ const AdminReportsStatsCards = ({
       label: 'تمت المعالجة',
       value: stats.reports.reviewed,
       color: '#28A745',
-      gradient: 'linear-gradient(135deg, #28A745, #4FCB6E)',
+      gradient: 'linear-gradient(90deg, #28A745, #4FCB6E)',
       bg: 'rgba(40, 167, 69, 0.1)',
       Icon: FaCheckCircle,
     },
@@ -87,7 +89,7 @@ const AdminReportsStatsCards = ({
       label: 'مرفوضة',
       value: stats.reports.rejected,
       color: '#6C757D',
-      gradient: 'linear-gradient(135deg, #6C757D, #9CA3AF)',
+      gradient: 'linear-gradient(90deg, #6C757D, #9CA3AF)',
       bg: 'rgba(108, 117, 125, 0.1)',
       Icon: FaTimesCircle,
     },
@@ -105,131 +107,16 @@ const AdminReportsStatsCards = ({
           Row 1: Status cards (clickable filters)
           ============================================ */}
       <Row className="g-3">
-        {statusCards.map((card) => {
-          const isActive = activeStatus === card.key;
-          const clickable = !!onStatusClick && !!card.key;
-          const Icon = card.Icon;
-
-          return (
-            <Col key={card.key || card.label} xs={6} lg={3}>
-              <motion.button
-                variants={itemVariants}
-                type="button"
-                whileHover={clickable ? { y: -4 } : {}}
-                whileTap={clickable ? { scale: 0.98 } : {}}
-                onClick={() =>
-                  clickable && card.key && onStatusClick?.(card.key)
-                }
-                style={{
-                  width: '100%',
-                  position: 'relative',
-                  backgroundColor: isActive ? card.bg : 'var(--bg-card)',
-                  border: isActive
-                    ? `1.5px solid ${card.color}`
-                    : '1px solid var(--border-color)',
-                  borderRadius: '14px',
-                  padding: '14px 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  cursor: clickable ? 'pointer' : 'default',
-                  transition: 'all 0.25s ease',
-                  overflow: 'hidden',
-                  boxShadow: isActive
-                    ? `0 4px 16px ${card.color}25`
-                    : '0 2px 8px var(--shadow-sm)',
-                  fontFamily: 'Cairo, sans-serif',
-                  textAlign: 'right',
-                }}
-                onMouseEnter={(e) => {
-                  if (!clickable || isActive) return;
-                  e.currentTarget.style.borderColor = card.color + '60';
-                  e.currentTarget.style.backgroundColor = card.bg;
-                }}
-                onMouseLeave={(e) => {
-                  if (!clickable || isActive) return;
-                  e.currentTarget.style.borderColor = 'var(--border-color)';
-                  e.currentTarget.style.backgroundColor = 'var(--bg-card)';
-                }}
-              >
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    left: 0,
-                    height: '3px',
-                    background: card.gradient,
-                    opacity: isActive ? 1 : 0.5,
-                  }}
-                />
-
-                <div
-                  style={{
-                    width: '42px',
-                    height: '42px',
-                    borderRadius: '12px',
-                    background: card.gradient,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#FFFFFF',
-                    flexShrink: 0,
-                    boxShadow: `0 4px 12px ${card.color}35`,
-                  }}
-                >
-                  <Icon size={17} />
-                </div>
-
-                <div
-                  style={{ flex: 1, minWidth: 0, textAlign: 'right' }}
-                >
-                  <div
-                    style={{
-                      color: 'var(--text-primary)',
-                      fontSize: '1.4rem',
-                      fontWeight: 900,
-                      lineHeight: 1.1,
-                      fontFamily:
-                        "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-                      fontVariantNumeric: 'lining-nums tabular-nums',
-                      marginBottom: '2px',
-                    }}
-                  >
-                    {formatReportNumber(card.value)}
-                  </div>
-                  <div
-                    style={{
-                      color: isActive ? card.color : 'var(--text-muted)',
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                    }}
-                  >
-                    {card.label}
-                  </div>
-                </div>
-
-                {isActive && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 400 }}
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      left: '8px',
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: card.color,
-                      boxShadow: `0 0 8px ${card.color}80`,
-                    }}
-                  />
-                )}
-              </motion.button>
-            </Col>
-          );
-        })}
+        {statusCards.map((card) => (
+          <Col key={card.key || card.label} xs={6} lg={3}>
+            <StatCardItem
+              card={card}
+              isActive={activeStatus === card.key}
+              clickable={!!onStatusClick && !!card.key}
+              onClick={() => card.key && onStatusClick?.(card.key)}
+            />
+          </Col>
+        ))}
       </Row>
 
       {/* ============================================
@@ -238,67 +125,12 @@ const AdminReportsStatsCards = ({
       <Row className="g-3">
         {/* Priority Card */}
         <Col xs={12} md={6} lg={4}>
-          <motion.div
-            variants={itemVariants}
-            style={{
-              position: 'relative',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '14px',
-              padding: '1rem 1.15rem',
-              boxShadow: '0 2px 8px var(--shadow-sm)',
-              overflow: 'hidden',
-              height: '100%',
-              fontFamily: 'Cairo, sans-serif',
-            }}
+          <InfoCard
+            accentGradient="linear-gradient(180deg, #DC3545, #F56575)"
+            accentColor="#DC3545"
+            Icon={FaExclamationTriangle}
+            title="حسب الأولوية"
           >
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: '4px',
-                height: '100%',
-                background: 'linear-gradient(180deg, #DC3545, #F56575)',
-                opacity: 0.7,
-              }}
-            />
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '12px',
-              }}
-            >
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #DC3545, #F56575)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFFFFF',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 10px rgba(220,53,69,0.35)',
-                }}
-              >
-                <FaExclamationTriangle size={14} />
-              </div>
-              <span
-                style={{
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                }}
-              >
-                حسب الأولوية
-              </span>
-            </div>
-
             <div
               style={{
                 display: 'flex',
@@ -322,72 +154,17 @@ const AdminReportsStatsCards = ({
                 color="#17A2B8"
               />
             </div>
-          </motion.div>
+          </InfoCard>
         </Col>
 
         {/* Target Type Card */}
         <Col xs={12} md={6} lg={4}>
-          <motion.div
-            variants={itemVariants}
-            style={{
-              position: 'relative',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '14px',
-              padding: '1rem 1.15rem',
-              boxShadow: '0 2px 8px var(--shadow-sm)',
-              overflow: 'hidden',
-              height: '100%',
-              fontFamily: 'Cairo, sans-serif',
-            }}
+          <InfoCard
+            accentGradient="linear-gradient(180deg, #E87A20, #F5A623)"
+            accentColor="#E87A20"
+            Icon={FaFlag}
+            title="حسب النوع"
           >
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: '4px',
-                height: '100%',
-                background: 'linear-gradient(180deg, #E87A20, #F5A623)',
-                opacity: 0.7,
-              }}
-            />
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '12px',
-              }}
-            >
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #E87A20, #F5A623)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFFFFF',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 10px rgba(232,122,32,0.35)',
-                }}
-              >
-                <FaFlag size={14} />
-              </div>
-              <span
-                style={{
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                }}
-              >
-                حسب النوع
-              </span>
-            </div>
-
             <div
               style={{
                 display: 'flex',
@@ -408,72 +185,17 @@ const AdminReportsStatsCards = ({
                 color="#17A2B8"
               />
             </div>
-          </motion.div>
+          </InfoCard>
         </Col>
 
         {/* Today Card */}
         <Col xs={12} lg={4}>
-          <motion.div
-            variants={itemVariants}
-            style={{
-              position: 'relative',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '14px',
-              padding: '1rem 1.15rem',
-              boxShadow: '0 2px 8px var(--shadow-sm)',
-              overflow: 'hidden',
-              height: '100%',
-              fontFamily: 'Cairo, sans-serif',
-            }}
+          <InfoCard
+            accentGradient="linear-gradient(180deg, #17A2B8, #20C9E0)"
+            accentColor="#17A2B8"
+            Icon={FaHourglassHalf}
+            title="نشاط اليوم"
           >
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                width: '4px',
-                height: '100%',
-                background: 'linear-gradient(180deg, #17A2B8, #20C9E0)',
-                opacity: 0.7,
-              }}
-            />
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                marginBottom: '12px',
-              }}
-            >
-              <div
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #17A2B8, #20C9E0)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFFFFF',
-                  flexShrink: 0,
-                  boxShadow: '0 4px 10px rgba(23,162,184,0.35)',
-                }}
-              >
-                <FaHourglassHalf size={14} />
-              </div>
-              <span
-                style={{
-                  color: 'var(--text-secondary)',
-                  fontSize: '0.85rem',
-                  fontWeight: 800,
-                }}
-              >
-                نشاط اليوم
-              </span>
-            </div>
-
             <div
               style={{
                 display: 'grid',
@@ -492,10 +214,270 @@ const AdminReportsStatsCards = ({
                 color="#28A745"
               />
             </div>
-          </motion.div>
+          </InfoCard>
         </Col>
       </Row>
     </motion.div>
+  );
+};
+
+// ============================================
+// StatCardItem — has its own border animation hook
+// ============================================
+interface StatCardItemProps {
+  card: StatCard;
+  isActive: boolean;
+  clickable: boolean;
+  onClick: () => void;
+}
+
+const StatCardItem = ({
+  card,
+  isActive,
+  clickable,
+  onClick,
+}: StatCardItemProps) => {
+  const Icon = card.Icon;
+  const { attachRef, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
+  return (
+    <div ref={attachRef} {...hoverHandlers} style={{ height: '100%' }}>
+      <motion.button
+        variants={itemVariants}
+        type="button"
+        whileHover={clickable ? { y: -4 } : {}}
+        whileTap={clickable ? { scale: 0.98 } : {}}
+        onClick={onClick}
+        style={{
+          width: '100%',
+          height: '100%',
+          position: 'relative',
+          backgroundColor: isActive ? card.bg : 'var(--bg-card)',
+          border: isActive
+            ? `1.5px solid ${card.color}`
+            : '1px solid var(--border-color)',
+          borderRadius: '14px',
+          padding: '14px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          cursor: clickable ? 'pointer' : 'default',
+          transition: 'all 0.25s ease',
+          overflow: 'hidden',
+          boxShadow: isActive
+            ? `0 4px 16px ${card.color}25`
+            : '0 2px 8px var(--shadow-sm)',
+          fontFamily: 'Cairo, sans-serif',
+          textAlign: 'right',
+          boxSizing: 'border-box',
+          minWidth: 0,
+        }}
+        onMouseEnter={(e) => {
+          if (!clickable || isActive) return;
+          e.currentTarget.style.borderColor = card.color + '60';
+          e.currentTarget.style.backgroundColor = card.bg;
+        }}
+        onMouseLeave={(e) => {
+          if (!clickable || isActive) return;
+          e.currentTarget.style.borderColor = 'var(--border-color)';
+          e.currentTarget.style.backgroundColor = 'var(--bg-card)';
+        }}
+      >
+        {/* ✅ Animated TOP border */}
+        <AnimatedCardBorder
+          isDrawn={isDrawn || isActive}
+          side="top"
+          background={card.gradient}
+          drawFrom="start"
+          height={3}
+          duration={0.55}
+          idleOpacity={isActive ? 1 : 0}
+          rounded
+          cardRadius={14}
+        />
+
+        <div
+          style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            background: card.gradient,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            flexShrink: 0,
+            boxShadow: `0 4px 12px ${card.color}35`,
+          }}
+        >
+          {/* ✅ Rotating hourglass when pending */}
+          {card.key === 'pending' ? (
+            <motion.span
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: 'linear',
+              }}
+              style={{ display: 'inline-flex' }}
+            >
+              <Icon size={17} />
+            </motion.span>
+          ) : (
+            <Icon size={17} />
+          )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+          <div
+            style={{
+              color: 'var(--text-primary)',
+              fontSize: '1.4rem',
+              fontWeight: 900,
+              lineHeight: 1.1,
+              fontFamily:
+                "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+              fontVariantNumeric: 'lining-nums tabular-nums',
+              marginBottom: '2px',
+            }}
+          >
+            {formatReportNumber(card.value)}
+          </div>
+          <div
+            style={{
+              color: isActive ? card.color : 'var(--text-muted)',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+            }}
+          >
+            {card.label}
+          </div>
+        </div>
+
+        {isActive && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 400 }}
+            style={{
+              position: 'absolute',
+              top: '8px',
+              left: '8px',
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: card.color,
+              boxShadow: `0 0 8px ${card.color}80`,
+            }}
+          />
+        )}
+      </motion.button>
+    </div>
+  );
+};
+
+// ============================================
+// InfoCard — has RIGHT-side border animation
+// ============================================
+interface InfoCardProps {
+  accentGradient: string;
+  accentColor: string;
+  Icon: IconType;
+  title: string;
+  children: React.ReactNode;
+}
+
+const InfoCard = ({
+  accentGradient,
+  accentColor,
+  Icon,
+  title,
+  children,
+}: InfoCardProps) => {
+  const { attachRef, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
+  return (
+    <div
+      ref={attachRef}
+      {...hoverHandlers}
+      style={{ height: '100%', minWidth: 0 }}
+    >
+      <motion.div
+        variants={itemVariants}
+        style={{
+          position: 'relative',
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '14px',
+          padding: '1rem 1.15rem',
+          boxShadow: isDrawn
+            ? '0 8px 24px var(--shadow-md)'
+            : '0 2px 8px var(--shadow-sm)',
+          overflow: 'hidden',
+          height: '100%',
+          fontFamily: 'Cairo, sans-serif',
+          transition: 'box-shadow 0.25s ease',
+        }}
+      >
+        {/* ✅ Animated RIGHT border */}
+        <AnimatedCardBorder
+          isDrawn={isDrawn}
+          side="right"
+          background={accentGradient}
+          drawFrom="start"
+          height={4}
+          duration={0.55}
+          idleOpacity={0}
+          rounded
+          cardRadius={14}
+        />
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '12px',
+          }}
+        >
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: accentGradient,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              flexShrink: 0,
+              boxShadow: `0 4px 10px ${accentColor}55`,
+            }}
+          >
+            <Icon size={14} />
+          </div>
+          <span
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '0.85rem',
+              fontWeight: 800,
+            }}
+          >
+            {title}
+          </span>
+        </div>
+
+        {children}
+      </motion.div>
+    </div>
   );
 };
 

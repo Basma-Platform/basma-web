@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { FaStar, FaCommentAlt, FaChartBar } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
 import type { AdminRatingStats } from '../../../types';
+import { useCardBorderAnimation } from '../../../hooks/useCardBorderAnimation';
+import AnimatedCardBorder from '../../ui/AnimatedCardBorder';
 
 interface AdminRatingStatsCardsProps {
   stats: AdminRatingStats;
@@ -42,7 +44,7 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
       value: stats.total_ratings,
       subtext: 'على مستوى المنصة',
       color: '#E87A20',
-      gradient: 'linear-gradient(135deg, #E87A20, #F5A623)',
+      gradient: 'linear-gradient(90deg, #E87A20, #F5A623)',
       bg: 'rgba(232, 122, 32, 0.1)',
       Icon: FaChartBar,
     },
@@ -51,7 +53,7 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
       value: stats.average_rating ? stats.average_rating.toFixed(1) : '—',
       subtext: 'من 5 نجوم',
       color: '#FFC107',
-      gradient: 'linear-gradient(135deg, #FFC107, #FFD966)',
+      gradient: 'linear-gradient(90deg, #FFC107, #FFD966)',
       bg: 'rgba(255, 193, 7, 0.1)',
       Icon: FaStar,
     },
@@ -60,7 +62,7 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
       value: stats.ratings_with_comments,
       subtext: 'تقييمات تحتوي على نص',
       color: '#17A2B8',
-      gradient: 'linear-gradient(135deg, #17A2B8, #20C9E0)',
+      gradient: 'linear-gradient(90deg, #17A2B8, #20C9E0)',
       bg: 'rgba(23, 162, 184, 0.1)',
       Icon: FaCommentAlt,
     },
@@ -74,139 +76,169 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
       dir="rtl"
     >
       {/* ============================================ */}
-      {/* Stat Cards */}
+      {/* Row 1: Stat Cards — 3 cards with TOP border */}
       {/* ============================================ */}
       <Row className="g-3 mb-3">
-        {cards.map((card, idx) => {
-          const Icon = card.Icon;
-          const isNumeric = typeof card.value === 'number';
-
-          return (
-            <Col key={idx} xs={12} sm={6} lg={4}>
-              <motion.div variants={itemVariants} style={{ height: '100%' }}>
-                <Card
-                  className="position-relative overflow-hidden h-100"
-                  style={{
-                    backgroundColor: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '16px',
-                    padding: '1.25rem',
-                    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
-                    fontFamily: 'Cairo, sans-serif',
-                    transition: 'all 0.3s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-3px)';
-                    e.currentTarget.style.boxShadow = '0 10px 24px rgba(0, 0, 0, 0.07)';
-                    e.currentTarget.style.borderColor = `${card.color}50`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.03)';
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                  }}
-                >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      right: 0,
-                      left: 0,
-                      height: '3.5px',
-                      background: card.gradient,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '-30px',
-                      left: '-30px',
-                      width: '100px',
-                      height: '100px',
-                      borderRadius: '50%',
-                      backgroundColor: card.bg,
-                      filter: 'blur(12px)',
-                      pointerEvents: 'none',
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '12px',
-                      position: 'relative',
-                      zIndex: 1,
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: 'var(--text-muted)',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                      }}
-                    >
-                      {card.label}
-                    </span>
-                    <div
-                      style={{
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '12px',
-                        background: card.gradient,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#FFFFFF',
-                        flexShrink: 0,
-                        boxShadow: `0 4px 12px ${card.color}40`,
-                      }}
-                    >
-                      <Icon size={17} />
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      color: 'var(--text-primary)',
-                      fontSize: '1.75rem',
-                      fontWeight: 900,
-                      lineHeight: 1.1,
-                      marginBottom: '6px',
-                      fontVariantNumeric: 'lining-nums tabular-nums',
-                      position: 'relative',
-                      zIndex: 1,
-                    }}
-                  >
-                    {isNumeric
-                      ? (card.value as number).toLocaleString('en-US')
-                      : card.value}
-                  </div>
-
-                  <div
-                    style={{
-                      color: 'var(--text-muted)',
-                      fontSize: '0.7rem',
-                      fontWeight: 600,
-                      opacity: 0.8,
-                      position: 'relative',
-                      zIndex: 1,
-                    }}
-                  >
-                    {card.subtext}
-                  </div>
-                </Card>
-              </motion.div>
-            </Col>
-          );
-        })}
+        {cards.map((card, idx) => (
+          <Col key={idx} xs={12} sm={6} lg={4}>
+            <StatCardItem card={card} />
+          </Col>
+        ))}
       </Row>
 
       {/* ============================================ */}
-      {/* Distribution Chart with Advanced Animation */}
+      {/* Row 2: Distribution Card — RIGHT border */}
       {/* ============================================ */}
-      <motion.div variants={itemVariants}>
+      <DistributionCard stats={stats} />
+    </motion.div>
+  );
+};
+
+// ============================================
+// StatCardItem — TOP border
+// ============================================
+const StatCardItem = ({ card }: { card: StatCard }) => {
+  const Icon = card.Icon;
+  const isNumeric = typeof card.value === 'number';
+
+  const { attachRef, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
+  return (
+    <div ref={attachRef} {...hoverHandlers} style={{ height: '100%' }}>
+      <motion.div variants={itemVariants} style={{ height: '100%' }}>
+        <Card
+          className="position-relative overflow-hidden h-100"
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            border: `1px solid ${
+              isDrawn ? card.color + '50' : 'var(--border-color)'
+            }`,
+            borderRadius: '16px',
+            padding: '1.25rem',
+            boxShadow: isDrawn
+              ? '0 10px 24px rgba(0, 0, 0, 0.07)'
+              : '0 4px 16px rgba(0, 0, 0, 0.03)',
+            fontFamily: 'Cairo, sans-serif',
+            transition: 'all 0.3s ease',
+            transform: isDrawn ? 'translateY(-3px)' : 'translateY(0)',
+          }}
+        >
+          {/* ✅ Animated TOP border */}
+          <AnimatedCardBorder
+            isDrawn={isDrawn}
+            side="top"
+            background={card.gradient}
+            drawFrom="start"
+            height={3.5}
+            duration={0.55}
+            idleOpacity={0}
+            rounded
+            cardRadius={16}
+          />
+
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-30px',
+              left: '-30px',
+              width: '100px',
+              height: '100px',
+              borderRadius: '50%',
+              backgroundColor: card.bg,
+              filter: 'blur(12px)',
+              pointerEvents: 'none',
+            }}
+          />
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+              }}
+            >
+              {card.label}
+            </span>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: card.gradient,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFFFFF',
+                flexShrink: 0,
+                boxShadow: `0 4px 12px ${card.color}40`,
+              }}
+            >
+              <Icon size={17} />
+            </div>
+          </div>
+
+          <div
+            style={{
+              color: 'var(--text-primary)',
+              fontSize: '1.75rem',
+              fontWeight: 900,
+              lineHeight: 1.1,
+              marginBottom: '6px',
+              fontVariantNumeric: 'lining-nums tabular-nums',
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            {isNumeric
+              ? (card.value as number).toLocaleString('en-US')
+              : card.value}
+          </div>
+
+          <div
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              opacity: 0.8,
+              position: 'relative',
+              zIndex: 1,
+            }}
+          >
+            {card.subtext}
+          </div>
+        </Card>
+      </motion.div>
+    </div>
+  );
+};
+
+// ============================================
+// Distribution Card — RIGHT border
+// ============================================
+const DistributionCard = ({ stats }: { stats: AdminRatingStats }) => {
+  const { attachRef, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
+  return (
+    <motion.div variants={itemVariants}>
+      <div ref={attachRef} {...hoverHandlers}>
         <Card
           style={{
             backgroundColor: 'var(--bg-card)',
@@ -215,9 +247,26 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
             padding: '1.5rem',
             fontFamily: 'Cairo, sans-serif',
             overflow: 'hidden',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
+            boxShadow: isDrawn
+              ? '0 12px 32px rgba(0, 0, 0, 0.08)'
+              : '0 4px 16px rgba(0, 0, 0, 0.03)',
+            position: 'relative',
+            transition: 'box-shadow 0.3s ease',
           }}
         >
+          {/* ✅ Animated RIGHT border */}
+          <AnimatedCardBorder
+            isDrawn={isDrawn}
+            side="right"
+            background="linear-gradient(180deg, #FFC107, #FFD966)"
+            drawFrom="start"
+            height={4}
+            duration={0.55}
+            idleOpacity={0}
+            rounded
+            cardRadius={16}
+          />
+
           {/* Header */}
           <div
             style={{
@@ -328,7 +377,7 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
                 alignItems: 'start',
               }}
             >
-              {/* Animated Bars Container */}
+              {/* Animated Bars */}
               <div
                 style={{
                   display: 'flex',
@@ -369,7 +418,6 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
                         gap: '12px',
                       }}
                     >
-                      {/* Star label */}
                       <div
                         style={{
                           display: 'flex',
@@ -391,7 +439,6 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
                         </span>
                       </div>
 
-                      {/* Animated Progress Bar */}
                       <div
                         style={{
                           height: '12px',
@@ -408,7 +455,7 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
                           transition={{
                             duration: 0.9,
                             delay: 0.2 + index * 0.08,
-                            ease: [0.25, 1, 0.5, 1], // Custom smooth easing
+                            ease: [0.25, 1, 0.5, 1],
                           }}
                           style={{
                             height: '100%',
@@ -418,7 +465,6 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
                             position: 'relative',
                           }}
                         >
-                          {/* Inner glowing shine effect */}
                           <div
                             style={{
                               position: 'absolute',
@@ -433,7 +479,6 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
                         </motion.div>
                       </div>
 
-                      {/* Count + % */}
                       <div
                         style={{
                           display: 'flex',
@@ -573,11 +618,14 @@ const AdminRatingStatsCards = ({ stats }: AdminRatingStatsCardsProps) => {
             </div>
           )}
         </Card>
-      </motion.div>
+      </div>
     </motion.div>
   );
 };
 
+// ============================================
+// Helpers
+// ============================================
 const SummaryRow = ({
   label,
   value,
@@ -617,13 +665,18 @@ const SummaryRow = ({
   </div>
 );
 
-const getMostCommonRating = (
-  distribution: { '1': number; '2': number; '3': number; '4': number; '5': number }
-): number => {
+const getMostCommonRating = (distribution: {
+  '1': number;
+  '2': number;
+  '3': number;
+  '4': number;
+  '5': number;
+}): number => {
   let maxStar = 5;
   let maxCount = -1;
   ([5, 4, 3, 2, 1] as const).forEach((star) => {
-    const count = distribution[String(star) as '1' | '2' | '3' | '4' | '5'] || 0;
+    const count =
+      distribution[String(star) as '1' | '2' | '3' | '4' | '5'] || 0;
     if (count > maxCount) {
       maxCount = count;
       maxStar = star;

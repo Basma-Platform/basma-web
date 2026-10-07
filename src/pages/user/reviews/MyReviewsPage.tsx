@@ -428,7 +428,7 @@ const MyReviewsPage = () => {
                   <EmptyState
                     icon={<FaPaperPlane size={32} />}
                     title="لم تقم بأي تقييمات بعد"
-                    description="بعد إتمام أي تعامل، يمكنك تقييم الطرف الآخر من صفحة الإعلان."
+                    description="بعد إتمام أي تعامل، يمكنك تقييم الطرف الآخر من صفحة الخدمة."
                   />
                 ) : (
                   <>

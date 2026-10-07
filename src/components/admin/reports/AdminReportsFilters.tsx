@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   FaSearch,
@@ -54,9 +54,7 @@ interface AdminReportsFiltersProps {
   sort: AdminReportsSort;
   onSortChange: (v: AdminReportsSort) => void;
 
-  onClear: () => void;
   isSearching?: boolean;
-  resultsCount?: number;
 }
 
 const AdminReportsFilters = ({
@@ -70,9 +68,7 @@ const AdminReportsFilters = ({
   onPriorityChange,
   sort,
   onSortChange,
-  onClear,
   isSearching = false,
-  resultsCount,
 }: AdminReportsFiltersProps) => {
   const [localSearch, setLocalSearch] = useState(search);
   const [showSort, setShowSort] = useState(false);
@@ -84,14 +80,22 @@ const AdminReportsFilters = ({
   const priorityRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Stable ref to onSearchChange
+  const onSearchChangeRef = useRef(onSearchChange);
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange;
+  }, [onSearchChange]);
+
   // Debounce search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => onSearchChange(localSearch), 450);
+    debounceRef.current = setTimeout(() => {
+      onSearchChangeRef.current(localSearch);
+    }, 450);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [localSearch, onSearchChange]);
+  }, [localSearch]);
 
   useEffect(() => setLocalSearch(search), [search]);
 
@@ -119,6 +123,32 @@ const AdminReportsFilters = ({
     }
     return () => document.removeEventListener('mousedown', onClick);
   }, [showSort, showTarget, showPriority]);
+
+  const handleClearSearch = useCallback(() => setLocalSearch(''), []);
+
+  const handlePickTarget = useCallback(
+    (value: AdminReportsTargetFilter) => {
+      onTargetTypeChange(value);
+      setShowTarget(false);
+    },
+    [onTargetTypeChange]
+  );
+
+  const handlePickPriority = useCallback(
+    (value: AdminReportsPriorityFilter) => {
+      onPriorityChange(value);
+      setShowPriority(false);
+    },
+    [onPriorityChange]
+  );
+
+  const handlePickSort = useCallback(
+    (value: AdminReportsSort) => {
+      onSortChange(value);
+      setShowSort(false);
+    },
+    [onSortChange]
+  );
 
   const statusTabs: {
     key: AdminReportsStatusFilter;
@@ -159,13 +189,6 @@ const AdminReportsFilters = ({
     REPORT_PRIORITY_OPTIONS.find((o) => o.value === priority)?.label ||
     'الكل';
 
-  const hasFilters =
-    status !== 'all' ||
-    targetType !== 'all' ||
-    priority !== 'all' ||
-    sort !== 'newest' ||
-    search.trim() !== '';
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -182,9 +205,7 @@ const AdminReportsFilters = ({
       }}
       dir="rtl"
     >
-      {/* ============================================
-          Row 1: Search + Target + Priority + Sort
-          ============================================ */}
+      {/* Row 1: Search + Target + Priority + Sort */}
       <div
         style={{
           display: 'flex',
@@ -239,7 +260,7 @@ const AdminReportsFilters = ({
           {localSearch && (
             <button
               type="button"
-              onClick={() => setLocalSearch('')}
+              onClick={handleClearSearch}
               style={{
                 position: 'absolute',
                 left: '10px',
@@ -366,12 +387,11 @@ const AdminReportsFilters = ({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => {
-                      onTargetTypeChange(
+                    onClick={() =>
+                      handlePickTarget(
                         opt.value as AdminReportsTargetFilter
-                      );
-                      setShowTarget(false);
-                    }}
+                      )
+                    }
                     style={{
                       width: '100%',
                       textAlign: 'right',
@@ -485,12 +505,11 @@ const AdminReportsFilters = ({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => {
-                      onPriorityChange(
+                    onClick={() =>
+                      handlePickPriority(
                         opt.value as AdminReportsPriorityFilter
-                      );
-                      setShowPriority(false);
-                    }}
+                      )
+                    }
                     style={{
                       width: '100%',
                       textAlign: 'right',
@@ -592,10 +611,9 @@ const AdminReportsFilters = ({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => {
-                      onSortChange(opt.value as AdminReportsSort);
-                      setShowSort(false);
-                    }}
+                    onClick={() =>
+                      handlePickSort(opt.value as AdminReportsSort)
+                    }
                     style={{
                       width: '100%',
                       textAlign: 'right',
@@ -623,113 +641,53 @@ const AdminReportsFilters = ({
         </div>
       </div>
 
-      {/* ============================================
-          Row 2: Status tabs + results + clear
-          ============================================ */}
+      {/* Row 2: Status tabs (full width) */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '10px',
+          gap: '6px',
+          backgroundColor: 'var(--bg-input)',
+          padding: '4px',
+          borderRadius: '11px',
+          border: '1px solid var(--border-color)',
           flexWrap: 'wrap',
+          width: '100%',
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            gap: '6px',
-            backgroundColor: 'var(--bg-input)',
-            padding: '4px',
-            borderRadius: '11px',
-            border: '1px solid var(--border-color)',
-            flexWrap: 'wrap',
-            flex: '1 1 auto',
-          }}
-        >
-          {statusTabs.map((tab) => {
-            const active = status === tab.key;
-            const Icon = tab.Icon;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => onStatusChange(tab.key)}
-                style={{
-                  flex: '1 1 auto',
-                  minWidth: 'fit-content',
-                  padding: '8px 14px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: active ? 'var(--bg-card)' : 'transparent',
-                  color: active ? tab.color : 'var(--text-muted)',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontSize: '0.78rem',
-                  fontWeight: active ? 700 : 600,
-                  cursor: 'pointer',
-                  boxShadow: active ? '0 2px 8px var(--shadow-sm)' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  justifyContent: 'center',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <Icon size={11} />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            flex: '0 1 auto',
-          }}
-        >
-          {typeof resultsCount === 'number' && (
-            <span
-              style={{
-                color: 'var(--text-muted)',
-                fontSize: '0.75rem',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {resultsCount} نتيجة
-            </span>
-          )}
-
-          {hasFilters && (
+        {statusTabs.map((tab) => {
+          const active = status === tab.key;
+          const Icon = tab.Icon;
+          return (
             <button
+              key={tab.key}
               type="button"
-              onClick={() => {
-                onClear();
-                setLocalSearch('');
-              }}
+              onClick={() => onStatusChange(tab.key)}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 12px',
+                flex: '1 1 auto',
+                minWidth: 'fit-content',
+                padding: '8px 14px',
                 borderRadius: '8px',
-                border: '1px solid rgba(220,53,69,0.3)',
-                backgroundColor: 'rgba(220,53,69,0.06)',
-                color: '#DC3545',
+                border: 'none',
+                backgroundColor: active ? 'var(--bg-card)' : 'transparent',
+                color: active ? tab.color : 'var(--text-muted)',
                 fontFamily: 'Cairo, sans-serif',
-                fontSize: '0.72rem',
-                fontWeight: 700,
+                fontSize: '0.78rem',
+                fontWeight: active ? 700 : 600,
                 cursor: 'pointer',
+                boxShadow: active ? '0 2px 8px var(--shadow-sm)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                justifyContent: 'center',
                 whiteSpace: 'nowrap',
+                transition: 'all 0.2s ease',
               }}
             >
-              <FaTimes size={10} />
-              مسح الفلاتر
+              <Icon size={11} />
+              {tab.label}
             </button>
-          )}
-        </div>
+          );
+        })}
       </div>
     </motion.div>
   );

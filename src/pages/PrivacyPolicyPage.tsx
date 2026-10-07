@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { Container, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import {
@@ -15,17 +14,182 @@ import {
   FaCreditCard,
   FaIdCard,
 } from 'react-icons/fa';
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import SEO from '../components/SEO';
+import { useCardBorderAnimation } from '../hooks/useCardBorderAnimation';
+import AnimatedCardBorder from '../components/ui/AnimatedCardBorder';
 
+// ============================================
+// Section Card — with border animation
+// ============================================
+interface SectionCardProps {
+  section: {
+    icon: React.ReactNode;
+    title: string;
+    subtitle?: string;
+    content: any[];
+  };
+  index: number;
+}
+
+const SectionCard = ({ section, index }: SectionCardProps) => {
+  const { attachRef, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
+  return (
+    <div ref={attachRef} {...hoverHandlers}>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ duration: 0.5, delay: index * 0.05 }}
+        style={{
+          position: 'relative',
+          backgroundColor: 'var(--bg-card)',
+          borderRadius: '16px',
+          padding: '1.75rem 2rem',
+          boxShadow: isDrawn
+            ? '0 8px 32px var(--shadow-md)'
+            : '0 4px 16px var(--shadow-sm)',
+          border: `1px solid ${
+            isDrawn ? 'rgba(232,122,32,0.35)' : 'var(--border-color)'
+          }`,
+          transition: 'all 0.3s ease',
+          overflow: 'hidden',
+        }}
+      >
+        <AnimatedCardBorder
+          isDrawn={isDrawn}
+          side="top"
+          background="linear-gradient(90deg, #E87A20, #F5A623)"
+          drawFrom="start"
+          height={3}
+          duration={0.55}
+          idleOpacity={0}
+          rounded
+          cardRadius={16}
+        />
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            marginBottom: '0.75rem',
+          }}
+        >
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(232,122,32,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'all 0.3s ease',
+            }}
+          >
+            {section.icon}
+          </div>
+          <div>
+            <h2
+              style={{
+                color: 'var(--text-secondary)',
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                fontFamily: 'Cairo, sans-serif',
+                margin: 0,
+              }}
+            >
+              {section.title}
+            </h2>
+            {section.subtitle && (
+              <p
+                style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  fontFamily: 'Cairo, sans-serif',
+                  margin: '2px 0 0',
+                  opacity: 0.7,
+                }}
+              >
+                {section.subtitle}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div
+          style={{
+            color: 'var(--text-primary)',
+            fontSize: '0.95rem',
+            lineHeight: 1.9,
+            fontFamily: 'Cairo, sans-serif',
+            paddingRight: '4px',
+          }}
+        >
+          {section.content.map((item, i) => {
+            if (typeof item === 'string') {
+              return (
+                <p key={i} style={{ marginBottom: '0.5rem' }}>
+                  {item}
+                </p>
+              );
+            }
+            if (item.type === 'list') {
+              return (
+                <ul
+                  key={i}
+                  style={{
+                    listStyle: 'none',
+                    padding: '0',
+                    margin: '0 0 0.75rem 0',
+                  }}
+                >
+                  {item.items.map((listItem: string, li: number) => (
+                    <li
+                      key={li}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        marginBottom: '4px',
+                        padding: '4px 0',
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: 'var(--primary-orange)',
+                          fontSize: '1.2rem',
+                          lineHeight: 1.6,
+                          flexShrink: 0,
+                        }}
+                      >
+                        •
+                      </span>
+                      <span>{listItem}</span>
+                    </li>
+                  ))}
+                </ul>
+              );
+            }
+            return null;
+          })}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// ============================================
+// PrivacyPolicyPage
+// ============================================
 const PrivacyPolicyPage = () => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
   const sections = [
     {
       icon: <FaDatabase size={22} color="var(--primary-orange)" />,
@@ -38,11 +202,13 @@ const PrivacyPolicyPage = () => {
           items: [
             'الاسم الكامل والبريد الإلكتروني ورقم الهاتف',
             'الموقع الجغرافي (المحافظة والمدينة/الحي)',
-            'الصور الشخصية والصور المرفقة بالإعلانات',
-            'سجل نشاطك على المنصة (الإعلانات، الإعجابات، التقييمات)',
-            'صور إشعارات التحويل (عند طلب تمييز إعلان)',
+            'الصور الشخصية والصور المرفقة بالخدمات',
+            'سجل نشاطك على المنصة (الخدمات، الإعجابات، التقييمات)',
+            'صور إشعارات التحويل (عند طلب تمييز خدمة)',
             'صورة وثيقة الهوية (عند طلب توثيق الحساب)',
             'البيانات المستخرجة من وثيقة الهوية (الاسم، رقم الوثيقة، تاريخ الميلاد، تاريخ الانتهاء)',
+            'بيانات طلبات المساعدة (مشفرة): الاسم الحقيقي، العنوان، رقم التواصل',
+            'محتوى منشورات المجتمع والفيديوهات المرفقة',
           ],
         },
         'نقوم بجمع هذه البيانات لتقديم خدماتنا وتحسين تجربتك على المنصة.',
@@ -58,15 +224,17 @@ const PrivacyPolicyPage = () => {
           type: 'list',
           items: [
             'تقديم وتحسين خدمات المنصة',
-            'التواصل معك بشأن إعلاناتك',
+            'التواصل معك بشأن خدماتك',
             'تعزيز الأمان والثقة بين المستخدمين',
             'التحقق من عمليات الدفع الخاصة بالتمييز',
             'التحقق من هوية المستخدمين الموثقين',
+            'مراجعة طلبات المساعدة ومنشورات المجتمع قبل النشر',
           ],
         },
         'لا نشارك بياناتك مع أطراف ثالثة دون موافقتك الصريحة.',
         'يتم عرض معلومات الاتصال (رقم واتساب) فقط للمستخدمين المسجلين.',
         'لا نشارك صور الوثائق أو البيانات المستخرجة منها مع أي طرف ثالث.',
+        'لا نشارك بيانات طلبات المساعدة التفصيلية مع أي طرف ثالث.',
       ],
     },
     {
@@ -74,7 +242,7 @@ const PrivacyPolicyPage = () => {
       title: 'بيانات الدفع والتمييز',
       subtitle: 'كيف نتعامل مع بيانات الدفع؟',
       content: [
-        'عند طلب تمييز إعلان، نقوم بجمع:',
+        'عند طلب تمييز خدمة، نقوم بجمع:',
         {
           type: 'list',
           items: [
@@ -111,6 +279,25 @@ const PrivacyPolicyPage = () => {
         'يتم حذف صورة وثيقة الهوية تلقائياً بعد 90 يوماً من الموافقة على التوثيق.',
         'تبقى شارة "موثق" على حسابك حتى بعد حذف الصورة.',
         'يتم الاحتفاظ بالبيانات المستخرجة (الاسم، رقم الوثيقة) بشكل مشفر للرجوع إليها عند الحاجة.',
+      ],
+    },
+    {
+      icon: <FaShieldAlt size={22} color="var(--primary-orange)" />,
+      title: 'صندوق بصمة والبيانات الحساسة',
+      subtitle: 'كيف نحمي بيانات طلبات المساعدة؟',
+      content: [
+        'طلبات المساعدة تحتوي على بيانات حساسة، ونتعامل معها بأقصى درجات الحماية:',
+        {
+          type: 'list',
+          items: [
+            'يتم تشفير البيانات التفصيلية (الاسم الحقيقي، العنوان، رقم التواصل)',
+            'العنوان العام والوصف والفيديو فقط هي ما يظهر للمجتمع',
+            'لا يمكن الوصول للبيانات المشفرة إلا من فريق المراجعة المصرح له',
+            'يُسجَّل كل وصول للبيانات مع ذكر السبب',
+            'يتم حذف الفيديو تلقائياً بعد انتهاء الحالة',
+          ],
+        },
+        'خصوصية المستفيدين هي أولويتنا، والتشفير يحمي جميع الأطراف.',
       ],
     },
     {
@@ -164,6 +351,7 @@ const PrivacyPolicyPage = () => {
         'يتم حذف صور إشعارات التحويل تلقائياً بعد 90 يوماً من الموافقة.',
         'يتم حذف صورة وثيقة الهوية تلقائياً بعد 90 يوماً من الموافقة على التوثيق.',
         'يتم الاحتفاظ بالبيانات المستخرجة من الوثيقة (الاسم، رقم الوثيقة) بشكل مشفر للرجوع إليها عند الحاجة فقط.',
+        'يتم حذف البيانات المشفرة لطلبات المساعدة بعد انتهاء الحالة.',
       ],
     },
     {
@@ -188,25 +376,6 @@ const PrivacyPolicyPage = () => {
       ],
     },
   ];
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 },
-    },
-  };
 
   return (
     <div
@@ -356,233 +525,87 @@ const PrivacyPolicyPage = () => {
         </motion.div>
 
         {/* Content Sections */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate={isVisible ? 'visible' : 'hidden'}
-        >
-          <Row className="justify-content-center">
-            <Col xs={12} lg={10}>
+        <Row className="justify-content-center">
+          <Col xs={12} lg={10}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.5rem',
+              }}
+            >
+              {sections.map((section, index) => (
+                <SectionCard key={index} section={section} index={index} />
+              ))}
+            </div>
+
+            {/* Last Updated + Back to Top */}
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: '2.5rem',
+                padding: '1rem 0',
+                borderTop: '1px solid var(--border-color)',
+                gap: '12px',
+              }}
+            >
               <div
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1.5rem',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  fontFamily: 'Cairo, sans-serif',
+                  opacity: 0.6,
                 }}
               >
-                {sections.map((section, index) => (
-                  <motion.div
-                    key={index}
-                    variants={itemVariants}
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.2 }}
-                    style={{
-                      backgroundColor: 'var(--bg-card)',
-                      borderRadius: '16px',
-                      padding: '1.75rem 2rem',
-                      boxShadow: '0 4px 16px var(--shadow-sm)',
-                      border: '1px solid var(--border-color)',
-                      transition: 'all 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow =
-                        '0 8px 32px var(--shadow-md)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow =
-                        '0 4px 16px var(--shadow-sm)';
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '14px',
-                        marginBottom: '0.75rem',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '44px',
-                          height: '44px',
-                          borderRadius: '12px',
-                          backgroundColor: 'rgba(232,122,32,0.08)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          transition: 'all 0.3s ease',
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor =
-                            'rgba(232,122,32,0.15)';
-                          e.currentTarget.style.transform = 'scale(1.05)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor =
-                            'rgba(232,122,32,0.08)';
-                          e.currentTarget.style.transform = 'scale(1)';
-                        }}
-                      >
-                        {section.icon}
-                      </div>
-                      <div>
-                        <h2
-                          style={{
-                            color: 'var(--text-secondary)',
-                            fontSize: '1.25rem',
-                            fontWeight: 700,
-                            fontFamily: 'Cairo, sans-serif',
-                            margin: 0,
-                          }}
-                        >
-                          {section.title}
-                        </h2>
-                        {section.subtitle && (
-                          <p
-                            style={{
-                              color: 'var(--text-muted)',
-                              fontSize: '0.8rem',
-                              fontFamily: 'Cairo, sans-serif',
-                              margin: '2px 0 0',
-                              opacity: 0.7,
-                            }}
-                          >
-                            {section.subtitle}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        color: 'var(--text-primary)',
-                        fontSize: '0.95rem',
-                        lineHeight: 1.9,
-                        fontFamily: 'Cairo, sans-serif',
-                        paddingRight: '4px',
-                      }}
-                    >
-                      {section.content.map((item, i) => {
-                        if (typeof item === 'string') {
-                          return (
-                            <p key={i} style={{ marginBottom: '0.5rem' }}>
-                              {item}
-                            </p>
-                          );
-                        }
-                        if (item.type === 'list') {
-                          return (
-                            <ul
-                              key={i}
-                              style={{
-                                listStyle: 'none',
-                                padding: '0',
-                                margin: '0 0 0.75rem 0',
-                              }}
-                            >
-                              {item.items.map((listItem, li) => (
-                                <li
-                                  key={li}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'flex-start',
-                                    gap: '10px',
-                                    marginBottom: '4px',
-                                    padding: '4px 0',
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      color: 'var(--primary-orange)',
-                                      fontSize: '1.2rem',
-                                      lineHeight: 1.6,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    •
-                                  </span>
-                                  <span>{listItem}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          );
-                        }
-                        return null;
-                      })}
-                    </div>
-                  </motion.div>
-                ))}
+                <FaServer size={14} style={{ marginLeft: '6px' }} />
+                آخر تحديث: يوليو ٢٠٢٦
+                <span style={{ margin: '0 8px' }}>•</span>
+                <FaGlobe size={14} style={{ marginLeft: '6px' }} />
+                يسري على جميع مستخدمي المنصة
               </div>
 
-              {/* Last Updated + Back to Top */}
-              <div
+              <button
+                onClick={() =>
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }
                 style={{
+                  padding: '10px 28px',
+                  borderRadius: '999px',
+                  border: `2px solid var(--primary-orange)`,
+                  backgroundColor: 'transparent',
+                  color: 'var(--primary-orange)',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  fontFamily: 'Cairo, sans-serif',
                   display: 'flex',
-                  flexWrap: 'wrap',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginTop: '2.5rem',
-                  padding: '1rem 0',
-                  borderTop: '1px solid var(--border-color)',
-                  gap: '12px',
+                  gap: '8px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor =
+                    'var(--primary-orange)';
+                  e.currentTarget.style.color = '#FFFFFF';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow =
+                    '0 4px 16px rgba(232,122,32,0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--primary-orange)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                <div
-                  style={{
-                    color: 'var(--text-muted)',
-                    fontSize: '0.8rem',
-                    fontFamily: 'Cairo, sans-serif',
-                    opacity: 0.6,
-                  }}
-                >
-                  <FaServer size={14} style={{ marginLeft: '6px' }} />
-                  آخر تحديث: يوليو ٢٠٢٦
-                  <span style={{ margin: '0 8px' }}>•</span>
-                  <FaGlobe size={14} style={{ marginLeft: '6px' }} />
-                  يسري على جميع مستخدمي المنصة
-                </div>
-
-                <button
-                  onClick={() =>
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                  }
-                  style={{
-                    padding: '10px 28px',
-                    borderRadius: '999px',
-                    border: `2px solid var(--primary-orange)`,
-                    backgroundColor: 'transparent',
-                    color: 'var(--primary-orange)',
-                    fontWeight: 600,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    fontFamily: 'Cairo, sans-serif',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                      'var(--primary-orange)';
-                    e.currentTarget.style.color = '#FFFFFF';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow =
-                      '0 4px 16px rgba(232,122,32,0.3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'var(--primary-orange)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  العودة إلى الأعلى ↑
-                </button>
-              </div>
-            </Col>
-          </Row>
-        </motion.div>
+                العودة إلى الأعلى ↑
+              </button>
+            </div>
+          </Col>
+        </Row>
       </Container>
     </div>
   );

@@ -139,7 +139,7 @@ const AnnouncementImageCarousel = ({ images, title }: ImageCarouselProps) => {
       >
         <FaImage size={48} opacity={0.4} />
         <span style={{ fontFamily: 'Cairo, sans-serif', fontSize: '0.9rem' }}>
-          لا توجد صور لهذا الإعلان
+          لا توجد صور لهذه الخدمة
         </span>
       </div>
     );

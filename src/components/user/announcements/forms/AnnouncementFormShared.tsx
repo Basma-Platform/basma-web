@@ -1,11 +1,13 @@
 import { motion } from 'framer-motion';
 import { FaInfoCircle } from 'react-icons/fa';
+import { z } from 'zod';
 
 // ============================================
 // Constants
 // ============================================
 export const MAX_TITLE_LENGTH = 100;
 export const MAX_DESCRIPTION_LENGTH = 1000;
+export const MAX_BARTER_TEXT_LENGTH = 200;
 
 // ============================================
 // FormSection
@@ -159,13 +161,26 @@ export const inputBaseStyle = (hasError: boolean): React.CSSProperties => ({
 });
 
 // ============================================
-// Shared Zod Base Schema
+// Zod Base Schema — Sprint 5 (flat category + barter)
 // ============================================
-import { z } from 'zod';
-
+/**
+ * Schema for Create / Edit Announcement.
+ *
+ * Key changes vs. v1:
+ *  - category_id replaces sub_category_id
+ *  - price_type is 'paid' | 'barter' (no more 'free')
+ *  - barter_offered + barter_requested required when price_type = 'barter'
+ *  - is_negotiable only relevant for 'paid'
+ *  - privacy_type must be a verified-only option if is_verified = false
+ */
 export const createAnnouncementBaseSchema = (isVerified: boolean) => {
   const allowedPrivacy = isVerified
-    ? (['public', 'region_only', 'verified_only', 'verified_region'] as const)
+    ? ([
+        'public',
+        'region_only',
+        'verified_only',
+        'verified_region',
+      ] as const)
     : (['public', 'region_only'] as const);
 
   return z
@@ -173,12 +188,11 @@ export const createAnnouncementBaseSchema = (isVerified: boolean) => {
       type: z.enum(['offer', 'request'], {
         errorMap: () => ({ message: 'يجب اختيار نوع الإعلان' }),
       }),
-      category: z.enum(['goods', 'services'], {
-        errorMap: () => ({ message: 'يجب اختيار الفئة' }),
-      }),
-      sub_category_id: z
-        .number({ invalid_type_error: 'يجب اختيار الفئة الفرعية' })
-        .min(1, 'يجب اختيار الفئة الفرعية'),
+
+      category_id: z
+        .number({ invalid_type_error: 'يجب اختيار الفئة' })
+        .min(1, 'يجب اختيار الفئة'),
+
       title: z
         .string()
         .min(3, 'العنوان يجب أن يكون 3 أحرف على الأقل')
@@ -186,6 +200,7 @@ export const createAnnouncementBaseSchema = (isVerified: boolean) => {
           MAX_TITLE_LENGTH,
           `العنوان يجب أن لا يتجاوز ${MAX_TITLE_LENGTH} حرف`
         ),
+
       description: z
         .string()
         .min(10, 'الوصف يجب أن يكون 10 أحرف على الأقل')
@@ -193,20 +208,52 @@ export const createAnnouncementBaseSchema = (isVerified: boolean) => {
           MAX_DESCRIPTION_LENGTH,
           `الوصف يجب أن لا يتجاوز ${MAX_DESCRIPTION_LENGTH} حرف`
         ),
-      price_type: z.enum(['free', 'paid', 'barter'], {
-        errorMap: () => ({ message: 'يجب اختيار طريقة الدفع' }),
+
+      price_type: z.enum(['paid', 'barter'], {
+        errorMap: () => ({ message: 'يجب اختيار طريقة التبادل' }),
       }),
+
+      // Paid-only
       price: z
         .preprocess(
-          (val) => (val === '' || val === null || Number.isNaN(val) ? undefined : Number(val)),
+          (val) =>
+            val === '' || val === null || Number.isNaN(val)
+              ? undefined
+              : Number(val),
           z.number().nonnegative().optional().nullable()
         ),
+
+      is_negotiable: z.boolean().optional().default(false),
+
+      // Barter-only
+      barter_offered: z
+        .string()
+        .max(
+          MAX_BARTER_TEXT_LENGTH,
+          `النص يجب أن لا يتجاوز ${MAX_BARTER_TEXT_LENGTH} حرف`
+        )
+        .optional()
+        .or(z.literal('')),
+
+      barter_requested: z
+        .string()
+        .max(
+          MAX_BARTER_TEXT_LENGTH,
+          `النص يجب أن لا يتجاوز ${MAX_BARTER_TEXT_LENGTH} حرف`
+        )
+        .optional()
+        .or(z.literal('')),
+
+      // Region
       governorate_id: z
         .number({ invalid_type_error: 'يجب اختيار المحافظة' })
         .min(1, 'يجب اختيار المحافظة'),
+
       city_id: z
         .number({ invalid_type_error: 'يجب اختيار المدينة' })
         .min(1, 'يجب اختيار المدينة'),
+
+      // Contact
       whatsapp: z
         .string()
         .min(1, 'رقم واتساب مطلوب')
@@ -214,10 +261,12 @@ export const createAnnouncementBaseSchema = (isVerified: boolean) => {
           /^(\+970|\+972)[0-9]{9}$/,
           'رقم واتساب يجب أن يبدأ بـ +970 أو +972 ويحتوي على 9 أرقام'
         ),
+
       privacy_type: z.enum(allowedPrivacy, {
         errorMap: () => ({ message: 'يجب اختيار نوع الخصوصية' }),
       }),
     })
+    // Paid → price must be > 0
     .refine(
       (data) => {
         if (data.price_type === 'paid') {
@@ -231,8 +280,24 @@ export const createAnnouncementBaseSchema = (isVerified: boolean) => {
         return true;
       },
       {
-        message: 'السعر مطلوب عند اختيار مدفوع',
+        message: 'السعر مطلوب عند اختيار "مدفوع"',
         path: ['price'],
+      }
+    )
+    // Barter → both barter fields required
+    .refine(
+      (data) => {
+        if (data.price_type === 'barter') {
+          return (
+            !!data.barter_offered?.trim() &&
+            !!data.barter_requested?.trim()
+          );
+        }
+        return true;
+      },
+      {
+        message: 'يجب تحديد ما تقدّمه وما تطلبه في المقايضة',
+        path: ['barter_offered'],
       }
     );
 };

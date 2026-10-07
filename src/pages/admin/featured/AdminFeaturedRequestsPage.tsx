@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaChevronLeft, FaStar, FaInbox } from 'react-icons/fa';
+import { FaChevronLeft, FaStar, FaInbox, FaTimes } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useAdminFeaturedRequests } from '../../../hooks/useAdminFeaturedRequests';
 import Pagination from '../../../components/shared/Pagination';
@@ -23,102 +23,198 @@ import {
 } from '../../../utils/featuredHelpers';
 import type { AdminFeaturedRequestListItem } from '../../../types';
 
+// ============================================
+// URL helpers — pure functions, no hooks
+// ============================================
+const readUrlParam = (key: string, fallback: string): string => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key) ?? fallback;
+};
+
+const readUrlNumber = (key: string, fallback: number): number => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get(key);
+  if (raw === null) return fallback;
+  const num = Number(raw);
+  return isNaN(num) ? fallback : num;
+};
+
+const writeUrlParams = (params: Record<string, string | number | null>) => {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === '' || value === 'all') {
+      url.searchParams.delete(key);
+    } else {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  window.history.replaceState({}, '', url.toString());
+};
+
+// ============================================
+// Page
+// ============================================
 const AdminFeaturedRequestsPage = () => {
   const navigate = useNavigate();
   const { requests, meta, stats, loading, fetchRequests } =
     useAdminFeaturedRequests();
 
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<AdminFeaturedStatusFilter>('all');
+  // ============================================
+  // Filter state — initialized from URL on first render
+  // ============================================
+  const [status, setStatus] = useState<AdminFeaturedStatusFilter>(
+    () => readUrlParam('status', 'all') as AdminFeaturedStatusFilter
+  );
   const [paymentMethod, setPaymentMethod] =
-    useState<AdminFeaturedPaymentFilter>('all');
-  const [sort, setSort] = useState<AdminFeaturedSort>('newest');
-  const [page, setPage] = useState(1);
-  const [perPage, setPerPage] = useState(FEATURED_DEFAULT_PER_PAGE);
+    useState<AdminFeaturedPaymentFilter>(
+      () => readUrlParam('payment_method', 'all') as AdminFeaturedPaymentFilter
+    );
+  const [sort, setSort] = useState<AdminFeaturedSort>(
+    () => readUrlParam('sort', 'newest') as AdminFeaturedSort
+  );
+  const [search, setSearch] = useState(
+    () => readUrlParam('search', '')
+  );
+  const [page, setPage] = useState(
+    () => readUrlNumber('page', 1)
+  );
+  const [perPage, setPerPage] = useState(
+    () => readUrlNumber('per_page', FEATURED_DEFAULT_PER_PAGE)
+  );
 
+  const [localSearch, setLocalSearch] = useState(search);
   const [isSearching, setIsSearching] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // ✅ Skip the FIRST run of the filter effect (initial load handles it)
-  const isFirstRender = useRef(true);
+  const isFirstFetch = useRef(true);
+  const isMountedRef = useRef(true);
 
-  // ============================================
-  // Initial load
-  // ============================================
   useEffect(() => {
-    const init = async () => {
-      try {
-        await fetchRequests({
-          status: 'all',
-          sort: 'newest',
-          page: 1,
-          per_page: FEATURED_DEFAULT_PER_PAGE,
-        });
-      } finally {
-        setInitialLoading(false);
-      }
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
     };
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ============================================
-  // Refetch on any filter change
-  // ✅ Guarded only against the very first render
-  // ✅ `sort` is now included and always honored
+  // Sync URL whenever filters change
   // ============================================
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
+    writeUrlParams({
+      status: status === 'all' ? null : status,
+      payment_method: paymentMethod === 'all' ? null : paymentMethod,
+      sort: sort === 'newest' ? null : sort,
+      search: search || null,
+      page: page > 1 ? page : null,
+      per_page: perPage !== FEATURED_DEFAULT_PER_PAGE ? perPage : null,
+    });
+  }, [status, paymentMethod, sort, search, page, perPage]);
 
-    const timer = setTimeout(
-      () => {
+  // ============================================
+  // Debounce search
+  // ============================================
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearch !== search) {
+        setSearch(localSearch);
+        setPage(1);
+      }
+    }, 450);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSearch]);
+
+  // ============================================
+  // Fetch on filter change
+  // ============================================
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!isMountedRef.current) return;
+      try {
         setIsSearching(true);
-        fetchRequests({
+        await fetchRequests({
           status,
           payment_method:
             paymentMethod === 'all' ? undefined : paymentMethod,
           search: search || undefined,
-          sort, // ✅ always sent
+          sort,
           page,
           per_page: perPage,
-        }).finally(() => setIsSearching(false));
-      },
-      search ? 450 : 0
-    );
+        });
+      } catch {
+        // toast handled in hook
+      } finally {
+        if (!cancelled && isMountedRef.current) {
+          setIsSearching(false);
+          if (isFirstFetch.current) {
+            setInitialLoading(false);
+            isFirstFetch.current = false;
+          }
+        }
+      }
+    };
 
-    return () => clearTimeout(timer);
+    load();
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status, paymentMethod, sort, page, perPage]);
+  }, [status, paymentMethod, search, sort, page, perPage]);
 
   // ============================================
   // Handlers
   // ============================================
-  const handleClearFilters = () => {
-    setSearch('');
+  const handleClearFilters = useCallback(() => {
     setStatus('all');
     setPaymentMethod('all');
     setSort('newest');
+    setSearch('');
+    setLocalSearch('');
     setPage(1);
-  };
+  }, []);
 
-  const handlePageChange = (p: number) => {
+  const handlePageChange = useCallback((p: number) => {
     setPage(p);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handlePerPageChange = (pp: number) => {
+  const handlePerPageChange = useCallback((pp: number) => {
     setPerPage(pp);
     setPage(1);
-  };
+  }, []);
 
-  const handleCardClick = (request: AdminFeaturedRequestListItem) => {
-    navigate(`/admin/featured-requests/${request.id}`);
-  };
+  const handleStatusChange = useCallback((s: AdminFeaturedStatusFilter) => {
+    setStatus(s);
+    setPage(1);
+  }, []);
 
-  const hasFilters =
+  const handlePaymentChange = useCallback(
+    (p: AdminFeaturedPaymentFilter) => {
+      setPaymentMethod(p);
+      setPage(1);
+    },
+    []
+  );
+
+  const handleSortChange = useCallback((s: AdminFeaturedSort) => {
+    setSort(s);
+    setPage(1);
+  }, []);
+
+  const handleCardClick = useCallback(
+    (request: AdminFeaturedRequestListItem) => {
+      navigate(`/admin/featured-requests/${request.id}`);
+    },
+    [navigate]
+  );
+
+  const hasActiveFilters =
     status !== 'all' ||
     paymentMethod !== 'all' ||
     sort !== 'newest' ||
@@ -143,9 +239,6 @@ const AdminFeaturedRequestsPage = () => {
     );
   }
 
-  // ============================================
-  // Render
-  // ============================================
   return (
     <>
       <SEO
@@ -244,37 +337,73 @@ const AdminFeaturedRequestsPage = () => {
               <AdminFeaturedStatsCards
                 stats={stats}
                 activeFilter={status}
-                onFilterClick={(f) => {
-                  setStatus(f);
-                  setPage(1);
-                }}
+                onFilterClick={handleStatusChange}
               />
             </div>
           )}
 
           {/* Filters */}
           <AdminFeaturedFilters
-            search={search}
-            onSearchChange={setSearch}
+            search={localSearch}
+            onSearchChange={setLocalSearch}
             status={status}
-            onStatusChange={(s) => {
-              setStatus(s);
-              setPage(1);
-            }}
+            onStatusChange={handleStatusChange}
             paymentMethod={paymentMethod}
-            onPaymentMethodChange={(p) => {
-              setPaymentMethod(p);
-              setPage(1);
-            }}
+            onPaymentMethodChange={handlePaymentChange}
             sort={sort}
-            onSortChange={(s) => {
-              setSort(s);
-              setPage(1);
-            }}
-            onClear={handleClearFilters}
+            onSortChange={handleSortChange}
             isSearching={isSearching}
-            resultsCount={meta?.total}
           />
+
+          {/* ============================================ */}
+          {/* Results Count + Clear Filters — Below Filters */}
+          {/* Same layout as AdminVerificationListPage */}
+          {/* ============================================ */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              marginBottom: '1rem',
+              padding: '0 4px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.8rem',
+                fontFamily: 'Cairo, sans-serif',
+              }}
+            >
+              {!loading && meta && (
+                <>
+                  عرض {requests.length} من {meta.total} طلب
+                </>
+              )}
+            </span>
+
+            {hasActiveFilters && (
+              <Button
+                variant="link"
+                onClick={handleClearFilters}
+                style={{
+                  color: 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontFamily: 'Cairo, sans-serif',
+                  fontSize: '0.78rem',
+                  padding: '4px 10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <FaTimes size={11} />
+                مسح الفلاتر
+              </Button>
+            )}
+          </div>
 
           {/* Grid */}
           {loading && requests.length === 0 ? (
@@ -315,7 +444,7 @@ const AdminFeaturedRequestsPage = () => {
                   margin: '0 0 8px',
                 }}
               >
-                {hasFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات'}
+                {hasActiveFilters ? 'لا توجد نتائج مطابقة' : 'لا توجد طلبات'}
               </h3>
               <p
                 style={{
@@ -324,11 +453,11 @@ const AdminFeaturedRequestsPage = () => {
                   margin: 0,
                 }}
               >
-                {hasFilters
+                {hasActiveFilters
                   ? 'حاول تغيير الفلاتر أو كلمات البحث'
                   : 'لم يقدّم أي مستخدم طلب تمييز بعد'}
               </p>
-              {hasFilters && (
+              {hasActiveFilters && (
                 <Button
                   onClick={handleClearFilters}
                   style={{
@@ -386,7 +515,6 @@ const AdminFeaturedRequestsPage = () => {
         </Container>
       </div>
 
-      {/* Page-scoped styles */}
       <style>{`
         .admin-featured-page {
           background-color: var(--bg-body);

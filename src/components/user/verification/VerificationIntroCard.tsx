@@ -3,8 +3,8 @@ import { FaShieldAlt, FaCheckCircle, FaLock, FaBolt } from 'react-icons/fa';
 
 const VerificationIntroCard = () => {
   const benefits = [
-    { icon: <FaCheckCircle size={14} />, text: 'نشر إعلانات غير محدودة شهرياً' },
-    { icon: <FaShieldAlt size={14} />, text: 'شارة "موثق" على حسابك وإعلاناتك' },
+    { icon: <FaCheckCircle size={14} />, text: 'نشر عروض وطلبات غير محدودة شهرياً' },
+    { icon: <FaShieldAlt size={14} />, text: 'شارة "موثق" على حسابك وخدماتك' },
     { icon: <FaBolt size={14} />, text: 'أولوية في نتائج البحث والتصفح' },
     { icon: <FaLock size={14} />, text: 'ثقة أكبر من المجتمع والمستخدمين' },
   ];
@@ -85,7 +85,7 @@ const VerificationIntroCard = () => {
             marginRight: 'auto',
           }}
         >
-          احصل على شارة "موثق" واستفد من جميع مزايا المنصة مع إعلانات غير محدودة
+          احصل على شارة "موثق" واستفد من جميع مزايا المنصة مع عروض وطلبات غير محدودة
         </p>
 
         <div

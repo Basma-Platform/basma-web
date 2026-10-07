@@ -108,7 +108,7 @@ const ReportModal = ({
       payload.reported_user_id = reportedUserId;
     } else {
       if (!announcementId) {
-        setError('حدث خطأ — لا يمكن تحديد الإعلان');
+        setError('حدث خطأ — لا يمكن تحديد الخدمة');
         return;
       }
       payload.announcement_id = announcementId;
@@ -125,7 +125,7 @@ const ReportModal = ({
   };
 
   const remaining = MAX_DESCRIPTION - description.length;
-  const targetLabel = targetType === 'user' ? 'المستخدم' : 'الإعلان';
+  const targetLabel = targetType === 'user' ? 'المستخدم' : 'الخدمة';
 
   return (
     <AnimatePresence>

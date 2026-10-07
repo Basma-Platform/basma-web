@@ -361,7 +361,7 @@ const AnnouncementReviewSection = ({
                     lineHeight: 1.2,
                   }}
                 >
-                  تقييمك لهذا الإعلان
+                  تقييمك لهذه الخدمة
                 </h4>
                 <div
                   style={{

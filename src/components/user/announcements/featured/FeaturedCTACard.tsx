@@ -8,12 +8,16 @@ import {
   FaCheckCircle,
 } from 'react-icons/fa';
 import { getFeaturedBenefits } from '../../../../utils/featuredHelpers';
+import { getEntity } from '../../../../utils/announcementNaming';
+import type { AnnouncementType } from '../../../../types';
 
 interface FeaturedCTACardProps {
   announcementId: number;
   /** Optional: from suggestion in create response */
   benefits?: string[];
   variant?: 'success' | 'inline';
+  /** ✨ NEW — drives the CTA copy ("عرضك" vs "طلبك") */
+  type?: AnnouncementType | null;
 }
 
 const DEFAULT_BENEFITS = getFeaturedBenefits();
@@ -22,8 +26,17 @@ const FeaturedCTACard = ({
   announcementId,
   benefits = DEFAULT_BENEFITS,
   variant = 'success',
+  type,
 }: FeaturedCTACardProps) => {
   const isSuccess = variant === 'success';
+  const t = getEntity(type);
+
+  // Title uses "عرضك"/"طلبك" when type is set, otherwise generic "إعلانك"
+  const title = type
+    ? `اجعل ${t.possessive} مميزاً 🚀`
+    : 'اجعل إعلانك مميزاً 🚀';
+
+  const ctaLabel = type ? t.featureCTA : 'ميّز إعلانك الآن';
 
   return (
     <motion.div
@@ -46,9 +59,7 @@ const FeaturedCTACard = ({
           boxShadow: '0 8px 32px rgba(245,166,35,0.15)',
         }}
       >
-        {/* ============================================ */}
         {/* Decorative Background */}
-        {/* ============================================ */}
         <div
           style={{
             position: 'absolute',
@@ -77,9 +88,7 @@ const FeaturedCTACard = ({
         />
 
         <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* ============================================ */}
-          {/* Header: Icon + Badge */}
-          {/* ============================================ */}
+          {/* Header */}
           <div
             style={{
               display: 'flex',
@@ -114,18 +123,9 @@ const FeaturedCTACard = ({
               }}
             >
               <FaStar size={32} />
-
-              {/* Sparkle effects */}
               <motion.span
-                animate={{
-                  scale: [1, 1.4, 1],
-                  opacity: [0.5, 1, 0.5],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay: 0.5,
-                }}
+                animate={{ scale: [1, 1.4, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                 style={{
                   position: 'absolute',
                   top: '-4px',
@@ -138,39 +138,12 @@ const FeaturedCTACard = ({
                   filter: 'blur(1px)',
                 }}
               />
-              <motion.span
-                animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.4, 0.9, 0.4],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay: 1,
-                }}
-                style={{
-                  position: 'absolute',
-                  bottom: '-6px',
-                  left: '-6px',
-                  width: '14px',
-                  height: '14px',
-                  borderRadius: '50%',
-                  background:
-                    'radial-gradient(circle, #FFF 40%, transparent 70%)',
-                  filter: 'blur(1px)',
-                }}
-              />
             </motion.div>
 
-            {/* "مميز" Badge */}
             <motion.div
               initial={{ scale: 0, rotate: -12 }}
               animate={{ scale: 1, rotate: -12 }}
-              transition={{
-                type: 'spring',
-                stiffness: 260,
-                delay: 0.4,
-              }}
+              transition={{ type: 'spring', stiffness: 260, delay: 0.4 }}
               style={{
                 position: 'absolute',
                 top: '-4px',
@@ -190,9 +163,7 @@ const FeaturedCTACard = ({
             </motion.div>
           </div>
 
-          {/* ============================================ */}
-          {/* Title */}
-          {/* ============================================ */}
+          {/* Title — dynamic */}
           <h3
             style={{
               textAlign: 'center',
@@ -204,12 +175,10 @@ const FeaturedCTACard = ({
               lineHeight: 1.35,
             }}
           >
-            اجعل إعلانك مميزاً 🚀
+            {title}
           </h3>
 
-          {/* ============================================ */}
           {/* Subtitle */}
-          {/* ============================================ */}
           <p
             style={{
               textAlign: 'center',
@@ -223,7 +192,7 @@ const FeaturedCTACard = ({
               marginRight: 'auto',
             }}
           >
-            اجعل إعلانك يصل إلى{' '}
+            اجعله يصل إلى{' '}
             <strong style={{ color: 'var(--primary-orange)' }}>
               آلاف المستخدمين
             </strong>{' '}
@@ -231,9 +200,7 @@ const FeaturedCTACard = ({
             <strong style={{ color: '#F5A623' }}>10 أضعاف</strong>
           </p>
 
-          {/* ============================================ */}
           {/* Benefits Grid */}
-          {/* ============================================ */}
           <div
             style={{
               display: 'grid',
@@ -287,9 +254,7 @@ const FeaturedCTACard = ({
             ))}
           </div>
 
-          {/* ============================================ */}
-          {/* Stats Preview (for success variant) */}
-          {/* ============================================ */}
+          {/* Stats Preview */}
           {isSuccess && (
             <div
               style={{
@@ -336,9 +301,7 @@ const FeaturedCTACard = ({
             </div>
           )}
 
-          {/* ============================================ */}
-          {/* CTA Button */}
-          {/* ============================================ */}
+          {/* CTA — dynamic */}
           <Link
             to={`/user/announcements/${announcementId}/feature`}
             style={{ textDecoration: 'none', display: 'block' }}
@@ -368,20 +331,9 @@ const FeaturedCTACard = ({
                 position: 'relative',
                 overflow: 'hidden',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow =
-                  '0 14px 32px rgba(245,166,35,0.5)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow =
-                  '0 8px 24px rgba(245,166,35,0.4)';
-              }}
             >
-              {/* Shimmer effect */}
               <motion.div
-                animate={{
-                  x: ['-100%', '200%'],
-                }}
+                animate={{ x: ['-100%', '200%'] }}
                 transition={{
                   duration: 2.5,
                   repeat: Infinity,
@@ -400,12 +352,11 @@ const FeaturedCTACard = ({
                 }}
               />
               <FaStar size={16} />
-              <span>ميّز إعلانك الآن</span>
+              <span>{ctaLabel}</span>
               <FaArrowLeft size={13} />
             </motion.button>
           </Link>
 
-          {/* Note */}
           <p
             style={{
               textAlign: 'center',
@@ -425,9 +376,6 @@ const FeaturedCTACard = ({
   );
 };
 
-// ============================================
-// Helper Component
-// ============================================
 interface StatItemProps {
   Icon: React.ReactNode;
   value: string;

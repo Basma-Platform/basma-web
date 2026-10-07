@@ -13,12 +13,18 @@ import {
   FaChevronLeft,
   FaImage,
   FaCalendarAlt,
+  FaExchangeAlt,
+  FaFlagCheckered,
+  FaHandshake,
+  FaUndo,
 } from 'react-icons/fa';
 import MyAnnouncementStatusBadge from '../badges/MyAnnouncementStatusBadge';
 import {
   getCategoryLabel,
   getTypeLabel,
   getPriceLabel,
+  getBarterBadgeLabel,
+  getNegotiableLabel,
   getCoverImageUrl,
   formatAnnouncementDateShort,
 } from '../../../../utils/announcementHelpers';
@@ -30,6 +36,8 @@ interface MyAnnouncementCardProps {
   onDisable: (id: number) => void;
   onEnable: (id: number) => void;
   onFeature: (id: number) => void;
+  onComplete: (id: number) => void;
+  onReopen: (id: number) => void;
 }
 
 const MyAnnouncementCard = ({
@@ -38,24 +46,40 @@ const MyAnnouncementCard = ({
   onDisable,
   onEnable,
   onFeature,
+  onComplete,
+  onReopen,
 }: MyAnnouncementCardProps) => {
   const coverImage = getCoverImageUrl(announcement);
   const typeColor = announcement.type === 'offer' ? '#28A745' : '#DC3545';
+  const isBarter = announcement.price_type === 'barter';
+  const isNegotiable =
+    announcement.price_type === 'paid' && announcement.is_negotiable;
+
   const isFeatured =
     announcement.is_featured &&
     !!announcement.featured_until &&
     new Date(announcement.featured_until) > new Date();
 
-  // Status-based action availability
-  const canEdit = announcement.status !== 'deleted';
+  const isCompleted =
+    announcement.is_completed || announcement.status === 'completed';
+
+  // ============================================
+  // Action availability
+  // ============================================
+  const canEdit = announcement.status !== 'deleted' && !isCompleted;
   const canDelete = announcement.status !== 'deleted';
   const canDisable =
-    announcement.status === 'active' && !announcement.is_disabled;
+    announcement.status === 'active' &&
+    !announcement.is_disabled &&
+    !isCompleted;
   const canEnable = announcement.is_disabled;
   const canFeature =
     announcement.status === 'active' &&
     !isFeatured &&
-    !announcement.is_featured;
+    !announcement.is_featured &&
+    !isCompleted;
+  const canComplete = announcement.status === 'active' && !isCompleted;
+  const canReopen = isCompleted;
 
   return (
     <motion.div
@@ -113,6 +137,7 @@ const MyAnnouncementCard = ({
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
+                  opacity: isCompleted ? 0.85 : 1,
                 }}
               />
             ) : (
@@ -131,7 +156,7 @@ const MyAnnouncementCard = ({
               </div>
             )}
 
-            {/* Gradient Overlay for badging */}
+            {/* Gradient Overlay */}
             <div
               style={{
                 position: 'absolute',
@@ -141,6 +166,34 @@ const MyAnnouncementCard = ({
                 pointerEvents: 'none',
               }}
             />
+
+            {/* Completed Overlay */}
+            {isCompleted && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(23,162,184,0.92)',
+                  color: '#FFFFFF',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  fontFamily: 'Cairo, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 16px rgba(23,162,184,0.5)',
+                  backdropFilter: 'blur(4px)',
+                  zIndex: 6,
+                }}
+              >
+                <FaFlagCheckered size={12} />
+                تم التبادل
+              </div>
+            )}
 
             {/* Top-Right: Status Badge */}
             <div
@@ -188,7 +241,7 @@ const MyAnnouncementCard = ({
               {getTypeLabel(announcement.type)}
             </div>
 
-            {/* Bottom-Right: Views + Likes */}
+            {/* Bottom-Left: Views + Likes */}
             <div
               style={{
                 position: 'absolute',
@@ -209,23 +262,25 @@ const MyAnnouncementCard = ({
               />
             </div>
 
-            {/* Bottom-Right: Price Badge */}
+            {/* Bottom-Right: Price / Barter Badge */}
             <div
               style={{
                 position: 'absolute',
                 bottom: '10px',
                 right: '10px',
                 zIndex: 2,
+                display: 'flex',
+                gap: '4px',
+                flexWrap: 'wrap',
+                justifyContent: 'flex-end',
+                maxWidth: 'calc(100% - 90px)',
               }}
             >
               <span
                 style={{
-                  backgroundColor:
-                    announcement.price_type === 'free'
-                      ? '#28A745'
-                      : announcement.price_type === 'paid'
-                        ? 'var(--primary-orange)'
-                        : '#9C27B0',
+                  backgroundColor: isBarter
+                    ? '#9C27B0'
+                    : 'var(--primary-orange)',
                   color: '#FFFFFF',
                   padding: '4px 10px',
                   borderRadius: '8px',
@@ -233,9 +288,15 @@ const MyAnnouncementCard = ({
                   fontWeight: 700,
                   fontFamily: 'Cairo, sans-serif',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                {getPriceLabel(announcement.price_type, announcement.price)}
+                {isBarter && <FaExchangeAlt size={9} />}
+                {isBarter
+                  ? getBarterBadgeLabel()
+                  : getPriceLabel(announcement.price_type, announcement.price)}
               </span>
             </div>
           </div>
@@ -283,7 +344,7 @@ const MyAnnouncementCard = ({
             </h3>
           </Link>
 
-          {/* Meta Row: Category + Location */}
+          {/* Meta Row: Category + Negotiable + Location */}
           <div
             style={{
               display: 'flex',
@@ -296,8 +357,12 @@ const MyAnnouncementCard = ({
               icon={<FaTag size={9} />}
               label={getCategoryLabel(announcement.category)}
             />
-            {announcement.sub_category && (
-              <MetaChip label={announcement.sub_category.name} />
+            {isNegotiable && (
+              <MetaChip
+                icon={<FaHandshake size={9} />}
+                label={getNegotiableLabel()}
+                iconColor="var(--primary-orange)"
+              />
             )}
             {announcement.governorate && (
               <MetaChip
@@ -339,7 +404,7 @@ const MyAnnouncementCard = ({
               flexWrap: 'wrap',
             }}
           >
-            {/* View Details */}
+            {/* View Details — always shown */}
             <Link
               to={`/user/announcements/${announcement.id}`}
               style={{ textDecoration: 'none', flex: '1 1 100%' }}
@@ -351,6 +416,36 @@ const MyAnnouncementCard = ({
                 fullWidth
               />
             </Link>
+
+            {/* Complete (mark as done) */}
+            {canComplete && (
+              <div
+                onClick={() => onComplete(announcement.id)}
+                style={{ flex: '1 1 0' }}
+              >
+                <ActionButton
+                  icon={<FaFlagCheckered size={11} />}
+                  label="إكمال"
+                  variant="info"
+                  fullWidth
+                />
+              </div>
+            )}
+
+            {/* Reopen (undo completion) */}
+            {canReopen && (
+              <div
+                onClick={() => onReopen(announcement.id)}
+                style={{ flex: '1 1 0' }}
+              >
+                <ActionButton
+                  icon={<FaUndo size={11} />}
+                  label="إعادة فتح"
+                  variant="success"
+                  fullWidth
+                />
+              </div>
+            )}
 
             {/* Edit */}
             {canEdit && (
@@ -486,7 +581,9 @@ const MetaChip = ({ icon, label, iconColor }: MetaChipProps) => (
     }}
   >
     {icon && (
-      <span style={{ color: iconColor || 'currentColor', display: 'inline-flex' }}>
+      <span
+        style={{ color: iconColor || 'currentColor', display: 'inline-flex' }}
+      >
         {icon}
       </span>
     )}
@@ -494,10 +591,19 @@ const MetaChip = ({ icon, label, iconColor }: MetaChipProps) => (
   </span>
 );
 
+type ActionVariant =
+  | 'primary'
+  | 'outline'
+  | 'danger'
+  | 'warning'
+  | 'success'
+  | 'feature'
+  | 'info';
+
 interface ActionButtonProps {
   icon: React.ReactNode;
   label: string;
-  variant: 'primary' | 'outline' | 'danger' | 'warning' | 'success' | 'feature';
+  variant: ActionVariant;
   fullWidth?: boolean;
 }
 
@@ -508,7 +614,7 @@ const ActionButton = ({
   fullWidth = false,
 }: ActionButtonProps) => {
   const variants: Record<
-    string,
+    ActionVariant,
     { color: string; bg: string; border: string; hoverBg: string }
   > = {
     primary: {
@@ -530,7 +636,7 @@ const ActionButton = ({
       hoverBg: 'rgba(220,53,69,0.1)',
     },
     warning: {
-      color: '#B7791F', // Enhanced contrast amber for peak visibility in light and dark modes
+      color: '#B7791F',
       bg: 'transparent',
       border: 'rgba(255,193,7,0.4)',
       hoverBg: 'rgba(255,193,7,0.12)',
@@ -542,10 +648,16 @@ const ActionButton = ({
       hoverBg: 'rgba(40,167,69,0.1)',
     },
     feature: {
-      color: '#D97706', // Rich deep gold/amber for pristine button text legibility
+      color: '#D97706',
       bg: 'transparent',
       border: 'rgba(245,166,35,0.4)',
       hoverBg: 'rgba(245,166,35,0.12)',
+    },
+    info: {
+      color: '#17A2B8',
+      bg: 'transparent',
+      border: 'rgba(23,162,184,0.3)',
+      hoverBg: 'rgba(23,162,184,0.1)',
     },
   };
 
