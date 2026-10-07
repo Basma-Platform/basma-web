@@ -47,7 +47,7 @@ const NameChangeWarningModal = ({
       color: '#F5A623',
       bg: 'rgba(245,166,35,0.1)',
       title: 'ستعود للحد الشهري العادي',
-      description: '5 إعلانات كحد أقصى شهرياً بدلاً من عدد غير محدود',
+      description: '5 عروض أو طلبات كحد أقصى شهرياً بدلاً من عدد غير محدود',
     },
     {
       icon: <FaRedo size={14} />,

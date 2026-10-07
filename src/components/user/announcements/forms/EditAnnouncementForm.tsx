@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FaBullhorn,
   FaTag,
@@ -19,13 +19,14 @@ import {
   FaLayerGroup,
   FaCity,
   FaImage,
-  FaBox,
-  FaTools,
-  FaGift,
   FaExchangeAlt,
   FaGlobe,
   FaShieldAlt,
   FaCheckCircle,
+  FaHandshake,
+  FaBox,
+  FaGift,
+  FaRobot,
 } from 'react-icons/fa';
 import AnnouncementImageUploader from './AnnouncementImageUploader';
 import {
@@ -36,17 +37,18 @@ import {
   validateImages,
   MAX_TITLE_LENGTH,
   MAX_DESCRIPTION_LENGTH,
+  MAX_BARTER_TEXT_LENGTH,
   type LocalAnnouncementImage,
 } from './AnnouncementFormShared';
 import { regionService } from '../../../../services/regionService';
+import { categoryService } from '../../../../services/categoryService';
 import { userAnnouncementService } from '../../../../services/userAnnouncementService';
-import { announcementService } from '../../../../services/announcementService';
 import { getStorageUrl } from '../../../../utils/storageHelpers';
 import { toast } from 'react-toastify';
 import type {
   Governorate,
   City,
-  SubCategory,
+  Category,
   User,
   UserAnnouncementDetailResponse,
 } from '../../../../types';
@@ -63,11 +65,6 @@ interface EditAnnouncementFormProps {
   onCancel?: () => void;
 }
 
-interface SubCategoriesGrouped {
-  goods: SubCategory[];
-  services: SubCategory[];
-}
-
 const EditAnnouncementForm = ({
   announcement,
   user,
@@ -79,10 +76,7 @@ const EditAnnouncementForm = ({
 
   const [governorates, setGovernorates] = useState<Governorate[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [subCategories, setSubCategories] = useState<SubCategoriesGrouped>({
-    goods: [],
-    services: [],
-  });
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [loadingCities, setLoadingCities] = useState(false);
   const [images, setImages] = useState<LocalAnnouncementImage[]>([]);
@@ -91,10 +85,8 @@ const EditAnnouncementForm = ({
 
   const schema = useMemo(() => editSchema(isVerified), [isVerified]);
 
-  const initialSubCategoryId =
-    announcement.sub_category?.id ||
-    (announcement as any).sub_category_id ||
-    0;
+  const initialCategoryId =
+    announcement.category?.id || (announcement as any).category_id || 0;
 
   const {
     register,
@@ -108,12 +100,14 @@ const EditAnnouncementForm = ({
     resolver: zodResolver(schema) as any,
     defaultValues: {
       type: announcement.type,
-      category: announcement.category,
-      sub_category_id: initialSubCategoryId,
+      category_id: initialCategoryId,
       title: announcement.title,
       description: announcement.description,
       price_type: announcement.price_type,
       price: announcement.price ? Number(announcement.price) : null,
+      is_negotiable: !!announcement.is_negotiable,
+      barter_offered: announcement.barter_offered || '',
+      barter_requested: announcement.barter_requested || '',
       governorate_id: announcement.governorate.id,
       city_id: announcement.city.id,
       whatsapp: announcement.whatsapp,
@@ -122,20 +116,17 @@ const EditAnnouncementForm = ({
     mode: 'onSubmit',
   });
 
-  const watchedCategory = watch('category');
   const watchedPriceType = watch('price_type');
   const watchedGovernorate = watch('governorate_id');
   const watchedTitle = watch('title') || '';
   const watchedDescription = watch('description') || '';
   const watchedPrivacy = watch('privacy_type');
+  const watchedBarterOffered = watch('barter_offered') || '';
+  const watchedBarterRequested = watch('barter_requested') || '';
 
-  useEffect(() => {
-    if (watchedCategory !== announcement.category) {
-      setValue('sub_category_id', 0, { shouldValidate: false });
-    }
-  }, [watchedCategory, announcement.category, setValue]);
-
-  // ✅ Use getStorageUrl for existing image previews
+  // ============================================
+  // Load existing images
+  // ============================================
   useEffect(() => {
     if (announcement.images && announcement.images.length > 0) {
       const existing: LocalAnnouncementImage[] = announcement.images
@@ -152,18 +143,19 @@ const EditAnnouncementForm = ({
     }
   }, [announcement.images]);
 
+  // ============================================
+  // Fetch metadata
+  // ============================================
   useEffect(() => {
     const fetchMeta = async () => {
       try {
         setLoadingMeta(true);
-        const [govs, filters] = await Promise.all([
+        const [govs, cats] = await Promise.all([
           regionService.getGovernorates(),
-          announcementService.getFilters(),
+          categoryService.getCategories(),
         ]);
         setGovernorates(govs);
-        if (filters?.data?.sub_categories) {
-          setSubCategories(filters.data.sub_categories);
-        }
+        setCategories(cats);
       } catch (err) {
         console.error('Error fetching meta:', err);
         toast.error('حدث خطأ في تحميل البيانات');
@@ -174,18 +166,9 @@ const EditAnnouncementForm = ({
     fetchMeta();
   }, []);
 
-  useEffect(() => {
-    if (initialSubCategoryId && subCategories) {
-      const categoryList = subCategories[watchedCategory] || [];
-      const exists = categoryList.some(
-        (sub) => sub.id === initialSubCategoryId
-      );
-      if (exists) {
-        setValue('sub_category_id', initialSubCategoryId);
-      }
-    }
-  }, [subCategories, watchedCategory, initialSubCategoryId, setValue]);
-
+  // ============================================
+  // Load cities
+  // ============================================
   useEffect(() => {
     if (!watchedGovernorate) return;
     const loadCities = async () => {
@@ -202,24 +185,31 @@ const EditAnnouncementForm = ({
     loadCities();
   }, [watchedGovernorate]);
 
-  const availableSubCategories = useMemo(() => {
-    if (!watchedCategory) return [];
-    return subCategories[watchedCategory] || [];
-  }, [watchedCategory, subCategories]);
-
+  // ============================================
+  // Build FormData
+  // ============================================
   const buildFormData = (data: EditAnnouncementFormData): FormData => {
     const formData = new FormData();
     formData.append('type', data.type);
-    formData.append('category', data.category);
-    formData.append('sub_category_id', String(data.sub_category_id));
+    formData.append('category_id', String(data.category_id));
     formData.append('title', data.title.trim());
     formData.append('description', data.description.trim());
     formData.append('price_type', data.price_type);
 
-    if (data.price_type === 'paid' && data.price != null) {
-      formData.append('price', String(data.price));
+    if (data.price_type === 'paid') {
+      formData.append('price', String(data.price ?? 0));
+      formData.append('is_negotiable', data.is_negotiable ? '1' : '0');
+      // Clear barter fields when switching to paid
+      formData.append('barter_offered', '');
+      formData.append('barter_requested', '');
     } else {
       formData.append('price', '0');
+      formData.append('is_negotiable', '0');
+      formData.append('barter_offered', (data.barter_offered || '').trim());
+      formData.append(
+        'barter_requested',
+        (data.barter_requested || '').trim()
+      );
     }
 
     formData.append('governorate_id', String(data.governorate_id));
@@ -227,12 +217,14 @@ const EditAnnouncementForm = ({
     formData.append('whatsapp', data.whatsapp.trim());
     formData.append('privacy_type', data.privacy_type);
 
+    // New images
     images.forEach((img) => {
       if (img.existingId == null && img.file && img.file.size > 0) {
         formData.append('images[]', img.file);
       }
     });
 
+    // Keep existing image IDs (in order)
     images
       .filter((img) => img.existingId != null)
       .forEach((img) => {
@@ -242,6 +234,9 @@ const EditAnnouncementForm = ({
     return formData;
   };
 
+  // ============================================
+  // Submit
+  // ============================================
   const onSubmit = async (data: EditAnnouncementFormData) => {
     const imgErr = validateImages(images);
     if (imgErr) {
@@ -259,25 +254,21 @@ const EditAnnouncementForm = ({
         formData
       );
 
-      toast.success('تم تحديث الإعلان بنجاح');
+      toast.success('تم التحديث بنجاح');
 
-      if (onSuccess) {
-        onSuccess(announcement.id);
-      } else {
-        navigate(`/user/announcements/${announcement.id}`);
-      }
+      if (onSuccess) onSuccess(announcement.id);
+      else navigate(`/user/announcements/${announcement.id}`);
     } catch (error: any) {
       console.error('Submit error:', error);
       const responseData = error.response?.data;
-      const message =
-        responseData?.message || 'حدث خطأ أثناء تحديث الإعلان';
+      const message = responseData?.message || 'حدث خطأ أثناء التحديث';
 
       if (error.response?.status === 422 && responseData?.errors) {
-        const serverErrors = responseData.errors;
-        Object.keys(serverErrors).forEach((field) => {
-          const fieldName = field as keyof EditAnnouncementFormData;
-          const errorMessage = serverErrors[field][0];
-          setRHFError(fieldName, { type: 'server', message: errorMessage });
+        Object.keys(responseData.errors).forEach((field) => {
+          setRHFError(field as keyof EditAnnouncementFormData, {
+            type: 'server',
+            message: responseData.errors[field][0],
+          });
         });
         toast.error('يرجى التحقق من الحقول المدخلة');
       } else {
@@ -293,6 +284,9 @@ const EditAnnouncementForm = ({
     else navigate(-1);
   };
 
+  // ============================================
+  // Loading
+  // ============================================
   if (loadingMeta) {
     return (
       <div
@@ -353,8 +347,8 @@ const EditAnnouncementForm = ({
             >
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 {[
-                  { value: 'offer', label: 'عرض', color: '#28A745' },
-                  { value: 'request', label: 'طلب', color: '#DC3545' },
+                  { value: 'offer', label: 'عرض خدمة', color: '#28A745' },
+                  { value: 'request', label: 'طلب خدمة', color: '#DC3545' },
                 ].map((opt) => {
                   const active = watch('type') === opt.value;
                   return (
@@ -396,95 +390,29 @@ const EditAnnouncementForm = ({
             </FieldWrapper>
 
             <FieldWrapper
-              label="الفئة الرئيسية"
+              label="الفئة"
               required
               icon={<FaTag size={12} />}
-              error={errors.category?.message}
-            >
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {[
-                  { value: 'goods', label: 'سلع', Icon: FaBox },
-                  { value: 'services', label: 'خدمات', Icon: FaTools },
-                ].map((opt) => {
-                  const active = watch('category') === opt.value;
-                  const IconComp = opt.Icon;
-                  return (
-                    <motion.button
-                      key={opt.value}
-                      type="button"
-                      onClick={() =>
-                        setValue(
-                          'category',
-                          opt.value as 'goods' | 'services',
-                          { shouldValidate: true }
-                        )
-                      }
-                      whileTap={{ scale: 0.97 }}
-                      style={{
-                        flex: '1 1 0',
-                        minWidth: '120px',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        border: `2px solid ${
-                          active
-                            ? 'var(--primary-orange)'
-                            : 'var(--border-color)'
-                        }`,
-                        backgroundColor: active
-                          ? 'rgba(232,122,32,0.08)'
-                          : 'var(--bg-input)',
-                        color: active
-                          ? 'var(--primary-orange)'
-                          : 'var(--text-muted)',
-                        fontFamily: 'Cairo, sans-serif',
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                      }}
-                    >
-                      <IconComp size={14} />
-                      {opt.label}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </FieldWrapper>
-
-            <FieldWrapper
-              label="الفئة الفرعية"
-              required
-              icon={<FaTag size={12} />}
-              error={errors.sub_category_id?.message}
+              error={errors.category_id?.message}
             >
               <Controller
-                name="sub_category_id"
+                name="category_id"
                 control={control}
                 render={({ field }) => (
                   <select
                     value={field.value || ''}
                     onChange={(e) => field.onChange(Number(e.target.value))}
-                    disabled={!watchedCategory}
                     style={{
-                      ...inputBaseStyle(!!errors.sub_category_id),
-                      cursor: watchedCategory ? 'pointer' : 'not-allowed',
+                      ...inputBaseStyle(!!errors.category_id),
+                      cursor: 'pointer',
                       appearance: 'none',
                     }}
                   >
-                    <option value="">
-                      {!watchedCategory
-                        ? 'اختر الفئة الرئيسية أولاً'
-                        : availableSubCategories.length === 0
-                        ? 'لا توجد فئات فرعية'
-                        : 'اختر الفئة الفرعية'}
-                    </option>
-                    {availableSubCategories.map((sub) => (
-                      <option key={sub.id} value={sub.id}>
-                        {sub.name}
-                        {sub.is_high_risk && ' ⚠️'}
+                    <option value="">اختر الفئة</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                        {cat.is_high_risk && ' ⚠️'}
                       </option>
                     ))}
                   </select>
@@ -494,10 +422,7 @@ const EditAnnouncementForm = ({
           </FormSection>
 
           {/* SECTION 2: Content */}
-          <FormSection
-            title="تفاصيل الإعلان"
-            icon={<FaHeading size={14} />}
-          >
+          <FormSection title="تفاصيل الإعلان" icon={<FaHeading size={14} />}>
             <FieldWrapper
               label="العنوان"
               required
@@ -536,38 +461,34 @@ const EditAnnouncementForm = ({
 
           {/* SECTION 3: Pricing */}
           <FormSection
-            title="طريقة الدفع والسعر"
-            icon={<FaMoneyBillWave size={14} />}
+            title="طريقة التبادل"
+            icon={<FaHandshake size={14} />}
           >
             <FieldWrapper
-              label="طريقة الدفع"
+              label="نوع التبادل"
               required
-              icon={<FaMoneyBillWave size={12} />}
+              icon={<FaExchangeAlt size={12} />}
               error={errors.price_type?.message}
             >
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
                   gap: '8px',
                 }}
               >
                 {[
                   {
-                    value: 'free',
-                    label: 'مجاني',
-                    Icon: FaGift,
-                    color: '#28A745',
-                  },
-                  {
                     value: 'paid',
                     label: 'مدفوع',
+                    description: 'بمقابل مالي',
                     Icon: FaMoneyBillWave,
                     color: '#E87A20',
                   },
                   {
                     value: 'barter',
                     label: 'مقايضة',
+                    description: 'تبادل خدمة بخدمة',
                     Icon: FaExchangeAlt,
                     color: '#9C27B0',
                   },
@@ -579,11 +500,9 @@ const EditAnnouncementForm = ({
                       key={opt.value}
                       type="button"
                       onClick={() =>
-                        setValue(
-                          'price_type',
-                          opt.value as 'free' | 'paid' | 'barter',
-                          { shouldValidate: true }
-                        )
+                        setValue('price_type', opt.value as 'paid' | 'barter', {
+                          shouldValidate: true,
+                        })
                       }
                       whileTap={{ scale: 0.97 }}
                       style={{
@@ -597,68 +516,189 @@ const EditAnnouncementForm = ({
                           : 'var(--bg-input)',
                         color: active ? opt.color : 'var(--text-muted)',
                         fontFamily: 'Cairo, sans-serif',
-                        fontSize: '0.82rem',
-                        fontWeight: 700,
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        gap: '6px',
+                        gap: '4px',
                       }}
                     >
                       <IconComp size={16} />
-                      <span>{opt.label}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>
+                        {opt.label}
+                      </span>
+                      <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>
+                        {opt.description}
+                      </span>
                     </motion.button>
                   );
                 })}
               </div>
             </FieldWrapper>
 
-            {watchedPriceType === 'paid' && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                style={{ overflow: 'hidden' }}
-              >
-                <FieldWrapper
-                  label="السعر (بالشيكل)"
-                  required
-                  icon={<FaMoneyBillWave size={12} />}
-                  error={errors.price?.message}
+            <AnimatePresence mode="wait">
+              {watchedPriceType === 'paid' && (
+                <motion.div
+                  key="paid-block"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  style={{ overflow: 'hidden' }}
                 >
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      {...register('price', { valueAsNumber: true })}
-                      style={{
-                        ...inputBaseStyle(!!errors.price),
-                        paddingLeft: '50px',
-                        fontFamily: 'system-ui, sans-serif',
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        direction: 'ltr',
-                      }}
-                    />
-                    <span
-                      style={{
-                        position: 'absolute',
-                        left: '14px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        color: 'var(--text-muted)',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        pointerEvents: 'none',
-                      }}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '12px',
+                      paddingTop: '12px',
+                    }}
+                  >
+                    <FieldWrapper
+                      label="السعر (بالشيكل)"
+                      required
+                      icon={<FaMoneyBillWave size={12} />}
+                      error={errors.price?.message}
                     >
-                      ₪
-                    </span>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          {...register('price', { valueAsNumber: true })}
+                          style={{
+                            ...inputBaseStyle(!!errors.price),
+                            paddingLeft: '50px',
+                            fontFamily: 'system-ui, sans-serif',
+                            fontSize: '1rem',
+                            fontWeight: 700,
+                            direction: 'ltr',
+                          }}
+                        />
+                        <span
+                          style={{
+                            position: 'absolute',
+                            left: '14px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: 'var(--text-muted)',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          ₪
+                        </span>
+                      </div>
+                    </FieldWrapper>
+
+                    <FieldWrapper
+                      label="قابل للتفاوض؟"
+                      icon={<FaRobot size={12} />}
+                    >
+                      <Controller
+                        name="is_negotiable"
+                        control={control}
+                        render={({ field }) => (
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '8px',
+                              height: '44px',
+                            }}
+                          >
+                            {[
+                              { value: true, label: 'نعم' },
+                              { value: false, label: 'لا' },
+                            ].map((opt) => {
+                              const active = field.value === opt.value;
+                              return (
+                                <button
+                                  key={String(opt.value)}
+                                  type="button"
+                                  onClick={() => field.onChange(opt.value)}
+                                  style={{
+                                    flex: 1,
+                                    borderRadius: '11px',
+                                    border: `2px solid ${
+                                      active
+                                        ? 'var(--primary-orange)'
+                                        : 'var(--border-color)'
+                                    }`,
+                                    backgroundColor: active
+                                      ? 'rgba(232,122,32,0.08)'
+                                      : 'var(--bg-input)',
+                                    color: active
+                                      ? 'var(--primary-orange)'
+                                      : 'var(--text-muted)',
+                                    fontFamily: 'Cairo, sans-serif',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {opt.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      />
+                    </FieldWrapper>
                   </div>
-                </FieldWrapper>
-              </motion.div>
-            )}
+                </motion.div>
+              )}
+
+              {watchedPriceType === 'barter' && (
+                <motion.div
+                  key="barter-block"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns:
+                        'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '12px',
+                      paddingTop: '12px',
+                    }}
+                  >
+                    <FieldWrapper
+                      label="ما تقدّمه في المقايضة"
+                      required
+                      icon={<FaGift size={12} />}
+                      error={errors.barter_offered?.message}
+                      counter={`${watchedBarterOffered.length}/${MAX_BARTER_TEXT_LENGTH}`}
+                    >
+                      <input
+                        type="text"
+                        {...register('barter_offered')}
+                        maxLength={MAX_BARTER_TEXT_LENGTH}
+                        style={inputBaseStyle(!!errors.barter_offered)}
+                      />
+                    </FieldWrapper>
+
+                    <FieldWrapper
+                      label="ما تطلبه في المقايضة"
+                      required
+                      icon={<FaBox size={12} />}
+                      error={errors.barter_requested?.message}
+                      counter={`${watchedBarterRequested.length}/${MAX_BARTER_TEXT_LENGTH}`}
+                    >
+                      <input
+                        type="text"
+                        {...register('barter_requested')}
+                        maxLength={MAX_BARTER_TEXT_LENGTH}
+                        style={inputBaseStyle(!!errors.barter_requested)}
+                      />
+                    </FieldWrapper>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </FormSection>
 
           {/* SECTION 4: Location & Contact */}
@@ -767,13 +807,17 @@ const EditAnnouncementForm = ({
           {/* SECTION 5: Privacy */}
           <FormSection title="الخصوصية" icon={<FaLock size={14} />}>
             <FieldWrapper
-              label="من يمكنه رؤية هذا الإعلان؟"
+              label="من يمكنه رؤية هذه الخدمة؟"
               required
               icon={<FaLock size={12} />}
               error={errors.privacy_type?.message}
             >
               <div
-                style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
               >
                 {[
                   {
@@ -926,7 +970,7 @@ const EditAnnouncementForm = ({
             />
           </FormSection>
 
-          {/* Submission */}
+          {/* Submit */}
           <div
             style={{
               paddingTop: '1.25rem',
@@ -956,7 +1000,7 @@ const EditAnnouncementForm = ({
                 style={{ flexShrink: 0, marginTop: '2px' }}
               />
               <span>
-                سيتم تحديث الإعلان فوراً. تأكد من مراجعة التغييرات قبل الحفظ.
+                سيتم تحديث {watch('type') === 'request' ? 'الطلب' : 'العرض'} فوراً. تأكد من مراجعة التغييرات قبل الحفظ.
               </span>
             </div>
 
@@ -1030,7 +1074,7 @@ const EditAnnouncementForm = ({
                 ) : (
                   <>
                     <FaSave size={14} />
-                    حفظ التعديلات
+                     حفظ {watch('type') === 'request' ? 'الطلب' : 'العرض'}
                   </>
                 )}
               </motion.button>

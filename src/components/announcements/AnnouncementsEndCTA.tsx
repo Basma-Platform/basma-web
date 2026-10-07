@@ -1,8 +1,17 @@
 import { Link } from 'react-router-dom';
-import { 
-  FaBullhorn, FaHandshake, FaArrowLeft, FaPlusCircle,
-  FaCheckCircle, FaShieldAlt, FaHandsHelping,
-  FaCamera, FaFileAlt, FaMapMarkerAlt
+import {
+  FaBullhorn,
+  FaHandshake,
+  FaArrowLeft,
+  FaPlusCircle,
+  FaCheckCircle,
+  FaShieldAlt,
+  FaHandsHelping,
+  FaCamera,
+  FaFileAlt,
+  FaMapMarkerAlt,
+  FaSearch,
+  FaGift,
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 
@@ -14,7 +23,7 @@ interface AnnouncementsEndCTAProps {
 
 const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
   // ============================================
-  // GUEST VIEW - دعوة للتسجيل
+  // GUEST VIEW — registration invitation
   // ============================================
   if (!isLoggedIn) {
     return (
@@ -28,13 +37,14 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
           position: 'relative',
           overflow: 'hidden',
           borderRadius: '24px',
-          background: 'linear-gradient(135deg, #E87A20 0%, #D46A1A 50%, #8B5A2B 100%)',
+          background:
+            'linear-gradient(135deg, #E87A20 0%, #D46A1A 50%, #8B5A2B 100%)',
           padding: '3.5rem 2rem',
           textAlign: 'center',
           boxShadow: '0 16px 48px rgba(232, 122, 32, 0.35)',
         }}
       >
-        {/* Background Ambient Circles */}
+        {/* Ambient circles */}
         <div
           style={{
             position: 'absolute',
@@ -60,7 +70,7 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
           }}
         />
 
-        {/* Floating Icon Header */}
+        {/* Floating icon */}
         <motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
@@ -83,7 +93,7 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
           <FaHandshake size={40} color="#FFFFFF" />
         </motion.div>
 
-        {/* Section Heading */}
+        {/* Heading */}
         <h2
           style={{
             color: '#FFFFFF',
@@ -97,10 +107,12 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
             textShadow: '0 2px 10px rgba(0,0,0,0.15)',
           }}
         >
-          سجّل لنشر أول إعلان
+          لم تجد ما تبحث عنه؟
+          <br />
+          أو لديك خدمة تريد عرضها على مجتمعك؟
         </h2>
 
-        {/* Description Text */}
+        {/* Description */}
         <p
           style={{
             color: 'rgba(255,255,255,0.95)',
@@ -113,12 +125,11 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
             zIndex: 1,
           }}
         >
-          سعياً نحو الرقي بالمجتمع من خلال زيادة التكافل الاجتماعي
-          <br />
-          انضم إلى مجتمع بصمة وابدأ بمشاركة ما لديك وتلبية ما تحتاجه
+          انضم إلى مجتمع بصمة، انشر طلبك لتجد ما تبحث عنه، أو اعرض خدماتك
+          ليصل إليك من يحتاجها كل ذلك مجاناً وبكل سهولة.
         </p>
 
-        {/* Primary Action Button */}
+        {/* Primary CTA */}
         <div
           style={{
             display: 'flex',
@@ -149,13 +160,13 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
               }}
             >
               <FaPlusCircle size={18} />
-              ابدأ الآن
+              انضم إلينا الآن
               <FaArrowLeft size={14} />
             </Link>
           </motion.div>
         </div>
 
-        {/* Feature Badges */}
+        {/* Trust badges */}
         <div
           style={{
             display: 'flex',
@@ -168,9 +179,18 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
           }}
         >
           {[
-            { icon: <FaCheckCircle size={15} color="#FFFFFF" />, text: 'مجاني تماماً' },
-            { icon: <FaShieldAlt size={15} color="#FFFFFF" />, text: 'بيئة آمنة' },
-            { icon: <FaHandsHelping size={15} color="#FFFFFF" />, text: 'مجتمع متكافل' },
+            {
+              icon: <FaCheckCircle size={15} color="#FFFFFF" />,
+              text: 'مجاني تماماً',
+            },
+            {
+              icon: <FaShieldAlt size={15} color="#FFFFFF" />,
+              text: 'بيئة آمنة',
+            },
+            {
+              icon: <FaHandsHelping size={15} color="#FFFFFF" />,
+              text: 'مجتمع متكافل',
+            },
           ].map((point, i) => (
             <span
               key={i}
@@ -218,7 +238,7 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
         boxShadow: '0 12px 36px var(--shadow-sm)',
       }}
     >
-      {/* Decorative Circles */}
+      {/* Decorative circle */}
       <div
         style={{
           position: 'absolute',
@@ -232,7 +252,7 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
         }}
       />
 
-      {/* Floating Animated Icon */}
+      {/* Floating icon */}
       <motion.div
         animate={{ scale: [1, 1.08, 1] }}
         transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -253,7 +273,7 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
         <FaBullhorn size={38} color="var(--primary-orange)" />
       </motion.div>
 
-      {/* Dynamic Title */}
+      {/* Heading */}
       <h2
         style={{
           color: 'var(--text-secondary)',
@@ -261,15 +281,15 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
           fontWeight: 900,
           fontFamily: 'Cairo, sans-serif',
           marginBottom: '0.85rem',
-          lineHeight: 1.3,
+          lineHeight: 1.35,
           position: 'relative',
           zIndex: 1,
         }}
       >
-        هل تبحث عن شيء ولم تجده، أو لديك ما ترغب في مشاركته مع غيرك؟
+        لم تجد ما تبحث عنه، أو لديك خدمة تريد عرضها على مجتمعك؟
       </h2>
 
-      {/* Dynamic Description */}
+      {/* Description */}
       <p
         style={{
           color: 'var(--text-muted)',
@@ -282,10 +302,11 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
           zIndex: 1,
         }}
       >
-        بادر بنشر طلبك أو عرضك الآن، ودعنا نصل به إلى من يحتاجه حقاً لنجعل التكافل أقرب إليك.
+        بادر بنشر طلبك لتجد ما تبحث عنه، أو اعرض خدماتك ليصل إليك من يحتاجها.
+        منصة بصمة هي مكانك الأمثل للتبادل والتكافل داخل مجتمعك.
       </p>
 
-      {/* CTA Button */}
+      {/* Dual CTA — Offer vs Request */}
       <div
         style={{
           display: 'flex',
@@ -296,28 +317,63 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
           zIndex: 1,
         }}
       >
+        {/* Offer Service */}
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Link
-            to="/dashboard/create-announcement"
+            to="/user/announcements/create?type=offer"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '10px',
               backgroundColor: 'var(--primary-orange)',
               color: '#FFFFFF',
-              padding: '14px 36px',
+              padding: '14px 32px',
               borderRadius: '30px',
               fontFamily: 'Cairo, sans-serif',
               fontWeight: 800,
-              fontSize: '1.05rem',
+              fontSize: '1rem',
               textDecoration: 'none',
               boxShadow: '0 8px 24px rgba(232, 122, 32, 0.35)',
               transition: 'all 0.3s ease',
             }}
           >
-            <FaPlusCircle size={18} />
-            انشر إعلانك الآن
-            <FaArrowLeft size={14} />
+            <FaGift size={16} />
+            انشر عرضاً لخدماتك
+            <FaArrowLeft size={13} />
+          </Link>
+        </motion.div>
+
+        {/* Request Service */}
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Link
+            to="/user/announcements/create?type=request"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '10px',
+              backgroundColor: 'transparent',
+              color: 'var(--primary-orange)',
+              padding: '14px 32px',
+              borderRadius: '30px',
+              fontFamily: 'Cairo, sans-serif',
+              fontWeight: 800,
+              fontSize: '1rem',
+              textDecoration: 'none',
+              border: '2px solid var(--primary-orange)',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--primary-orange)';
+              e.currentTarget.style.color = '#FFFFFF';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--primary-orange)';
+            }}
+          >
+            <FaSearch size={16} />
+            انشر طلبك
+            <FaArrowLeft size={13} />
           </Link>
         </motion.div>
       </div>
@@ -335,9 +391,18 @@ const AnnouncementsEndCTA = ({ isLoggedIn }: AnnouncementsEndCTAProps) => {
         }}
       >
         {[
-          { icon: <FaCamera size={14} color="var(--primary-orange)" />, text: 'أضف صوراً واضحة' },
-          { icon: <FaFileAlt size={14} color="var(--primary-orange)" />, text: 'اكتب وصفاً دقيقاً' },
-          { icon: <FaMapMarkerAlt size={14} color="var(--primary-orange)" />, text: 'حدد منطقتك' },
+          {
+            icon: <FaCamera size={14} color="var(--primary-orange)" />,
+            text: 'أضف صوراً واضحة',
+          },
+          {
+            icon: <FaFileAlt size={14} color="var(--primary-orange)" />,
+            text: 'اكتب وصفاً دقيقاً',
+          },
+          {
+            icon: <FaMapMarkerAlt size={14} color="var(--primary-orange)" />,
+            text: 'حدد منطقتك',
+          },
         ].map((tip, i) => (
           <span
             key={i}

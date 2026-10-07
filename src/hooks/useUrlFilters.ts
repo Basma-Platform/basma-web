@@ -1,42 +1,72 @@
-import { useMemo, useCallback, useEffect, useRef } from 'react';
+import { useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 /**
- * Shared hook to sync filter state with URL query params.
+ * useUrlFilters — URL-synced filter state for React Router v6/v7.
  *
- * - Reads initial values from URL on mount
- * - Updates URL when filters change (replace, not push)
- * - Supports string, number, boolean values
- * - Skips redundant updates (prevents infinite loops)
+ * ✅ Reads from URL on every render (no caching, no effects)
+ * ✅ Writes to URL via functional setSearchParams
+ * ✅ Compatible with React Router v7 startTransition
+ * ✅ No `useEffect` — prevents infinite render loops
  *
- * @example
- * const { filters, setFilter, clearFilters, hasActiveFilters } = useUrlFilters({
- *   status: 'all',
- *   priority: 'all',
- *   page: 1,
- * });
- * // URL: ?status=pending&page=2 → filters.status === 'pending', filters.page === 2
+ * ⚠️ IMPORTANT: `defaults` MUST be a stable object reference.
+ *    Declare it OUTSIDE the component:
+ *
+ *    const DEFAULT_FILTERS = { status: 'all', page: 1 };
+ *    function MyPage() {
+ *      const { filters, setFilter } = useUrlFilters(DEFAULT_FILTERS);
+ *    }
+ *
+ *    If you can't hoist it, wrap it in `useMemo` or `useRef`:
+ *
+ *    const defaults = useRef({ status: 'all', page: 1 }).current;
+ *
+ *    Violating this rule will cause filter values to reset on every render.
  */
 export function useUrlFilters<T extends Record<string, unknown>>(
   defaults: T
 ) {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Stable ref to defaults (avoid effect deps churn)
-  const defaultsRef = useRef(defaults);
-  useEffect(() => {
-    defaultsRef.current = defaults;
-  });
+  // ✅ Freeze the default keys & values ONCE
+  //    Prevents dependency churn even if `defaults` identity changes
+  const frozenRef = useRef<{
+    keys: string[];
+    values: T;
+    signature: string;
+  } | null>(null);
 
-  // Parse URL params → filter object
+  // Compute a stable signature of the current defaults
+  const signature = useMemo(() => {
+    return JSON.stringify(defaults);
+  }, [defaults]);
+
+  // Refresh frozen snapshot ONLY if the actual values changed
+  if (!frozenRef.current || frozenRef.current.signature !== signature) {
+    frozenRef.current = {
+      keys: Object.keys(defaults),
+      values: { ...defaults },
+      signature,
+    };
+  }
+
+  const { keys: defaultKeys, values: defaultValues } = frozenRef.current;
+
+  // ============================================
+  // Parse URL → filters object
+  // Depends on searchParams.toString() (primitive — stable)
+  // ============================================
+  const searchParamsString = searchParams.toString();
+
   const filters = useMemo(() => {
-    const result: any = { ...defaultsRef.current };
+    const result = { ...defaultValues } as Record<string, unknown>;
+    const params = new URLSearchParams(searchParamsString);
 
-    for (const key of Object.keys(defaultsRef.current)) {
-      const raw = searchParams.get(key);
+    for (const key of defaultKeys) {
+      const raw = params.get(key);
       if (raw === null) continue;
 
-      const defaultValue = defaultsRef.current[key];
+      const defaultValue = defaultValues[key as keyof T];
 
       if (typeof defaultValue === 'number') {
         const num = Number(raw);
@@ -49,10 +79,11 @@ export function useUrlFilters<T extends Record<string, unknown>>(
     }
 
     return result as T;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParamsString, defaultKeys, defaultValues]);
 
-  // Set a single filter
+  // ============================================
+  // setFilter — single value
+  // ============================================
   const setFilter = useCallback(
     <K extends keyof T>(key: K, value: T[K] | null | undefined) => {
       setSearchParams(
@@ -63,7 +94,7 @@ export function useUrlFilters<T extends Record<string, unknown>>(
             value === null ||
             value === undefined ||
             value === '' ||
-            value === defaultsRef.current[key]
+            value === defaultValues[key]
           ) {
             next.delete(String(key));
           } else {
@@ -75,10 +106,12 @@ export function useUrlFilters<T extends Record<string, unknown>>(
         { replace: true }
       );
     },
-    [setSearchParams]
+    [setSearchParams, defaultValues]
   );
 
-  // Set multiple filters at once
+  // ============================================
+  // setFilters — multiple values at once
+  // ============================================
   const setFilters = useCallback(
     (patch: Partial<T>) => {
       setSearchParams(
@@ -90,7 +123,7 @@ export function useUrlFilters<T extends Record<string, unknown>>(
               value === null ||
               value === undefined ||
               value === '' ||
-              value === defaultsRef.current[key as keyof T]
+              value === defaultValues[key as keyof T]
             ) {
               next.delete(key);
             } else {
@@ -103,20 +136,24 @@ export function useUrlFilters<T extends Record<string, unknown>>(
         { replace: true }
       );
     },
-    [setSearchParams]
+    [setSearchParams, defaultValues]
   );
 
-  // Clear all filters (remove from URL)
+  // ============================================
+  // clearFilters — remove all keys
+  // ============================================
   const clearFilters = useCallback(() => {
     setSearchParams(new URLSearchParams(), { replace: true });
   }, [setSearchParams]);
 
-  // True if any filter differs from default
+  // ============================================
+  // hasActiveFilters
+  // ============================================
   const hasActiveFilters = useMemo(() => {
-    return (Object.keys(defaultsRef.current) as Array<keyof T>).some(
-      (key) => filters[key] !== defaultsRef.current[key]
+    return defaultKeys.some(
+      (key) => filters[key as keyof T] !== defaultValues[key as keyof T]
     );
-  }, [filters]);
+  }, [filters, defaultKeys, defaultValues]);
 
   return {
     filters,

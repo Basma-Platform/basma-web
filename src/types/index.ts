@@ -174,17 +174,49 @@ export interface ApiError {
 }
 
 // ============================================
-// SPRINT 03 - Public Announcements Types
+// SPRINT 05 — Categories (replaces SubCategory)
 // ============================================
 
-export interface SubCategory {
+export interface Category {
   id: number;
   name: string;
-  category: 'goods' | 'services';
-  image: string | null;
+  slug: string;
   is_high_risk: boolean;
+  display_order: number;
   image_url: string | null;
 }
+
+export interface CategoriesResponse {
+  success: boolean;
+  data: Category[];
+}
+
+export interface CategoryResponse {
+  success: boolean;
+  data: Category;
+}
+
+// ============================================
+// SPRINT 05 — Announcement Types (v2)
+// ============================================
+
+export type AnnouncementType = 'offer' | 'request';
+
+/** ✅ 'free' has been removed — only paid and barter */
+export type AnnouncementPriceType = 'paid' | 'barter';
+
+export type AnnouncementPrivacyType =
+  | 'public'
+  | 'verified_only'
+  | 'region_only'
+  | 'verified_region';
+
+/** ✅ 'completed' added */
+export type AnnouncementStatus =
+  | 'active'
+  | 'disabled'
+  | 'completed'
+  | 'deleted';
 
 export interface UserContext {
   is_authenticated: boolean;
@@ -198,8 +230,7 @@ export interface UserContext {
   available_filters: {
     governorate_id: boolean;
     city_id: boolean;
-    sub_category_id: boolean;
-    category: boolean;
+    category_id: boolean;
     type: boolean;
     payment_type: boolean;
     search: boolean;
@@ -212,14 +243,10 @@ export interface UserContext {
 export interface FiltersResponse {
   success: boolean;
   data: {
-    categories: { value: string; label: string }[];
     types: { value: string; label: string }[];
     payment_types: { value: string; label: string }[];
     privacy_types: { value: string; label: string; available: boolean }[];
-    sub_categories: {
-      goods: SubCategory[];
-      services: SubCategory[];
-    };
+    categories: Category[];
     sort_options: { value: string; label: string }[];
   };
   user_context: UserContext;
@@ -231,7 +258,6 @@ export interface AnnouncementUser {
   is_verified: boolean;
   profile_image: string | null;
   created_at?: string;
-  // NEW: Rating aggregates
   average_rating?: number;
   total_ratings?: number;
 }
@@ -254,41 +280,58 @@ export interface LikeResponse {
 export interface Announcement {
   id: number;
   user_id: number;
-  type: 'offer' | 'request';
-  category: 'goods' | 'services';
-  sub_category_id: number | null;
-  sub_category: SubCategory | null;
+  type: AnnouncementType;
+
+  /** ✅ Flat category (replaces category + sub_category) */
+  category_id: number;
+  category: Category | null;
+
   title: string;
   description: string;
-  price_type: 'free' | 'paid' | 'barter';
+
+  /** ✅ Only 'paid' | 'barter' */
+  price_type: AnnouncementPriceType;
   price: number | null;
+  is_negotiable: boolean;
+
+  /** 🆕 Barter-specific */
+  barter_offered: string | null;
+  barter_requested: string | null;
+
   governorate_id: number;
   city_id: number;
   whatsapp: string;
   whatsapp_visible: boolean;
-  privacy_type: 'public' | 'verified_only' | 'region_only' | 'verified_region';
+  privacy_type: AnnouncementPrivacyType;
+
+  status: AnnouncementStatus;
   is_disabled: boolean;
+  is_completed: boolean;
+  completed_at: string | null;
   disabled_at: string | null;
   disable_reason: string | null;
+
   views: number;
   likes_count: number;
   is_liked_by_user: boolean;
-  status: 'active' | 'disabled' | 'deleted';
+
   pinned_at: string | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  deleted_by: number | null;
-  deleted_reason: string | null;
   is_featured: boolean;
   featured_until: string | null;
   featured_at: string | null;
   featured_request_status?: 'pending' | 'approved' | 'rejected' | null;
   is_currently_featured: boolean;
+
   images: AnnouncementImage[];
   governorate?: Governorate;
   city?: City;
   user?: AnnouncementUser | AnnouncementUserAdmin;
+
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  deleted_by: number | null;
+  deleted_reason: string | null;
 }
 
 export interface AnnouncementsResponse {
@@ -302,24 +345,54 @@ export interface AnnouncementsResponse {
     to: number;
   };
   filters: {
-    sub_categories: {
-      goods: SubCategory[];
-      services: SubCategory[];
-    };
+    categories: Category[];
   };
   user_context: UserContext;
 }
 
-export interface FeaturedAnnouncementsResponse {
+// ============================================
+// SPRINT 05 — Featured Announcements (3 modes)
+// ============================================
+
+/**
+ * Mode 1 & Mode 3 → { data: Announcement[] }
+ * Mode 2 (split) → { data: { offers, requests } }
+ */
+
+// Response for Mode 1 & Mode 3
+export interface FeaturedAnnouncementsUnifiedResponse {
   data: Announcement[];
   meta: {
     total: number;
+    type: 'all' | 'offer' | 'request';
   };
   user_context: {
     is_authenticated: boolean;
     is_verified: boolean;
   };
 }
+
+// Response for Mode 2 (split)
+export interface FeaturedAnnouncementsSplitResponse {
+  data: {
+    offers: Announcement[];
+    requests: Announcement[];
+  };
+  meta: {
+    total_offers: number;
+    total_requests: number;
+    limit_per_type: number;
+  };
+  user_context: {
+    is_authenticated: boolean;
+    is_verified: boolean;
+  };
+}
+
+// Union (backward-compatible)
+export type FeaturedAnnouncementsResponse =
+  | FeaturedAnnouncementsUnifiedResponse
+  | FeaturedAnnouncementsSplitResponse;
 
 // ============================================
 // Sprint 03 - Verification & Profile Types
@@ -342,6 +415,7 @@ export interface ProfileResponse {
     announcements_count: number;
     active_announcements: number;
     disabled_announcements: number;
+    completed_announcements: number;
     deleted_announcements: number;
     monthly_limit: number;
     monthly_used: number;
@@ -369,6 +443,7 @@ export interface MyAnnouncementsResponse {
     total: number;
     active: number;
     disabled: number;
+    completed: number;
     deleted: number;
     monthly_limit: number;
     monthly_used: number;
@@ -400,6 +475,7 @@ export interface DashboardUser {
 
 export interface DashboardStats {
   announcements_count: number;
+  completed_count: number;
   total_views: number;
   total_likes_received: number;
   average_rating: number;
@@ -431,17 +507,22 @@ export interface DashboardCharts {
 export interface DashboardRecentAnnouncement {
   id: number;
   title: string;
-  price_type: 'free' | 'paid' | 'barter';
+  price_type: AnnouncementPriceType;
   price: number | null;
-  status: 'active' | 'disabled' | 'deleted';
+  is_negotiable: boolean;
+  barter_offered: string | null;
+  barter_requested: string | null;
+  status: AnnouncementStatus;
   is_disabled: boolean;
+  is_completed: boolean;
   views: number;
   likes_count: number;
   created_at: string;
   cover_image: string | null;
-  sub_category: {
+  category: {
     id: number;
     name: string;
+    is_high_risk: boolean;
   } | null;
   is_featured: boolean;
   featured_until: string | null;
@@ -474,6 +555,7 @@ export interface DashboardResponse {
 
 export interface ProfileStats {
   announcements_count: number;
+  completed_count: number;
   total_views: number;
   total_likes_received: number;
   average_rating: number;
@@ -590,6 +672,7 @@ export interface UserAnnouncementStats {
   total: number;
   active: number;
   disabled: number;
+  completed: number;
   featured: number;
   monthly_limit: number | null;
   monthly_used: number;
@@ -613,40 +696,56 @@ export interface UserAnnouncementDetailResponse {
   id: number;
   title: string;
   description: string;
-  type: 'offer' | 'request';
-  category: 'goods' | 'services';
-  sub_category: {
+  type: AnnouncementType;
+
+  category_id: number;
+  category: {
     id: number;
     name: string;
     is_high_risk: boolean;
   } | null;
-  price_type: 'free' | 'paid' | 'barter';
+
+  price_type: AnnouncementPriceType;
   price: number | null;
+  is_negotiable: boolean;
+  barter_offered: string | null;
+  barter_requested: string | null;
+
   governorate: { id: number; name: string };
   city: { id: number; name: string };
   whatsapp: string;
-  privacy_type: 'public' | 'verified_only' | 'region_only' | 'verified_region';
-  status: 'active' | 'disabled' | 'deleted';
+  privacy_type: AnnouncementPrivacyType;
+
+  status: AnnouncementStatus;
   is_disabled: boolean;
   disabled_at: string | null;
   disable_reason: string | null;
+  is_completed: boolean;
+  completed_at: string | null;
+
   views: number;
   likes_count: number;
   images: AnnouncementImage[];
+
   is_featured: boolean;
   featured_until: string | null;
   is_currently_featured: boolean;
   featured_request_status: 'pending' | 'approved' | 'rejected' | null;
+
   can_edit: boolean;
   can_delete: boolean;
   can_disable: boolean;
   can_feature: boolean;
   can_reenable: boolean;
+  can_complete: boolean;
+  can_reopen: boolean;
+
   monthly_limit_info: {
     monthly_limit: number | null;
     monthly_used: number;
     monthly_remaining: number | null;
   } | null;
+
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -657,7 +756,7 @@ export interface CreateAnnouncementResponse {
   announcement: {
     id: number;
     title: string;
-    status: string;
+    status: AnnouncementStatus;
     created_at: string;
   };
   monthly_limit_info: {
@@ -687,7 +786,7 @@ export interface DisableAnnouncementResponse {
   message: string;
   announcement: {
     id: number;
-    status: string;
+    status: AnnouncementStatus;
     disabled_at: string;
     auto_delete_at: string;
   };
@@ -796,37 +895,39 @@ export interface FeaturedRequestsHistoryResponse {
 // ============================================
 
 export type NotificationType =
-  // ============================================
-  // Sprint 03 - Featured
-  // ============================================
+  // Sprint 03 — Featured
   | 'featured_request_received_user'
   | 'featured_request_received_admin'
   | 'featured_request_approved'
   | 'featured_request_rejected'
   | 'announcement_auto_deleted'
   | 'announcement_permanently_deleted'
-  // ============================================
-  // Sprint 04 - Verification (KYC)
-  // ============================================
+  // Sprint 04 — Verification (KYC)
   | 'verification_submitted_user'
   | 'verification_submitted_admin'
   | 'verification_approved'
   | 'verification_rejected'
   | 'verification_image_deleted'
-  // ============================================
-  // Sprint 04 - Ratings
-  // ============================================
+  // Sprint 04 — Ratings
   | 'rating_received'
   | 'rating_updated'
-  // ============================================
-  // Sprint 04 - Reports
-  // ============================================
+  // Sprint 04 — Reports
   | 'new_report_received'
   | 'report_processed'
   | 'report_action_taken'
-  // ============================================
+  // Sprint 05 — Announcements
+  | 'announcement_completed'
+  | 'announcement_reopened'
+  // Sprint 06 — Basma Fund (صندوق بصمة)
+  | 'help_request_submitted_user'
+  | 'help_request_submitted_admin'
+  | 'help_request_approved'
+  | 'help_request_rejected'
+  | 'donation_inquiry_received'
+  | 'donation_inquiry_status_changed'
+  | 'video_access_granted'
+  | 'suspicious_video_access'
   // Fallback
-  // ============================================
   | 'general';
 
 export interface NotificationMetadata {
@@ -853,6 +954,15 @@ export interface NotificationMetadata {
   priority?: 'low' | 'medium' | 'high';
   action_taken?: string;
   admin_notes?: string;
+  // Basma Fund
+  help_request_id?: number;
+  public_title?: string;
+  inquiry_id?: number;
+  tracking_code?: string;
+  donor_name?: string | null;
+  token_id?: number;
+  bound_ip?: string;
+  current_ip?: string;
   // Generic
   announcement_id?: number;
   announcement_title?: string;
@@ -894,38 +1004,40 @@ export interface MarkNotificationResponse {
 }
 
 // ============================================
-// FORM TYPES
+// FORM TYPES (Updated for Sprint 05)
 // ============================================
 
 export interface AnnouncementFormData {
-  type: 'offer' | 'request';
-  category: 'goods' | 'services';
-  sub_category_id: number | '';
+  type: AnnouncementType;
+  category_id: number | '';
   title: string;
   description: string;
-  price_type: 'free' | 'paid' | 'barter';
+  price_type: AnnouncementPriceType;
   price: number | '';
+  is_negotiable: boolean;
+  barter_offered: string;
+  barter_requested: string;
   governorate_id: number | '';
   city_id: number | '';
   whatsapp: string;
-  privacy_type: 'public' | 'verified_only' | 'region_only' | 'verified_region';
+  privacy_type: AnnouncementPrivacyType;
 }
 
 export interface AnnouncementFormErrors {
   type?: string;
-  category?: string;
-  sub_category_id?: string;
+  category_id?: string;
   title?: string;
   description?: string;
   price_type?: string;
   price?: string;
+  barter_offered?: string;
+  barter_requested?: string;
   governorate_id?: string;
   city_id?: string;
   whatsapp?: string;
   privacy_type?: string;
   images?: string;
 }
-
 
 // ============================================
 // SPRINT 04 - Verification (KYC) Types
@@ -940,29 +1052,17 @@ export type DocumentType =
   | 'university_card'
   | 'other';
 
-// ============================================
-// Document Type Option (for dropdowns)
-// ============================================
 export interface DocumentTypeOption {
   value: DocumentType;
   label: string;
 }
 
-// ============================================
-// Per-Document Requirements
-// ============================================
 export interface DocumentTypeRequirement {
-  /** Which fields must be visible for this specific document type */
   must_show: string[];
-  /** Optional fields */
   optional_show?: string[];
-  /** Special warning for this document type */
   warning?: string;
 }
 
-// ============================================
-// Requirements Response
-// ============================================
 export interface VerificationRequirements {
   why_we_need_it: string[];
   how_we_protect_it: string[];
@@ -974,9 +1074,6 @@ export interface VerificationRequirements {
   accepted_formats: string[];
 }
 
-// ============================================
-// Status Response
-// ============================================
 export interface VerificationStatusResponse {
   is_verified: boolean;
   status: VerificationStatus | null;
@@ -989,9 +1086,6 @@ export interface VerificationStatusResponse {
   can_reupload: boolean;
 }
 
-// ============================================
-// Upload Response
-// ============================================
 export interface UploadIdResponse {
   message: string;
   request: {
@@ -1001,7 +1095,6 @@ export interface UploadIdResponse {
     document_type_label: string;
     created_at: string;
   };
-  // Warning when re-uploading after a previous rejection
   warning?: {
     title: string;
     message: string;
@@ -1010,18 +1103,12 @@ export interface UploadIdResponse {
   };
 }
 
-// ============================================
-// Admin Filter
-// ============================================
 export type AdminVerificationFilter =
   | 'all'
   | 'pending'
   | 'approved'
   | 'rejected';
 
-// ============================================
-// Admin List Item
-// ============================================
 export interface AdminVerificationRequest {
   id: number;
   user: {
@@ -1041,9 +1128,6 @@ export interface AdminVerificationRequest {
   created_at: string;
 }
 
-// ============================================
-// Extracted Data
-// ============================================
 export interface ExtractedData {
   full_name: string;
   id_number: string;
@@ -1051,9 +1135,6 @@ export interface ExtractedData {
   expiry_date: string | null;
 }
 
-// ============================================
-// Access Log
-// ============================================
 export interface VerificationAccessLog {
   id: number;
   admin: {
@@ -1064,9 +1145,6 @@ export interface VerificationAccessLog {
   accessed_at: string;
 }
 
-// ============================================
-// Admin Detail
-// ============================================
 export interface AdminVerificationDetail {
   id: number;
   user: {
@@ -1080,37 +1158,23 @@ export interface AdminVerificationDetail {
     city: { id: number; name: string } | null;
     created_at: string;
   };
-
   document_type: DocumentType;
   document_type_label: string;
-
-  // Image availability (NOT URL)
   has_image: boolean;
   image_deleted_at: string | null;
   auto_delete_at: string | null;
-
   status: VerificationStatus;
   admin_notes: string | null;
-
-  // Extracted data
   extracted_data: ExtractedData | null;
   extracted_by: { id: number; name: string } | null;
   extracted_at: string | null;
-
-  // Reviewer
   reviewed_by: { id: number; name: string } | null;
   reviewed_at: string | null;
-
-  // Access logs
   access_logs: VerificationAccessLog[];
-
   created_at: string;
   updated_at: string;
 }
 
-// ============================================
-// Admin List Response
-// ============================================
 export interface AdminVerificationsListResponse {
   data: AdminVerificationRequest[];
   meta: {
@@ -1127,9 +1191,6 @@ export interface AdminVerificationsListResponse {
   };
 }
 
-// ============================================
-// Action Payloads
-// ============================================
 export interface VerificationActionPayload {
   admin_notes?: string;
 }
@@ -1171,7 +1232,6 @@ export interface Rating {
   announcement?: RatingAnnouncement;
   created_at: string;
   updated_at: string;
-  // Optional flags added by backend on `given` list
   can_edit?: boolean;
   can_delete?: boolean;
   edit_deadline?: string;
@@ -1288,14 +1348,13 @@ export interface AdminRatingsListResponse {
 
 export type FeaturedRequestStatus = 'pending' | 'approved' | 'rejected';
 
-// USER SIDE — Detail
 export interface UserFeaturedRequestDetail {
   id: number;
   announcement: {
     id: number;
     title: string;
     cover_image: string | null;
-    status: 'active' | 'disabled' | 'deleted';
+    status: AnnouncementStatus;
     is_currently_featured: boolean;
     featured_until: string | null;
   } | null;
@@ -1315,7 +1374,6 @@ export interface UserFeaturedRequestDetail {
   updated_at: string;
 }
 
-// ADMIN SIDE — List Item
 export interface AdminFeaturedRequestListItem {
   id: number;
   user: {
@@ -1330,7 +1388,7 @@ export interface AdminFeaturedRequestListItem {
     id: number;
     title: string;
     cover_image: string | null;
-    status: 'active' | 'disabled' | 'deleted';
+    status: AnnouncementStatus;
   } | null;
   status: FeaturedRequestStatus;
   status_label: string;
@@ -1344,7 +1402,6 @@ export interface AdminFeaturedRequestListItem {
   reviewed_at: string | null;
 }
 
-// ADMIN SIDE — Stats
 export interface AdminFeaturedStats {
   requests: {
     total: number;
@@ -1363,7 +1420,6 @@ export interface AdminFeaturedStats {
   };
 }
 
-// ADMIN SIDE — List Response
 export interface AdminFeaturedListResponse {
   data: AdminFeaturedRequestListItem[];
   meta: {
@@ -1375,7 +1431,6 @@ export interface AdminFeaturedListResponse {
   stats: AdminFeaturedStats;
 }
 
-// ADMIN SIDE — Full Detail
 export interface AdminFeaturedDetail {
   id: number;
   user: {
@@ -1391,7 +1446,7 @@ export interface AdminFeaturedDetail {
     id: number;
     title: string;
     description: string;
-    status: 'active' | 'disabled' | 'deleted';
+    status: AnnouncementStatus;
     is_featured: boolean;
     featured_until: string | null;
     images: Array<{ id: number; image_path: string; order: number }>;
@@ -1413,13 +1468,12 @@ export interface AdminFeaturedDetail {
   updated_at: string;
 }
 
-// ADMIN SIDE — Actions
 export interface AdminFeaturedApprovePayload {
   admin_notes?: string;
 }
 
 export interface AdminFeaturedRejectPayload {
-  admin_notes: string; // required
+  admin_notes: string;
 }
 
 export interface AdminFeaturedDeletePayload {
@@ -1448,7 +1502,6 @@ export type ReportActionTaken =
   | 'deleted_content'
   | 'rejected';
 
-// User Side — Report Reasons
 export interface ReportReason {
   value: string;
   label: string;
@@ -1461,11 +1514,10 @@ export interface ReportReasonsResponse {
   reasons: ReportReason[];
 }
 
-// User Side — Create Report
 export interface CreateReportPayload {
   target_type: ReportTargetType;
-  reported_user_id?: number;   // required when target_type = 'user'
-  announcement_id?: number;    // required when target_type = 'announcement'
+  reported_user_id?: number;
+  announcement_id?: number;
   reason: string;
   description?: string;
 }
@@ -1489,23 +1541,13 @@ export interface CreateReportResponse {
   report: Report;
 }
 
-// Admin Side — List Item
 export interface AdminReportListItem {
   id: number;
   target_type: ReportTargetType;
   target_type_label: string;
-  reporter: {
-    id: number;
-    name: string;
-  };
-  reported_user: {
-    id: number;
-    name: string;
-  } | null;
-  announcement: {
-    id: number;
-    title: string;
-  } | null;
+  reporter: { id: number; name: string };
+  reported_user: { id: number; name: string } | null;
+  announcement: { id: number; title: string } | null;
   reason: string;
   reason_label: string;
   priority: ReportPriority;
@@ -1515,7 +1557,6 @@ export interface AdminReportListItem {
   created_at: string;
 }
 
-// Admin Side — Full Detail
 export interface AdminReportDetail {
   id: number;
   target_type: ReportTargetType;
@@ -1560,23 +1601,16 @@ export interface AdminReportDetail {
   priority_label: string;
   status: ReportStatus;
   status_label: string;
-
   action_taken: ReportActionTaken | null;
   action_taken_label: string | null;
   admin_notes: string | null;
   reviewed_at: string | null;
-  resolved_by: {
-    id: number;
-    name: string;
-  } | null;
-
+  resolved_by: { id: number; name: string } | null;
   previous_reports_against_user?: number;
-
   created_at: string;
   updated_at: string;
 }
 
-// Admin Side — Stats
 export interface AdminReportsStats {
   reports: {
     total: number;
@@ -1599,7 +1633,6 @@ export interface AdminReportsStats {
   };
 }
 
-// Admin Side — List Response
 export interface AdminReportsListResponse {
   data: AdminReportListItem[];
   meta: {
@@ -1611,7 +1644,6 @@ export interface AdminReportsListResponse {
   stats: AdminReportsStats;
 }
 
-// Admin Side — Process Payload
 export interface ProcessReportPayload {
   action: ReportAction;
   admin_notes: string;
@@ -1623,12 +1655,10 @@ export interface ProcessReportResponse {
   report: AdminReportDetail;
 }
 
-
 // ============================================
 // SPRINT 05 — Admin Dashboard Types
 // ============================================
 
-// ---------- Overview Stats ----------
 export interface AdminDashboardUsersStats {
   total: number;
   verified: number;
@@ -1643,6 +1673,7 @@ export interface AdminDashboardAnnouncementsStats {
   total: number;
   active: number;
   disabled: number;
+  completed: number;
   deleted: number;
   featured: number;
   total_views: number;
@@ -1691,13 +1722,12 @@ export interface AdminDashboardStats {
   today: AdminDashboardTodayStats;
 }
 
-// ---------- Pending ----------
 export interface PendingReports {
   total: number;
   high: number;
   medium: number;
   low: number;
-  oldest_age: number; // in minutes
+  oldest_age: number;
   link: string;
 }
 
@@ -1736,7 +1766,6 @@ export interface AdminDashboardPending {
   frequently_reported: FrequentlyReportedUser[];
 }
 
-// ---------- Top Performers ----------
 export interface TopUser {
   id: number;
   name: string;
@@ -1760,7 +1789,7 @@ export interface TopAnnouncement {
 export interface TopCategory {
   id: number;
   name: string;
-  category: 'goods' | 'services';
+  slug: string;
   announcements_count: number;
 }
 
@@ -1778,7 +1807,6 @@ export interface AdminDashboardTop {
   top_governorates: TopGovernorate[];
 }
 
-// ---------- Advanced Stats ----------
 export interface AdminDashboardAdvanced {
   retention: {
     active_today: number;
@@ -1804,7 +1832,6 @@ export interface AdminDashboardAdvanced {
   };
 }
 
-// ---------- Charts ----------
 export type ChartDaysRange = 7 | 14 | 30 | 60 | 90;
 
 export interface ChartTimeSeries {
@@ -1834,11 +1861,11 @@ export interface AdminDashboardCharts {
   payment_methods: ChartDualSeries;
 }
 
-// ---------- Activity Feed ----------
 export type ActivityEventType =
   | 'user_registered'
   | 'announcement_created'
   | 'announcement_disabled'
+  | 'announcement_completed'
   | 'announcement_deleted'
   | 'rating_created'
   | 'report_created'
@@ -1923,7 +1950,6 @@ export interface AdminActivityFilters {
   page?: number;
 }
 
-// ---------- Main Dashboard Response ----------
 export interface AdminDashboardResponse {
   data: {
     overview: AdminDashboardStats;
@@ -1935,4 +1961,623 @@ export interface AdminDashboardResponse {
     generated_at: string;
     cache_ttl: number;
   };
+}
+
+// ============================================
+// SPRINT 06 — BASMA FUND (صندوق بصمة)
+// ============================================
+
+// ---------- Help Requests ----------
+
+export type HelpRequestStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'archived';
+
+export type HelpRequestDisplayNameType = 'full' | 'anonymous' | 'custom';
+
+export interface HelpRequestRegion {
+  governorate: { id: number; name: string };
+  city: { id: number; name: string };
+}
+
+// ---- Public list/detail view ----
+export interface HelpRequestPublicVideo {
+  thumbnail_blurred_url: string | null;
+  duration_seconds: number | null;
+  is_available: boolean;
+  requires_inquiry: boolean;
+}
+
+export interface HelpRequestPublicStats {
+  views: number;
+  inquiries_count: number;
+}
+
+export interface HelpRequestPublic {
+  id: number;
+  public_title: string;
+  public_description: string;
+  region: HelpRequestRegion;
+  video: HelpRequestPublicVideo;
+  stats: HelpRequestPublicStats;
+  published_at: string;
+  created_at: string;
+}
+
+export interface HelpRequestsPublicResponse {
+  data: HelpRequestPublic[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+}
+
+// ---- User (owner) view ----
+export interface HelpRequestUser {
+  id: number;
+  public_title: string;
+  public_description: string;
+  region: HelpRequestRegion;
+  status: HelpRequestStatus;
+  status_label?: string;
+  display_name_type: HelpRequestDisplayNameType;
+  display_name: string;
+
+  video_thumbnail_url: string | null;
+  video_duration_seconds: number | null;
+
+  views: number;
+  inquiries_count: number;
+  video_access_count?: number;
+
+  admin_notes: string | null;
+  published_at: string | null;
+  reviewed_at: string | null;
+  archived_at: string | null;
+  archive_reason?: string | null;
+
+  reviewed_by?: { id: number; name: string } | null;
+  achievement?: { id: number; title: string } | null;
+
+  can_delete: boolean;
+  delete_deadline: string | null;
+  delete_seconds_remaining: number | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HelpRequestUserDetail extends HelpRequestUser {
+  video_size_bytes?: number | null;
+}
+
+export interface HelpRequestsUserResponse {
+  data: HelpRequestUser[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+  limits: HelpRequestLimits;
+}
+
+export interface HelpRequestLimits {
+  max_active: number;
+  active_used: number;
+  active_remaining: number;
+  pending_count: number;
+  approved_count: number;
+  rejected_count: number;
+  archived_count: number;
+  max_monthly: number;
+  monthly_used: number;
+  monthly_remaining: number;
+  can_submit: boolean;
+}
+
+// ---- User create payload ----
+export interface HelpRequestCreatePayload {
+  public_title: string;
+  public_description: string;
+  governorate_id: number;
+  city_id: number;
+  video: File;
+  display_name_type: HelpRequestDisplayNameType;
+  display_name_custom?: string;
+
+  full_details: {
+    real_name: string;
+    age: number;
+    family_size: number;
+    health_condition?: string;
+    income_source?: string;
+  };
+
+  contact_info: {
+    whatsapp: string;
+    alt_phone?: string;
+  };
+
+  region_data: {
+    street: string;
+    building: string;
+  };
+}
+
+export interface HelpRequestCreateResponse {
+  message: string;
+  data: {
+    id: number;
+    public_title: string;
+    status: HelpRequestStatus;
+    user_delete_deadline: string;
+    created_at: string;
+  };
+}
+
+// ---- User requirements ----
+export interface HelpRequestRequirements {
+  who_can_submit: string;
+  video_rules: {
+    formats: string[];
+    min_duration_sec: number;
+    max_duration_sec: number;
+    max_size_mb: number;
+  };
+  limits: {
+    max_active_per_user: number;
+    max_per_month: number;
+  };
+  delete_window_minutes: number;
+  display_name_options: Array<{
+    value: HelpRequestDisplayNameType;
+    label: string;
+  }>;
+}
+
+// ---- Admin views ----
+export interface AdminHelpRequestListItem {
+  id: number;
+  public_title: string;
+  public_description: string;
+
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    whatsapp: string;
+    is_verified: boolean;
+    profile_image: string | null;
+  };
+
+  region: HelpRequestRegion;
+  status: HelpRequestStatus;
+  status_label?: string;
+
+  display_name_type: HelpRequestDisplayNameType;
+  display_name: string;
+
+  video: {
+    thumbnail_url: string | null;
+    duration_seconds: number | null;
+  };
+
+  stats: {
+    views: number;
+    inquiries_count: number;
+    video_access_count?: number;
+  };
+
+  created_at: string;
+  published_at: string | null;
+  reviewed_at: string | null;
+}
+
+export interface AdminHelpRequestAccessLog {
+  id: number;
+  admin: { id: number; name: string } | null;
+  accessed_field: string;
+  action_type: string;
+  status: string;
+  duration_seconds?: number | null;
+  reason: string | null;
+  metadata?: Record<string, unknown> | null;
+  ip_address?: string | null;
+  accessed_at: string;
+}
+
+export interface AdminHelpRequestEncryptedFields {
+  full_details: {
+    real_name: string;
+    age: number;
+    family_size: number;
+    health_condition?: string | null;
+    income_source?: string | null;
+  } | null;
+  contact_info: {
+    whatsapp: string;
+    alt_phone?: string | null;
+  } | null;
+  region_data: {
+    street: string;
+    building: string;
+  } | null;
+}
+
+export interface AdminHelpRequestDetail {
+  id: number;
+  public_title: string;
+  public_description: string;
+
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    whatsapp: string;
+    is_verified: boolean;
+    profile_image: string | null;
+  };
+
+  region: HelpRequestRegion;
+  display_name_type: HelpRequestDisplayNameType;
+  display_name: string;
+  status: HelpRequestStatus;
+  status_label?: string;
+
+  video: {
+    thumbnail_url: string | null;
+    stream_url: string;
+    duration_seconds: number | null;
+    size_bytes: number | null;
+    hash: string | null;
+  };
+
+  encrypted_unlocked: boolean;
+  encrypted_fields: AdminHelpRequestEncryptedFields;
+
+  stats: {
+    views: number;
+    whatsapp_clicks: number;
+    video_access_count: number;
+  };
+
+  admin_notes: string | null;
+  published_at: string | null;
+  reviewed_at: string | null;
+
+  reviewed_by: { id: number; name: string } | null;
+  archived_by: { id: number; name: string } | null;
+
+  access_logs: AdminHelpRequestAccessLog[];
+  video_tokens: AdminVideoTokenListItem[];
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminHelpRequestsListResponse {
+  data: AdminHelpRequestListItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+  stats: AdminHelpRequestStats;
+}
+
+export interface AdminHelpRequestStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  archived: number;
+  today_new: number;
+  total_views: number;
+}
+
+// ---------- Donation Inquiries ----------
+
+export type DonationInquiryStatus =
+  | 'new'
+  | 'contacted'
+  | 'completed'
+  | 'cancelled';
+
+export type DonationContactMethod = 'whatsapp' | 'email' | 'platform';
+
+export interface DonationInquiryPayload {
+  help_request_id: number;
+  donor_name?: string;
+  donor_whatsapp?: string;
+  donor_email?: string;
+  message?: string;
+  contact_method?: DonationContactMethod;
+}
+
+export interface DonationInquiryVideoAccess {
+  url: string;
+  token: string;                        
+  expires_at: string;
+  max_views: number;                    // always 1
+}
+
+export interface PlatformContactInfo {
+  whatsapp: string;
+  email: string;
+  phone?: string;
+  working_hours: string;
+}
+
+export interface DonationInquiryCreateResponse {
+  message: string;
+  data: {
+    tracking_code: string;
+    video_access: DonationInquiryVideoAccess;
+    platform_contact: PlatformContactInfo;
+  };
+}
+
+export interface DonationInquiryTracking {
+  tracking_code: string;
+  status: DonationInquiryStatus;
+  contact_method: DonationContactMethod;
+  help_request: {
+    id: number;
+    public_title: string;
+  };
+  created_at: string;
+  handled_at: string | null;
+}
+
+// ---- Admin ----
+export interface AdminDonationInquiryListItem {
+  id: number;
+  tracking_code: string;
+  status: DonationInquiryStatus;
+  status_label?: string;
+  contact_method: DonationContactMethod;
+
+  donor: {
+    name: string | null;
+    whatsapp: string | null;
+    email: string | null;
+    is_user: boolean;
+  };
+
+  help_request: {
+    id: number;
+    public_title: string;
+    published_at: string | null;
+  };
+
+  message: string | null;
+  admin_notes: string | null;
+
+  handled_by: { id: number; name: string } | null;
+  handled_at: string | null;
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminDonationInquiryDetail {
+  id: number;
+  tracking_code: string;
+  status: DonationInquiryStatus;
+  status_label?: string;
+  contact_method: DonationContactMethod;
+
+  donor: {
+    name: string | null;
+    whatsapp: string | null;
+    email: string | null;
+    ip: string | null;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+    } | null;
+  };
+
+  help_request: {
+    id: number;
+    public_title: string;
+    published_at: string | null;
+  };
+
+  message: string | null;
+  admin_notes: string | null;
+
+  handled_by: { id: number; name: string } | null;
+  handled_at: string | null;
+
+  video_tokens: AdminVideoTokenListItem[];
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminDonationInquiriesListResponse {
+  data: AdminDonationInquiryListItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+  stats: AdminDonationInquiryStats;
+}
+
+export interface AdminDonationInquiryStats {
+  total: number;
+  new: number;
+  contacted: number;
+  completed: number;
+  cancelled: number;
+  today_new: number;
+}
+
+export interface DonationInquiryStatusPayload {
+  status: DonationInquiryStatus;
+  admin_notes?: string;
+}
+
+// ---------- Video Access Tokens ----------
+export type VideoTokenRecipientType = 'donor_inquiry' | 'admin_custom';
+
+export interface AdminVideoTokenRecipient {
+  name: string | null;
+  email: string | null;
+  whatsapp: string | null;
+}
+
+export interface AdminVideoTokenListItem {
+  id: number;
+  issued_to_type: VideoTokenRecipientType;
+  /** Arabic label — optional (some endpoints omit it) */
+  issued_to_type_label?: string;
+
+  purpose: string;
+
+  /** Recipient — optional (some endpoints omit it) */
+  recipient?: AdminVideoTokenRecipient;
+
+  max_views: number;
+  views_used: number;
+  remaining_views: number;
+
+  expires_at: string;
+  first_accessed_at: string | null;
+  last_accessed_at: string | null;
+
+  is_revoked: boolean;
+  revoked_at: string | null;
+
+  bound_ip: string | null;
+  issued_ip: string | null;
+
+  issued_by_admin: { id: number; name: string } | null;
+  revoked_by: { id: number; name: string } | null;
+
+  created_at: string;
+}
+
+export interface AdminVideoTokensListResponse {
+  data: AdminVideoTokenListItem[];
+  meta: {
+    total: number;
+  };
+}
+
+export interface AdminCreateVideoTokenPayload {
+  purpose: string;
+  recipient_name?: string;
+  recipient_email?: string;
+  recipient_whatsapp?: string;
+  expires_in_hours: 6 | 24 | 48;
+}
+
+export interface AdminCreateVideoTokenResponse {
+  message: string;
+  data: {
+    token_id: number;
+    token: string;
+    secure_url: string;
+    frontend_url: string;           
+    expires_at: string;
+    expires_in_hours: number;         
+    max_views: number;                    // always 1
+    issued_to_type: VideoTokenRecipientType;  
+    recipient: {
+      name: string | null;
+      email: string | null;
+      whatsapp: string | null;
+    };
+  };
+}
+
+// ---------- Donation Achievements ----------
+
+export interface DonationAchievementMetadata {
+  beneficiaries?: number;
+  donors?: number;
+  amount?: number;
+  [key: string]: unknown;
+}
+
+export interface DonationAchievement {
+  id: number;
+  title: string;
+  description: string;
+  cover_image_url: string | null;
+  video_url: string | null;
+  metadata: DonationAchievementMetadata | null;
+  display_order: number;
+  is_active: boolean;
+  is_featured: boolean;
+  achievement_date: string | null;
+  created_by: { id: number; name: string } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DonationAchievementsResponse {
+  data: DonationAchievement[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+}
+
+export interface DonationAchievementsFeaturedResponse {
+  data: DonationAchievement[];
+  meta: {
+    total: number;
+  };
+}
+
+export interface AdminDonationAchievementPayload {
+  title: string;
+  description: string;
+  cover_image?: File | null;
+  video_url?: string | null;
+  metadata?: DonationAchievementMetadata | null;
+  display_order?: number;
+  is_active?: boolean;
+  is_featured?: boolean;
+  achievement_date?: string | null;
+}
+
+// Admin Donation Achievements Stats
+export interface AdminDonationAchievementsStats {
+  total: number;
+  active: number;
+  inactive: number;
+  featured: number;
+}
+
+export interface AdminDonationAchievementDetail extends DonationAchievement {
+  cover_image_path: string | null;
+  help_requests_count: number;
+}
+
+// ---------- Public Stats + Contact ----------
+
+export interface BasmaFundPublicStats {
+  help_requests: {
+    total_published: number;
+    total_views: number;
+  };
+}
+
+export interface BasmaFundPublicStatsResponse {
+  data: BasmaFundPublicStats;
 }

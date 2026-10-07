@@ -56,6 +56,27 @@
   --brand-icon: #FFFFFF;
   --brand-content-bg: rgba(255, 255, 255, 0.08);
   --brand-border: rgba(255, 255, 255, 0.1);
+
+  /* Buttons — disabled state (light) */
+  --btn-disabled-bg: #C49A6C;
+  --btn-disabled-text: #FFFFFF;
+
+    /* ============================================ */
+  /* Notice boxes (info + warning) */
+  /* ============================================ */
+  --notice-info-bg: rgba(23, 162, 184, 0.06);
+  --notice-info-border: rgba(23, 162, 184, 0.2);
+  --notice-info-title: var(--text-secondary);
+  --notice-info-text: var(--text-muted);
+
+  --notice-warning-bg: rgba(255, 193, 7, 0.08);
+  --notice-warning-border: rgba(255, 193, 7, 0.25);
+  --notice-warning-text: #856404;
+
+  /* ============================================ */
+  /* Dropdown arrow — hidden by default */
+  /* ============================================ */
+  --select-arrow-display: none;
 }
 
 /* Dark Theme - Warm & Light (Brown/Cream variant) */
@@ -92,6 +113,20 @@
   --brand-icon: #FDF5E6;
   --brand-content-bg: rgba(0, 0, 0, 0.2);
   --brand-border: rgba(255, 255, 255, 0.05);
+
+  /* Buttons — disabled state (dark) */
+  --btn-disabled-bg: #5a4432;
+  --btn-disabled-text: #c4a88a;
+
+  /* Notice boxes (dark) */
+  --notice-info-bg: rgba(32, 201, 224, 0.08);
+  --notice-info-border: rgba(32, 201, 224, 0.25);
+  --notice-info-title: #E5F4F7;
+  --notice-info-text: #A8C8CE;
+
+  --notice-warning-bg: rgba(255, 193, 7, 0.1);
+  --notice-warning-border: rgba(255, 193, 7, 0.35);
+  --notice-warning-text: #FFD966;
 }
 
 /* ----- 3. Reset & Base ----- */
@@ -420,4 +455,26 @@ select option:first-child {
   .admin-ratings-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
+
+/* Achievement Modal backdrop */
+.achievement-modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(6px);
+}
+
+/* Horizontal scrollbar for carousels */
+div[style*="scroll-snap-type"]::-webkit-scrollbar {
+  height: 6px;
+}
+div[style*="scroll-snap-type"]::-webkit-scrollbar-track {
+  background: var(--bg-body);
+  border-radius: 3px;
+}
+div[style*="scroll-snap-type"]::-webkit-scrollbar-thumb {
+  background: var(--primary-brown-light);
+  border-radius: 3px;
+}
+div[style*="scroll-snap-type"]::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-brown);
 }

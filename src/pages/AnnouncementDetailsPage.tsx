@@ -23,6 +23,9 @@ import {
   FaBan,
   FaExclamationCircle,
   FaUserPlus,
+  FaExchangeAlt,
+  FaHandshake,
+  FaFlagCheckered,
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -39,12 +42,22 @@ import { getStorageUrl } from '../utils/storageHelpers';
 import {
   isOwnAnnouncement,
   getOwnBadgeStyle,
+  getCategoryLabel,
+  getTypeLabel,
+  getTypeColor,
+  getPriceLabel,
+  getBarterBadgeLabel,
+  getNegotiableLabel,
+  getBarterDetail,
+  getPrivacyLabel,
+  getPrivacyColor,
 } from '../utils/announcementHelpers';
 import type { Announcement } from '../types';
 import type { ContactButtonConfig } from '../components/announcements/AnnouncementContactButton';
+import { BARTER_LABELS } from '../utils/announcementNaming';
 
 // ============================================
-// Error state shape
+// Error state
 // ============================================
 type ErrorKind =
   | 'not_found'
@@ -62,10 +75,8 @@ interface PageError {
 
 const AnnouncementDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
-
   const { isDark } = useTheme();
 
-  // ✅ Destructure isLoading too — we'll wait for auth to settle
   const {
     isAuthenticated,
     user,
@@ -88,40 +99,54 @@ const AnnouncementDetailsPage = () => {
     announcement ? { user_id: announcement.user_id } : null,
     user?.id
   );
+  const isAdmin = user?.role === 'admin';
   const ownBadgeStyle = getOwnBadgeStyle(isDark);
 
-  // ============================================
-  // PRIVACY & CONTACT LOGIC
-  // ============================================
-
-  const canViewWhatsApp = (): boolean => {
+  // WhatsApp visibility
+    const canViewWhatsApp = (): boolean => {
     if (!announcement) return false;
+
+    // Owner or Admin → always allowed
+    if (isOwn || isAdmin) return true;
+
     if (!isAuthenticated) return false;
     if (!isEmailVerified) return false;
 
-    switch (announcement.privacy_type) {
+    const privacy = announcement.privacy_type || 'public';
+
+    switch (privacy) {
       case 'public':
         return true;
       case 'region_only':
         return user?.city_id === announcement.city_id;
       case 'verified_only':
-        return isVerifiedUser && announcement.user?.is_verified === true;
+        return isVerifiedUser;
       case 'verified_region':
-        return (
-          isVerifiedUser &&
-          user?.city_id === announcement.city_id &&
-          announcement.user?.is_verified === true
-        );
+        return isVerifiedUser && user?.city_id === announcement.city_id;
       default:
-        return false;
+        return true; // fallback → treat unknown as public
     }
   };
 
   const getContactButtonConfig = (): ContactButtonConfig | null => {
     if (!announcement) return null;
 
-    const canView = canViewWhatsApp();
+    // Owner or Admin → direct WhatsApp
+    if (isOwn || isAdmin) {
+      return {
+        label: 'التواصل عبر واتساب',
+        icon: <FaWhatsapp size={24} />,
+        variant: 'whatsapp' as const,
+        to: `https://wa.me/${announcement.whatsapp}`,
+        disabled: false,
+        tooltip: isOwn
+          ? 'رقم واتساب الخاص بك في هذا الإعلان'
+          : 'تواصل مع صاحب الخدمة عبر واتساب',
+        href: true,
+      };
+    }
 
+    // Guest
     if (!isAuthenticated) {
       return {
         label: 'سجل الدخول للتواصل',
@@ -133,6 +158,7 @@ const AnnouncementDetailsPage = () => {
       };
     }
 
+    // Email not verified
     if (!isEmailVerified) {
       return {
         label: 'فعّل بريدك للتواصل',
@@ -144,21 +170,22 @@ const AnnouncementDetailsPage = () => {
       };
     }
 
-    if (!canView) {
-      let reason = '';
+    // Privacy blocked
+    if (!canViewWhatsApp()) {
+      let reason = 'لا يمكنك التواصل مع هذا المعلن';
+
       switch (announcement.privacy_type) {
         case 'region_only':
-          reason = 'هذا الإعلان مخصص للمنطقة فقط';
+          reason = 'هذه الخدمة مخصصة لمن هم في نفس المنطقة فقط';
           break;
         case 'verified_only':
-          reason = 'هذا الإعلان مخصص للموثقين فقط';
+          reason = 'هذه الخدمة مخصصة للموثقين فقط';
           break;
         case 'verified_region':
-          reason = 'هذا الإعلان مخصص للموثقين في المنطقة فقط';
+          reason = 'هذه الخدمة مخصصة للموثقين في نفس المنطقة فقط';
           break;
-        default:
-          reason = 'لا يمكنك التواصل مع هذا المعلن';
       }
+
       return {
         label: 'غير متاح',
         icon: <FaShieldAlt size={20} />,
@@ -169,6 +196,7 @@ const AnnouncementDetailsPage = () => {
       };
     }
 
+    // Allowed
     return {
       label: 'التواصل عبر واتساب',
       icon: <FaWhatsapp size={24} />,
@@ -181,14 +209,9 @@ const AnnouncementDetailsPage = () => {
   };
 
   // ============================================
-  // FETCH DATA — waits for auth to be ready
+  // Fetch — waits for auth
   // ============================================
   useEffect(() => {
-    // ✅ CRITICAL: Wait for AuthContext to finish initializing before
-    // we fetch the announcement. Otherwise the fetch fires with
-    // isAuthenticated === false even when the user IS logged in,
-    // causing a restricted announcement to show the "auth required"
-    // screen incorrectly.
     if (isAuthLoading) return;
 
     const source = axios.CancelToken.source();
@@ -209,56 +232,51 @@ const AnnouncementDetailsPage = () => {
         const data = await announcementService.getAnnouncement(Number(id));
         setAnnouncement(data);
 
-        // ✅ Increment view count once, only after successful fetch
         if (!hasIncrementedView.current) {
           hasIncrementedView.current = true;
         }
       } catch (err: any) {
-        if (axios.isCancel(err)) {
-          return;
-        }
+        if (axios.isCancel(err)) return;
 
         const status = err?.response?.status;
 
         if (status === 404) {
           setError({
             kind: 'not_found',
-            title: 'الإعلان غير موجود',
+            title: 'الخدمة غير موجودة',
             message:
-              'الإعلان الذي تحاول الوصول إليه غير متوفر حالياً. قد يكون قد تم حذفه من قبل صاحبه أو إزالته من المنصة.',
+              'الخدمة التي تحاول الوصول إليها غير متوفرة حالياً. قد يكون قد تم حذفها من قبل صاحبها أو إزالتها من المنصة.',
             suggestion:
-              'يمكنك تصفح الإعلانات الأخرى المتاحة في المنصة، أو العودة إلى الصفحة الرئيسية.',
+              'يمكنك تصفح الخدمات الأخرى المتاحة في المنصة، أو العودة إلى الصفحة الرئيسية.',
           });
         } else if (status === 403) {
-          // ✅ At this point, isAuthenticated is GUARANTEED to be accurate
-          //    because we waited for isAuthLoading to become false.
           if (!isAuthenticated) {
             setError({
               kind: 'auth_required',
-              title: 'سجّل دخولك لعرض هذا الإعلان',
+              title: 'سجّل دخولك لعرض هذه الخدمة',
               message:
-                'هذا الإعلان مخصص لمستخدمي المنصة المسجلين. سجّل دخولك أو أنشئ حساباً جديداً لعرضه والتواصل مع المعلن.',
+                'هذه الخدمة مخصصة لمستخدمي المنصة المسجلين. سجّل دخولك أو أنشئ حساباً جديداً لعرضها والتواصل مع صاحب الخدمة.',
               suggestion:
-                'التسجيل مجاني وسريع، ويمنحك صلاحية الوصول لجميع الإعلانات والمزايا.',
+                'التسجيل مجاني وسريع، ويمنحك صلاحية الوصول لجميع الخدمات والمزايا.',
             });
           } else {
             setError({
               kind: 'forbidden',
               title: 'لا تملك صلاحية الوصول',
               message:
-                'هذا الإعلان مخصص لفئة معينة من المستخدمين، ولا يمكنك عرضه بحسابك الحالي.',
+                'هذه الخدمة مخصصة لفئة معينة من المستخدمين، ولا يمكنك عرضها بحسابك الحالي.',
               suggestion:
-                'إذا كنت تعتقد أن هذا خطأ، يمكنك التواصل مع الدعم أو العودة إلى قائمة الإعلانات.',
+                'إذا كنت تعتقد أن هذا خطأ، يمكنك التواصل مع الدعم أو العودة إلى قائمة الخدمات.',
             });
           }
         } else {
           setError({
             kind: 'generic',
-            title: 'تعذّر تحميل الإعلان',
+            title: 'تعذّر تحميل الخدمة',
             message:
-              'حدث خطأ غير متوقع أثناء تحميل الإعلان. قد تكون المشكلة مؤقتة.',
+              'حدث خطأ غير متوقع أثناء تحميل الخدمة. قد تكون المشكلة مؤقتة.',
             suggestion:
-              'يرجى المحاولة مرة أخرى بعد قليل، أو العودة إلى قائمة الإعلانات.',
+              'يرجى المحاولة مرة أخرى بعد قليل، أو العودة إلى قائمة الخدمات.',
           });
         }
       } finally {
@@ -278,59 +296,8 @@ const AnnouncementDetailsPage = () => {
   }, [id, isAuthLoading, isAuthenticated]);
 
   // ============================================
-  // HELPERS
+  // Helpers
   // ============================================
-
-  const getPrivacyLabel = (privacyType: string) => {
-    const map: Record<string, string> = {
-      public: 'عام - للجميع',
-      region_only: 'نفس المنطقة فقط',
-      verified_only: 'للموثقين فقط',
-      verified_region: 'موثق + نفس المنطقة',
-    };
-    return map[privacyType] || privacyType;
-  };
-
-  const getPrivacyColor = (privacyType: string) => {
-    const map: Record<string, string> = {
-      public: '#28A745',
-      region_only: '#17A2B8',
-      verified_only: '#E87A20',
-      verified_region: '#FFC107',
-    };
-    return map[privacyType] || 'var(--text-muted)';
-  };
-
-  const getCategoryLabel = (category: string) => {
-    const map: Record<string, string> = {
-      goods: 'سلع',
-      services: 'خدمات',
-    };
-    return map[category] || category;
-  };
-
-  const getTypeLabel = (type: string) => {
-    return type === 'offer' ? 'عرض' : 'طلب';
-  };
-
-  const getTypeColor = (type: string) => {
-    return type === 'offer' ? '#28A745' : '#DC3545';
-  };
-
-  const getPriceLabel = () => {
-    if (!announcement) return '';
-    switch (announcement.price_type) {
-      case 'free':
-        return 'مجاني';
-      case 'paid':
-        return `${announcement.price} شيكل`;
-      case 'barter':
-        return 'مقايضة';
-      default:
-        return '';
-    }
-  };
-
   const getOwnerAvatar = (): string | null => {
     return getStorageUrl(announcement?.user?.profile_image);
   };
@@ -341,9 +308,28 @@ const AnnouncementDetailsPage = () => {
   );
 
   // ============================================
-  // LOADING STATE — also wait for auth
+  // Derived flags (safe even before announcement loads)
   // ============================================
+  const isBarter =
+    announcement?.price_type === 'barter';
+  const isNegotiable =
+    announcement?.price_type === 'paid' &&
+    announcement?.is_negotiable === true;
+  const isCompleted =
+    !!announcement &&
+    (announcement.is_completed || announcement.status === 'completed');
 
+  const barterDetail =
+    isBarter && announcement
+      ? getBarterDetail(
+          announcement.barter_offered,
+          announcement.barter_requested
+        )
+      : null;
+
+  // ============================================
+  // Loading State
+  // ============================================
   if (isAuthLoading || loading || !hasAttempted) {
     return (
       <div
@@ -372,7 +358,7 @@ const AnnouncementDetailsPage = () => {
               fontFamily: 'Cairo, sans-serif',
             }}
           >
-            جاري تحميل الإعلان...
+            جاري تحميل الخدمة...
           </p>
         </div>
       </div>
@@ -380,9 +366,8 @@ const AnnouncementDetailsPage = () => {
   }
 
   // ============================================
-  // ERROR STATE
+  // Error State
   // ============================================
-
   if (error || !announcement) {
     const errorKind: ErrorKind = error?.kind ?? 'not_found';
 
@@ -423,10 +408,10 @@ const AnnouncementDetailsPage = () => {
 
     const { Icon, accent, accentSoft, accentBorder, gradient, label } = config;
 
-    const title = error?.title ?? 'الإعلان غير موجود';
-    const message = error?.message ?? 'تعذّر الوصول إلى هذا الإعلان.';
+    const title = error?.title ?? 'الخدمة غير موجودة';
+    const message = error?.message ?? 'تعذّر الوصول إلى هذه الخدمة.';
     const suggestion =
-      error?.suggestion ?? 'يمكنك العودة إلى قائمة الإعلانات.';
+      error?.suggestion ?? 'يمكنك العودة إلى قائمة الخدمات.';
 
     return (
       <>
@@ -525,7 +510,11 @@ const AnnouncementDetailsPage = () => {
                         duration: 4,
                         ease: 'easeInOut',
                       },
-                      default: { type: 'spring', stiffness: 260, damping: 18 },
+                      default: {
+                        type: 'spring',
+                        stiffness: 260,
+                        damping: 18,
+                      },
                     }}
                     style={{
                       width: '88px',
@@ -769,7 +758,7 @@ const AnnouncementDetailsPage = () => {
                         }}
                       >
                         <FaSearch size={13} />
-                        تصفّح الإعلانات
+                        تصفّح الخدمات
                         <FaArrowRight size={12} />
                       </Link>
                     )}
@@ -803,8 +792,10 @@ const AnnouncementDetailsPage = () => {
                         onMouseLeave={(e) => {
                           e.currentTarget.style.borderColor =
                             'var(--border-color)';
-                          e.currentTarget.style.color = 'var(--text-secondary)';
-                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.color =
+                            'var(--text-secondary)';
+                          e.currentTarget.style.backgroundColor =
+                            'transparent';
                         }}
                       >
                         <FaHome size={13} />
@@ -847,9 +838,8 @@ const AnnouncementDetailsPage = () => {
   }
 
   // ============================================
-  // RENDER — Success
+  // Success — Render
   // ============================================
-
   return (
     <>
       <SEO
@@ -900,7 +890,7 @@ const AnnouncementDetailsPage = () => {
                 textDecoration: 'none',
               }}
             >
-              الإعلانات
+            تبادل الخدمات
             </Link>
             <FaChevronRight
               size={10}
@@ -947,6 +937,9 @@ const AnnouncementDetailsPage = () => {
                   />
                 </div>
 
+                {/* ============================================ */}
+                {/* Main Info Card */}
+                {/* ============================================ */}
                 <div
                   style={{
                     marginTop: '1.25rem',
@@ -1034,6 +1027,54 @@ const AnnouncementDetailsPage = () => {
                     {announcement.title}
                   </h1>
 
+                  {/* ============================================ */}
+                  {/* Completed Banner */}
+                  {/* ============================================ */}
+                  {isCompleted && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '12px 14px',
+                        backgroundColor: 'rgba(23,162,184,0.08)',
+                        border: '1px solid rgba(23,162,184,0.3)',
+                        borderRadius: '12px',
+                        marginBottom: '1rem',
+                        fontFamily: 'Cairo, sans-serif',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '9px',
+                          background:
+                            'linear-gradient(135deg, #17A2B8, #138496)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#FFFFFF',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <FaFlagCheckered size={14} />
+                      </div>
+                      <span
+                        style={{
+                          color: '#17A2B8',
+                          fontSize: '0.85rem',
+                          fontWeight: 800,
+                        }}
+                      >
+                        تم التبادل بنجاح
+                      </span>
+                    </motion.div>
+                  )}
+
+                  {/* Badges Row */}
                   <div
                     style={{
                       display: 'flex',
@@ -1058,10 +1099,11 @@ const AnnouncementDetailsPage = () => {
                           boxShadow: '0 2px 8px rgba(232, 122, 32, 0.3)',
                         }}
                       >
-                        <FaStar size={11} /> إعلان مميز
+                        <FaStar size={11} /> خدمة مميزة
                       </span>
                     )}
 
+                    {/* Category (flat) */}
                     <span
                       style={{
                         backgroundColor: isDark
@@ -1081,26 +1123,7 @@ const AnnouncementDetailsPage = () => {
                       {getCategoryLabel(announcement.category)}
                     </span>
 
-                    {announcement.sub_category && (
-                      <span
-                        style={{
-                          backgroundColor: isDark
-                            ? 'rgba(255,255,255,0.06)'
-                            : 'rgba(139,90,43,0.06)',
-                          color: isDark ? '#C49A6C' : '#8B5A2B',
-                          padding: '4px 12px',
-                          borderRadius: '10px',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        {announcement.sub_category.name}
-                      </span>
-                    )}
-
+                    {/* Type */}
                     <span
                       style={{
                         backgroundColor:
@@ -1118,20 +1141,13 @@ const AnnouncementDetailsPage = () => {
                       {getTypeLabel(announcement.type)}
                     </span>
 
+                    {/* Price / Barter */}
                     <span
                       style={{
-                        backgroundColor:
-                          announcement.price_type === 'free'
-                            ? '#28A74515'
-                            : announcement.price_type === 'paid'
-                              ? 'rgba(232,122,32,0.15)'
-                              : '#9C27B015',
-                        color:
-                          announcement.price_type === 'free'
-                            ? '#28A745'
-                            : announcement.price_type === 'paid'
-                              ? 'var(--primary-orange)'
-                              : '#9C27B0',
+                        backgroundColor: isBarter
+                          ? 'rgba(156,39,176,0.15)'
+                          : 'rgba(232,122,32,0.15)',
+                        color: isBarter ? '#9C27B0' : 'var(--primary-orange)',
                         padding: '4px 12px',
                         borderRadius: '10px',
                         fontSize: '0.75rem',
@@ -1141,8 +1157,34 @@ const AnnouncementDetailsPage = () => {
                         gap: '4px',
                       }}
                     >
-                      {getPriceLabel()}
+                      {isBarter && <FaExchangeAlt size={10} />}
+                      {isBarter
+                        ? getBarterBadgeLabel()
+                        : getPriceLabel(
+                            announcement.price_type,
+                            announcement.price
+                          )}
                     </span>
+
+                    {/* Negotiable */}
+                    {isNegotiable && (
+                      <span
+                        style={{
+                          backgroundColor: 'rgba(40,167,69,0.15)',
+                          color: '#28A745',
+                          padding: '4px 12px',
+                          borderRadius: '10px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <FaHandshake size={10} />
+                        {getNegotiableLabel()}
+                      </span>
+                    )}
 
                     {announcement.pinned_at && !isFeatured && (
                       <span
@@ -1183,7 +1225,7 @@ const AnnouncementDetailsPage = () => {
                       {getPrivacyLabel(announcement.privacy_type)}
                     </span>
 
-                    {announcement.sub_category?.is_high_risk && (
+                    {announcement.category?.is_high_risk && (
                       <span
                         style={{
                           backgroundColor: isDark
@@ -1207,6 +1249,83 @@ const AnnouncementDetailsPage = () => {
                     )}
                   </div>
 
+                  {/* ============================================ */}
+                  {/* Barter Detail Block */}
+                  {/* ============================================ */}
+                  {isBarter && barterDetail && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns:
+                          'repeat(auto-fit, minmax(180px, 1fr))',
+                        gap: '10px',
+                        padding: '14px',
+                        backgroundColor: 'rgba(156,39,176,0.06)',
+                        border: '1px solid rgba(156,39,176,0.25)',
+                        borderRadius: '12px',
+                        marginBottom: '1rem',
+                        fontFamily: 'Cairo, sans-serif',
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '0.7rem',
+                            marginBottom: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                          }}
+                        >
+                          <FaExchangeAlt size={10} color="#9C27B0" />
+                          {BARTER_LABELS.public.offered}
+                        </div>
+                        <div
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.88rem',
+                            fontWeight: 700,
+                            lineHeight: 1.45,
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {barterDetail.offered}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '0.7rem',
+                            marginBottom: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                          }}
+                        >
+                          <FaExchangeAlt size={10} color="#9C27B0" />
+                          {BARTER_LABELS.public.requested}
+                        </div>
+                        <div
+                          style={{
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.88rem',
+                            fontWeight: 700,
+                            lineHeight: 1.45,
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {barterDetail.requested}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Region */}
                   <div
                     style={{
                       display: 'flex',
@@ -1235,6 +1354,7 @@ const AnnouncementDetailsPage = () => {
                     </span>
                   </div>
 
+                  {/* Description */}
                   <div style={{ marginBottom: '1.25rem' }}>
                     <div
                       style={{
@@ -1277,8 +1397,8 @@ const AnnouncementDetailsPage = () => {
                     ownerName={announcement.user?.name || 'مستخدم'}
                     isVerified={announcement.user?.is_verified || false}
                     avatarUrl={getOwnerAvatar()}
-                    rating={4.8}
-                    ratingCount={12}
+                    rating={announcement.user?.average_rating ?? 0}
+                    ratingCount={announcement.user?.total_ratings ?? 0}
                     memberSince={announcement.user?.created_at}
                     userId={announcement.user?.id}
                   />

@@ -10,6 +10,8 @@ import {
   FaArrowLeft,
 } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { getEntity } from '../../utils/announcementNaming';
+import type { AnnouncementType } from '../../types';
 
 interface AnnouncementOwnerInfoProps {
   ownerName: string;
@@ -19,10 +21,11 @@ interface AnnouncementOwnerInfoProps {
   ratingCount?: number;
   memberSince?: string;
   userId?: number;
+  /** ✨ NEW — drives the header copy ("صاحب العرض" vs "صاحب الطلب") */
+  type?: AnnouncementType | null;
   onViewProfile?: () => void;
 }
 
-// Extract up to 2 initials (Arabic + English friendly)
 const getUserInitials = (name: string): string => {
   if (!name || !name.trim()) return 'U';
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -39,10 +42,12 @@ const AnnouncementOwnerInfo = ({
   ratingCount = 0,
   memberSince,
   userId,
+  type,
   onViewProfile,
 }: AnnouncementOwnerInfoProps) => {
   const navigate = useNavigate();
   const [imgError, setImgError] = useState(false);
+  const t = getEntity(type);
 
   const formatDate = (date?: string) => {
     if (!date) return 'غير معروف';
@@ -91,7 +96,7 @@ const AnnouncementOwnerInfo = ({
         e.currentTarget.style.borderColor = 'var(--border-color)';
       }}
     >
-      {/* Header */}
+      {/* ✨ Dynamic header */}
       <h4
         style={{
           color: 'var(--text-secondary)',
@@ -104,7 +109,7 @@ const AnnouncementOwnerInfo = ({
         }}
       >
         <FaUser size={15} color="var(--primary-orange)" />
-        معلومات المعلن
+        معلومات {t.owner}
       </h4>
 
       {/* Owner Profile Header */}
@@ -256,7 +261,6 @@ const AnnouncementOwnerInfo = ({
         </div>
       </div>
 
-      {/* View Profile Button */}
       {clickable && (
         <button
           type="button"
@@ -294,7 +298,6 @@ const AnnouncementOwnerInfo = ({
         </button>
       )}
 
-      {/* Footer meta */}
       <div
         style={{
           paddingTop: '0.85rem',

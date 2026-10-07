@@ -5,54 +5,49 @@ import type {
 import { getStorageUrl } from './storageHelpers';
 
 // ============================================
-// Status helpers
+// Status helpers (✅ added 'completed')
 // ============================================
 
-/**
- * Get Arabic label for announcement status
- */
 export const getAnnouncementStatusLabel = (
-  status: 'active' | 'disabled' | 'deleted'
+  status: 'active' | 'disabled' | 'completed' | 'deleted'
 ): string => {
   const map = {
     active: 'نشط',
     disabled: 'معطل',
+    completed: 'مكتمل',
     deleted: 'محذوف',
   };
   return map[status];
 };
 
-/**
- * Get color for announcement status
- */
 export const getAnnouncementStatusColor = (
-  status: 'active' | 'disabled' | 'deleted'
+  status: 'active' | 'disabled' | 'completed' | 'deleted'
 ): string => {
   const map = {
     active: '#28A745',
     disabled: '#FFC107',
+    completed: '#17A2B8',
     deleted: '#DC3545',
   };
   return map[status];
 };
 
-/**
- * Get icon for announcement status
- */
 export const getAnnouncementStatusIcon = (
-  status: 'active' | 'disabled' | 'deleted'
+  status: 'active' | 'disabled' | 'completed' | 'deleted'
 ): string => {
   const map = {
     active: '✅',
     disabled: '⏸️',
+    completed: '🏁',
     deleted: '🗑️',
   };
   return map[status];
 };
 
-/**
- * Check which actions are available for a user announcement
- */
+// ============================================
+// Available actions (✅ added complete/reopen)
+// ============================================
+
 export const getAvailableActions = (
   announcement: UserAnnouncementDetailResponse
 ) => {
@@ -62,6 +57,8 @@ export const getAvailableActions = (
     canDisable: announcement.can_disable,
     canEnable: announcement.can_reenable,
     canFeature: announcement.can_feature,
+    canComplete: announcement.can_complete,
+    canReopen: announcement.can_reopen,
   };
 };
 
@@ -69,9 +66,6 @@ export const getAvailableActions = (
 // Date helpers
 // ============================================
 
-/**
- * Format date in Arabic (long format)
- */
 export const formatAnnouncementDate = (date: string): string => {
   return new Date(date).toLocaleDateString('ar-EG', {
     year: 'numeric',
@@ -80,9 +74,6 @@ export const formatAnnouncementDate = (date: string): string => {
   });
 };
 
-/**
- * Format date in Arabic (short format)
- */
 export const formatAnnouncementDateShort = (date: string): string => {
   return new Date(date).toLocaleDateString('ar-EG', {
     year: 'numeric',
@@ -93,35 +84,30 @@ export const formatAnnouncementDateShort = (date: string): string => {
 
 // ============================================
 // Label helpers
+// (getCategoryLabel has been moved to categoryHelpers.ts)
 // ============================================
 
-/**
- * Get category label in Arabic
- */
-export const getCategoryLabel = (category: 'goods' | 'services'): string => {
-  return category === 'goods' ? 'سلع' : 'خدمات';
-};
-
-/**
- * Get type label in Arabic
- */
 export const getTypeLabel = (type: 'offer' | 'request'): string => {
   return type === 'offer' ? 'عرض' : 'طلب';
 };
 
 /**
- * Get price label in Arabic
+ * price_type is now 'paid' | 'barter' only.
+ * Uses barter_offered/requested for barter label when available.
  */
 export const getPriceLabel = (
-  price_type: 'free' | 'paid' | 'barter',
-  price?: number | null
+  price_type: 'paid' | 'barter',
+  price?: number | null,
+  barter_offered?: string | null,
+  barter_requested?: string | null
 ): string => {
   switch (price_type) {
-    case 'free':
-      return 'مجاني';
     case 'paid':
       return price ? `${price} شيكل` : 'مدفوع';
     case 'barter':
+      if (barter_offered && barter_requested) {
+        return `مقايضة: ${barter_offered} ↔ ${barter_requested}`;
+      }
       return 'مقايضة';
     default:
       return '';
@@ -129,8 +115,29 @@ export const getPriceLabel = (
 };
 
 /**
- * Get privacy label in Arabic
+ * Get a SHORT barter badge label (for cards).
  */
+export const getBarterBadgeLabel = (): string => 'مقايضة';
+
+/**
+ * Get negotiable badge label.
+ */
+export const getNegotiableLabel = (): string => 'قابل للتفاوض';
+
+/**
+ * Get full barter detail text (for details page).
+ */
+export const getBarterDetail = (
+  barter_offered: string | null | undefined,
+  barter_requested: string | null | undefined
+): { offered: string; requested: string } | null => {
+  if (!barter_offered && !barter_requested) return null;
+  return {
+    offered: barter_offered || '—',
+    requested: barter_requested || '—',
+  };
+};
+
 export const getPrivacyLabel = (
   privacy: 'public' | 'verified_only' | 'region_only' | 'verified_region'
 ): string => {
@@ -143,9 +150,6 @@ export const getPrivacyLabel = (
   return map[privacy];
 };
 
-/**
- * Get privacy color
- */
 export const getPrivacyColor = (
   privacy: 'public' | 'verified_only' | 'region_only' | 'verified_region'
 ): string => {
@@ -162,9 +166,6 @@ export const getPrivacyColor = (
 // Featured helpers
 // ============================================
 
-/**
- * Get featured badge label
- */
 export const getFeaturedBadgeLabel = (
   isFeatured: boolean,
   requestStatus: 'pending' | 'approved' | 'rejected' | null
@@ -174,9 +175,6 @@ export const getFeaturedBadgeLabel = (
   return null;
 };
 
-/**
- * Get featured badge color
- */
 export const getFeaturedBadgeColor = (
   isFeatured: boolean,
   requestStatus: 'pending' | 'approved' | 'rejected' | null
@@ -187,13 +185,9 @@ export const getFeaturedBadgeColor = (
 };
 
 // ============================================
-// Image helpers — uses global storage helper
+// Image helpers
 // ============================================
 
-/**
- * Get cover image URL from images array
- * Uses the environment-aware storage helper
- */
 export const getCoverImageUrl = (
   announcement: Announcement,
   fallback: string = '/placeholder-image.png'
@@ -202,9 +196,7 @@ export const getCoverImageUrl = (
     const firstImage = [...announcement.images].sort(
       (a, b) => a.order - b.order
     )[0];
-    return (
-      getStorageUrl(firstImage.image_path, fallback) ?? fallback
-    );
+    return getStorageUrl(firstImage.image_path, fallback) ?? fallback;
   }
   return fallback;
 };
@@ -213,9 +205,6 @@ export const getCoverImageUrl = (
 // Misc helpers
 // ============================================
 
-/**
- * Calculate remaining days until permanent deletion
- */
 export const getDaysUntilPermanentDeletion = (deletionInfo: {
   days_remaining: number;
 }): string => {
@@ -226,9 +215,6 @@ export const getDaysUntilPermanentDeletion = (deletionInfo: {
   return `${days} يوماً متبقياً`;
 };
 
-/**
- * Check if announcement can be featured
- */
 export const canBeFeatured = (
   announcement: UserAnnouncementDetailResponse
 ): boolean => {
@@ -239,10 +225,6 @@ export const canBeFeatured = (
   );
 };
 
-/**
- * Check if the current user owns this announcement
- * Used to show the "إعلانك" (Your Announcement) badge
- */
 export const isOwnAnnouncement = (
   announcement: { user_id: number } | null | undefined,
   currentUserId: number | null | undefined
@@ -251,22 +233,162 @@ export const isOwnAnnouncement = (
   return announcement.user_id === currentUserId;
 };
 
-/**
- * Get "إعلانك" badge styling (theme-aware)
- */
 export const getOwnBadgeStyle = (isDark: boolean) => ({
   backgroundColor: isDark
-    ? 'rgba(22, 78, 99, 0.75)'      // dark teal glass
-    : 'rgba(23, 162, 184, 0.82)',   // solid-ish teal glass
+    ? 'rgba(22, 78, 99, 0.75)'
+    : 'rgba(23, 162, 184, 0.82)',
   color: '#FFFFFF',
   border: isDark
     ? '1px solid rgba(32, 201, 224, 0.55)'
     : '1px solid rgba(255, 255, 255, 0.35)',
-  // Frosted glass effect
   backdropFilter: 'blur(12px) saturate(180%)',
   WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-  // Soft lift from background
   boxShadow: isDark
     ? '0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
     : '0 4px 14px rgba(23, 162, 184, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
 });
+
+// ============================================
+// Re-exports from categoryHelpers + composites
+// (used by AnnouncementPost / details / cards)
+// ============================================
+
+export { getCategoryColor, getCategoryIcon } from './categoryHelpers';
+
+/**
+ * Wrapper for getCategoryLabel that accepts a full Category object
+ * OR a plain name string. Returns the category name, or "غير مصنّف"
+ * when nothing is available.
+ *
+ * Components call this with `announcement.category` (a Category | null)
+ * so we normalize both shapes here.
+ */
+export const getCategoryLabel = (
+  category: { name: string } | string | null | undefined
+): string => {
+  if (!category) return 'غير مصنّف';
+  if (typeof category === 'string') return category || 'غير مصنّف';
+  return category.name || 'غير مصنّف';
+};
+
+import type { AnnouncementPriceType } from '../types';
+
+/**
+ * Type color — offer = success green, request = error red.
+ */
+export const getTypeColor = (type: 'offer' | 'request'): string => {
+  return type === 'offer' ? '#28A745' : '#DC3545';
+};
+
+/**
+ * Unified price label — handles both 'paid' and 'barter'.
+ * For 'paid' → "N شيكل" (or just "مدفوع" if price is null)
+ * For 'barter' → "مقايضة"
+ */
+export const getPriceOrBarterLabel = (
+  price_type: AnnouncementPriceType,
+  price?: number | null,
+  barter_offered?: string | null,
+  barter_requested?: string | null
+): string => {
+  if (price_type === 'barter') {
+    if (barter_offered && barter_requested) {
+      return `مقايضة: ${barter_offered} ↔ ${barter_requested}`;
+    }
+    return 'مقايضة';
+  }
+  // paid
+  return price ? `${price} شيكل` : 'مدفوع';
+};
+
+// ============================================
+// Status badge style — glassy design (same family as إعلانك)
+// ============================================
+
+type StatusBadgeVariant =
+  | 'active'
+  | 'disabled'
+  | 'completed'
+  | 'deleted'
+  | 'featured'
+  | 'pending'
+  | 'rejected';
+
+interface StatusBadgeStyleInput {
+  variant: StatusBadgeVariant;
+  isDark: boolean;
+}
+
+/**
+ * Glassy badge style — same visual family as getOwnBadgeStyle().
+ * Uses backdrop-filter blur + subtle white border + soft shadow,
+ * but with a distinct color per status.
+ */
+export const getStatusBadgeStyle = ({
+  variant,
+  isDark,
+}: StatusBadgeStyleInput): React.CSSProperties => {
+  // Per-variant base color (light mode tint + dark mode deeper tint)
+  const palette: Record<
+    StatusBadgeVariant,
+    { light: string; dark: string; borderLight: string; borderDark: string }
+  > = {
+    active: {
+      light: 'rgba(40, 167, 69, 0.85)',
+      dark: 'rgba(22, 101, 52, 0.78)',
+      borderLight: 'rgba(255, 255, 255, 0.35)',
+      borderDark: 'rgba(74, 222, 128, 0.55)',
+    },
+    disabled: {
+      light: 'rgba(255, 193, 7, 0.88)',
+      dark: 'rgba(133, 100, 4, 0.82)',
+      borderLight: 'rgba(255, 255, 255, 0.4)',
+      borderDark: 'rgba(255, 213, 79, 0.6)',
+    },
+    completed: {
+      light: 'rgba(23, 162, 184, 0.85)',
+      dark: 'rgba(22, 78, 99, 0.78)',
+      borderLight: 'rgba(255, 255, 255, 0.35)',
+      borderDark: 'rgba(32, 201, 224, 0.55)',
+    },
+    deleted: {
+      light: 'rgba(220, 53, 69, 0.85)',
+      dark: 'rgba(122, 26, 34, 0.82)',
+      borderLight: 'rgba(255, 255, 255, 0.35)',
+      borderDark: 'rgba(248, 113, 113, 0.55)',
+    },
+    featured: {
+      light: 'rgba(212, 175, 55, 0.9)',       
+      dark: 'rgba(120, 88, 12, 0.85)',         // deep gold (dark mode)
+      borderLight: 'rgba(255, 245, 200, 0.5)', // soft champagne
+      borderDark: 'rgba(255, 215, 0, 0.65)',   // bright gold glow
+    },
+    pending: {
+      light: 'rgba(255, 167, 38, 0.88)',
+      dark: 'rgba(146, 79, 14, 0.82)',
+      borderLight: 'rgba(255, 255, 255, 0.4)',
+      borderDark: 'rgba(255, 200, 87, 0.6)',
+    },
+    rejected: {
+      light: 'rgba(220, 53, 69, 0.85)',
+      dark: 'rgba(122, 26, 34, 0.82)',
+      borderLight: 'rgba(255, 255, 255, 0.35)',
+      borderDark: 'rgba(248, 113, 113, 0.55)',
+    },
+  };
+
+  const colors = palette[variant];
+
+  return {
+    backgroundColor: isDark ? colors.dark : colors.light,
+    color: '#FFFFFF',
+    border: isDark
+      ? `1px solid ${colors.borderDark}`
+      : `1px solid ${colors.borderLight}`,
+    backdropFilter: 'blur(12px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+    boxShadow: isDark
+      ? '0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+      : '0 4px 14px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+  };
+};

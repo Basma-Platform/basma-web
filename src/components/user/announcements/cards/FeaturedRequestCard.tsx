@@ -16,6 +16,8 @@ import {
   formatFeaturedDate,
 } from '../../../../utils/featuredHelpers';
 import { getStorageUrl } from '../../../../utils/storageHelpers';
+import { useCardBorderAnimation } from '../../../../hooks/useCardBorderAnimation';
+import AnimatedCardBorder from '../../../ui/AnimatedCardBorder';
 import type { FeaturedRequest } from '../../../../types';
 
 interface FeaturedRequestCardProps {
@@ -51,11 +53,20 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
   const theme = getStatusTheme();
   const isClickable = !!onClick;
 
+  // ✨ Reusable animation hook — hover on desktop, in-view on touch
+  const { ref, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
   // ✅ Cover image via global storage helper
   const coverUrl = getStorageUrl(request.announcement?.cover_image);
 
   return (
     <motion.div
+      ref={ref}
+      {...hoverHandlers}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={
@@ -69,7 +80,9 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
       className="featured-request-card"
       style={{
         backgroundColor: 'var(--bg-card)',
-        border: '1px solid var(--border-color)',
+        border: `1px solid ${
+          isDrawn && isClickable ? `${theme.color}45` : 'var(--border-color)'
+        }`,
         borderRadius: '18px',
         overflow: 'hidden',
         boxShadow: '0 4px 20px var(--shadow-sm)',
@@ -78,26 +91,21 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
         width: '100%',
         maxWidth: '100%',
         boxSizing: 'border-box',
-        transition: 'border-color 0.2s ease',
-      }}
-      onMouseEnter={(e) => {
-        if (isClickable) e.currentTarget.style.borderColor = `${theme.color}45`;
-      }}
-      onMouseLeave={(e) => {
-        if (isClickable)
-          e.currentTarget.style.borderColor = 'var(--border-color)';
+        transition: 'border-color 0.3s ease',
       }}
     >
-      {/* Gradient accent bar */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          background: theme.gradient,
-        }}
+      {/* ============================================ */}
+      {/* ✨ Animated Top Border (status color) */}
+      {/* Draws from the right → left (RTL-friendly) */}
+      {/* ============================================ */}
+      <AnimatedCardBorder
+        isDrawn={isDrawn}
+        background={theme.gradient}
+        drawFrom="start"
+        height={4}
+        duration={0.55}
+        idleOpacity={0}
+        rounded
       />
 
       <div className="featured-request-card__body">
@@ -125,7 +133,7 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
           <div className="featured-request-card__info">
             <div className="featured-request-card__header">
               <h4 className="featured-request-card__title">
-                {request.announcement?.title || 'إعلان محذوف'}
+                {request.announcement?.title || 'خدمة محذوفة'}
               </h4>
               <div className="featured-request-card__badge">
                 <FeaturedStatusBadge
@@ -258,7 +266,7 @@ const FeaturedRequestCard = ({ request, onClick }: FeaturedRequestCardProps) => 
                 wordBreak: 'break-word',
               }}
             >
-              إعلانك مميز الآن وجاري عرضه
+              خدمتك مميزة الآن وجاري عرضها
             </span>
           </div>
         )}

@@ -10,7 +10,12 @@ interface FAQAccordionProps {
   itemVariants: any;
 }
 
-const FAQAccordion = ({ faqs, loading, isDark, itemVariants }: FAQAccordionProps) => {
+const FAQAccordion = ({
+  faqs,
+  loading,
+  isDark,
+  itemVariants,
+}: FAQAccordionProps) => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const toggleItem = (index: number) => {
@@ -22,7 +27,11 @@ const FAQAccordion = ({ faqs, loading, isDark, itemVariants }: FAQAccordionProps
       <div style={{ textAlign: 'center', padding: '3rem' }}>
         <div
           className="spinner-border"
-          style={{ color: 'var(--primary-orange)', width: '3rem', height: '3rem' }}
+          style={{
+            color: 'var(--primary-orange)',
+            width: '3rem',
+            height: '3rem',
+          }}
         />
         <p
           style={{
@@ -89,7 +98,18 @@ const FAQAccordion = ({ faqs, loading, isDark, itemVariants }: FAQAccordionProps
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <span style={{ flex: 1, paddingLeft: '12px' }}>{faq.question}</span>
+              {/* ✅ CHANGED: question is now justified — all lines end at same right edge */}
+              <span
+                style={{
+                  flex: 1,
+                  paddingLeft: '12px',
+                  textAlign: 'justify',
+                  textJustify: 'inter-word',
+                  lineHeight: 1.7,
+                }}
+              >
+                {faq.question}
+              </span>
               {isOpen ? (
                 <FaChevronUp size={18} color="var(--primary-orange)" />
               ) : (
@@ -107,15 +127,17 @@ const FAQAccordion = ({ faqs, loading, isDark, itemVariants }: FAQAccordionProps
                   transition={{ duration: 0.3, ease: 'easeInOut' }}
                   style={{ overflow: 'hidden' }}
                 >
+                  {/* ✅ CHANGED: answer is now justified — all lines end at same right edge */}
                   <div
                     style={{
-                      padding: '0 24px 20px 24px',
+                      padding: '16px 24px 20px 24px',
                       color: 'var(--text-muted)',
                       fontSize: '0.98rem',
-                      lineHeight: 1.8,
+                      lineHeight: 1.85,
                       fontFamily: 'Cairo, sans-serif',
                       borderTop: `1px solid var(--border-color)`,
-                      paddingTop: '16px',
+                      textAlign: 'justify',
+                      textJustify: 'inter-word',
                     }}
                   >
                     {faq.answer}

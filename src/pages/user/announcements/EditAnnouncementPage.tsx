@@ -8,6 +8,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useUserAnnouncement } from '../../../hooks/useUserAnnouncement';
 import EditAnnouncementForm from '../../../components/user/announcements/forms/EditAnnouncementForm';
 import MyAnnouncementsSkeleton from '../../../components/user/announcements/skeletons/MyAnnouncementsSkeleton';
+import { getEntity } from '../../../utils/announcementNaming';
 
 const EditAnnouncementPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,9 +18,6 @@ const EditAnnouncementPage = () => {
 
   const [error, setError] = useState<string | null>(null);
 
-  // ============================================
-  // Fetch announcement
-  // ============================================
   useEffect(() => {
     if (!id || !user) return;
 
@@ -28,24 +26,22 @@ const EditAnnouncementPage = () => {
         setError(null);
         await fetchAnnouncement(Number(id));
       } catch {
-        setError('الإعلان غير موجود أو لا تملك صلاحية تعديله');
+        setError('غير موجود أو لا تملك صلاحية تعديله');
       }
     };
     load();
   }, [id, user, fetchAnnouncement]);
 
-  // ============================================
-  // Guards
-  // ============================================
+  // ✨ Type-aware copy (safe before load — falls back to 'offer')
+  const t = getEntity(announcement?.type);
+
   if (!user) return null;
 
-  // ============================================
   // Loading
-  // ============================================
   if (loading || (!announcement && !error)) {
     return (
       <>
-        <SEO title="تعديل الإعلان" />
+        <SEO title={`تعديل ${t.definite}`} />
         <div
           style={{
             backgroundColor: 'var(--bg-body)',
@@ -90,13 +86,11 @@ const EditAnnouncementPage = () => {
     );
   }
 
-  // ============================================
   // Error / Not found
-  // ============================================
   if (error || !announcement) {
     return (
       <>
-        <SEO title="تعديل الإعلان" />
+        <SEO title={`تعديل ${t.definite}`} />
         <div
           style={{
             backgroundColor: 'var(--bg-body)',
@@ -129,7 +123,7 @@ const EditAnnouncementPage = () => {
                 marginBottom: '8px',
               }}
             >
-              {error || 'الإعلان غير موجود'}
+              {error || 'غير موجود'}
             </h3>
             <p
               style={{
@@ -139,9 +133,17 @@ const EditAnnouncementPage = () => {
                 marginBottom: '1.25rem',
               }}
             >
-              لا يمكن عرض الإعلان. قد يكون محذوفاً أو لا تملك صلاحية الوصول.
+              لا يمكن عرضه. قد يكون محذوفاً أو لا تملك صلاحية الوصول.
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'center',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
               <Link
                 to="/user/my-announcements"
                 style={{
@@ -160,7 +162,7 @@ const EditAnnouncementPage = () => {
                 }}
               >
                 <FaChevronLeft size={11} />
-                العودة إلى إعلاناتي
+                العودة إلى خدماتي
               </Link>
             </div>
           </div>
@@ -169,13 +171,11 @@ const EditAnnouncementPage = () => {
     );
   }
 
-  // ============================================
-  // Guard: can't edit deleted
-  // ============================================
+  // Can't edit
   if (!announcement.can_edit) {
     return (
       <>
-        <SEO title="تعديل الإعلان" />
+        <SEO title={`تعديل ${t.definite}`} />
         <div
           style={{
             backgroundColor: 'var(--bg-body)',
@@ -221,7 +221,7 @@ const EditAnnouncementPage = () => {
                 marginBottom: '8px',
               }}
             >
-              لا يمكن تعديل هذا الإعلان
+              لا يمكن تعديل هذا {t.definite}
             </h3>
             <p
               style={{
@@ -231,7 +231,7 @@ const EditAnnouncementPage = () => {
                 marginBottom: '1.25rem',
               }}
             >
-              قد يكون الإعلان محذوفاً أو غير متاح للتعديل.
+              قد يكون محذوفاً أو غير متاح للتعديل.
             </p>
             <Link
               to="/user/my-announcements"
@@ -247,7 +247,7 @@ const EditAnnouncementPage = () => {
               }}
             >
               <FaChevronLeft size={11} />
-              العودة إلى إعلاناتي
+              العودة إلى خدماتي
             </Link>
           </div>
         </div>
@@ -255,14 +255,12 @@ const EditAnnouncementPage = () => {
     );
   }
 
-  // ============================================
   // Render
-  // ============================================
   return (
     <>
       <SEO
         title={`تعديل: ${announcement.title}`}
-        description="تعديل الإعلان على منصة بصمة"
+        description={`تعديل ${t.definite} على منصة بصمة`}
       />
 
       <div
@@ -274,9 +272,7 @@ const EditAnnouncementPage = () => {
         }}
       >
         <Container fluid="xl" className="px-3 px-md-4">
-          {/* ============================================ */}
           {/* Breadcrumb + Title */}
-          {/* ============================================ */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -314,7 +310,7 @@ const EditAnnouncementPage = () => {
                   fontWeight: 600,
                 }}
               >
-                إعلاناتي
+                خدماتي
               </Link>
               <FaChevronLeft size={10} style={{ opacity: 0.4 }} />
               <Link
@@ -367,7 +363,7 @@ const EditAnnouncementPage = () => {
                     textOverflow: 'ellipsis',
                   }}
                 >
-                  تعديل الإعلان
+                  تعديل {t.definite}
                 </h1>
                 <p
                   style={{
@@ -386,9 +382,7 @@ const EditAnnouncementPage = () => {
             </div>
           </motion.div>
 
-          {/* ============================================ */}
           {/* Form */}
-          {/* ============================================ */}
           <EditAnnouncementForm
             announcement={announcement}
             user={user}

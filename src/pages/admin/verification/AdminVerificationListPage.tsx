@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaChevronLeft, FaShieldAlt, FaInbox, FaTimes } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useAdminVerifications } from '../../../hooks/useAdminVerifications';
-import { useUrlFilters } from '../../../hooks/useUrlFilters';
 import {
   AdminVerificationStats,
   AdminVerificationFilters,
@@ -17,65 +16,114 @@ import Pagination from '../../../components/shared/Pagination';
 
 const DEFAULT_PER_PAGE = 12;
 
+// ============================================
+// URL helpers
+// ============================================
+const readUrlParam = (key: string, fallback: string): string => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key) ?? fallback;
+};
+
+const readUrlNumber = (key: string, fallback: number): number => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get(key);
+  if (raw === null) return fallback;
+  const num = Number(raw);
+  return isNaN(num) ? fallback : num;
+};
+
+const writeUrlParams = (params: Record<string, string | number | null>) => {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === '' || value === 'all') {
+      url.searchParams.delete(key);
+    } else {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  window.history.replaceState({}, '', url.toString());
+};
+
+// ============================================
+// Page
+// ============================================
 const AdminVerificationListPage = () => {
   const { requests, meta, stats, loading, fetchRequests } =
     useAdminVerifications();
 
-  // ============================================
-  // URL-driven filters ✅
-  // Reads from ?status=pending&search=...
-  // ============================================
-  const { filters, setFilter, clearFilters, hasActiveFilters } = useUrlFilters({
-    status: 'all' as AdminVerificationFilter,
-    search: '' as string,
-    page: 1 as number,
-    per_page: DEFAULT_PER_PAGE as number,
-  });
+  // Filter state
+  const [status, setStatus] = useState<AdminVerificationFilter>(
+    () => readUrlParam('status', 'all') as AdminVerificationFilter
+  );
+  const [search, setSearch] = useState(() => readUrlParam('search', ''));
+  const [page, setPage] = useState(() => readUrlNumber('page', 1));
+  const [perPage, setPerPage] = useState(() =>
+    readUrlNumber('per_page', DEFAULT_PER_PAGE)
+  );
 
-  const [localSearch, setLocalSearch] = useState(filters.search);
+  const [localSearch, setLocalSearch] = useState(search);
   const [isSearching, setIsSearching] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   const isFirstFetch = useRef(true);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // ============================================
-  // Debounce search → URL
+  // Sync URL
+  // ============================================
+  useEffect(() => {
+    writeUrlParams({
+      status: status === 'all' ? null : status,
+      search: search || null,
+      page: page > 1 ? page : null,
+      per_page: perPage !== DEFAULT_PER_PAGE ? perPage : null,
+    });
+  }, [status, search, page, perPage]);
+
+  // ============================================
+  // Debounce search
   // ============================================
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (localSearch !== filters.search) {
-        setFilter('search', localSearch);
-        setFilter('page', 1);
+      if (localSearch !== search) {
+        setSearch(localSearch);
+        setPage(1);
       }
     }, 500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localSearch]);
 
-  useEffect(() => {
-    setLocalSearch(filters.search);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.search]);
-
   // ============================================
-  // Fetch on URL filter change ✅
+  // Fetch requests
   // ============================================
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
+      if (!isMountedRef.current) return;
       try {
         setIsSearching(true);
         await fetchRequests({
-          status: filters.status,
-          search: filters.search || undefined,
-          page: filters.page,
-          per_page: filters.per_page,
+          status,
+          search: search || undefined,
+          page,
+          per_page: perPage,
         });
       } catch {
         // toast handled in hook
       } finally {
-        if (!cancelled) {
+        if (!cancelled && isMountedRef.current) {
           setIsSearching(false);
           if (isFirstFetch.current) {
             setInitialLoading(false);
@@ -91,30 +139,34 @@ const AdminVerificationListPage = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.status, filters.search, filters.page, filters.per_page]);
+  }, [status, search, page, perPage]);
 
   // ============================================
   // Handlers
   // ============================================
-  const handleClearFilters = () => {
-    clearFilters();
+  const handleClearFilters = useCallback(() => {
+    setStatus('all');
+    setSearch('');
     setLocalSearch('');
-  };
+    setPage(1);
+  }, []);
 
-  const handlePageChange = (page: number) => {
-    setFilter('page', page);
+  const handlePageChange = useCallback((p: number) => {
+    setPage(p);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handlePerPageChange = (pp: number) => {
-    setFilter('per_page', pp);
-    setFilter('page', 1);
-  };
+  const handlePerPageChange = useCallback((pp: number) => {
+    setPerPage(pp);
+    setPage(1);
+  }, []);
 
-  const handleStatusChange = (s: AdminVerificationFilter) => {
-    setFilter('status', s);
-    setFilter('page', 1);
-  };
+  const handleStatusChange = useCallback((s: AdminVerificationFilter) => {
+    setStatus(s);
+    setPage(1);
+  }, []);
+
+  const hasActiveFilters = status !== 'all' || search.trim() !== '';
 
   // ============================================
   // Initial Loading
@@ -236,7 +288,7 @@ const AdminVerificationListPage = () => {
             <div style={{ marginBottom: '1.25rem' }}>
               <AdminVerificationStats
                 stats={stats}
-                activeFilter={filters.status}
+                activeFilter={status}
                 onFilterClick={handleStatusChange}
               />
             </div>
@@ -246,7 +298,7 @@ const AdminVerificationListPage = () => {
           <AdminVerificationFilters
             search={localSearch}
             onSearchChange={setLocalSearch}
-            status={filters.status}
+            status={status}
             onStatusChange={handleStatusChange}
             counts={{
               all: stats?.total || 0,
@@ -398,10 +450,10 @@ const AdminVerificationListPage = () => {
           {/* Pagination */}
           {meta && requests.length > 0 && (
             <Pagination
-              currentPage={filters.page}
+              currentPage={page}
               lastPage={meta.last_page}
               total={meta.total}
-              perPage={filters.per_page}
+              perPage={perPage}
               onPageChange={handlePageChange}
               onPerPageChange={handlePerPageChange}
               perPageOptions={[6, 12, 24, 48]}

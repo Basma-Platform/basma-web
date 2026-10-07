@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
   FaCloudUploadAlt,
@@ -40,8 +40,9 @@ const AnnouncementImageUploader = ({
 }: AnnouncementImageUploaderProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  // Memory Leak Cleanup
+  // Memory leak cleanup
   useEffect(() => {
     return () => {
       images.forEach((img) => {
@@ -50,6 +51,7 @@ const AnnouncementImageUploader = ({
         }
       });
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const validateFile = (file: File): { valid: boolean; error?: string } => {
@@ -57,7 +59,10 @@ const AnnouncementImageUploader = ({
       return { valid: false, error: 'الصورة يجب أن تكون بصيغة JPG أو PNG' };
     }
     if (file.size > MAX_SIZE_BYTES) {
-      return { valid: false, error: `حجم الصورة يجب أن لا يتجاوز ${MAX_SIZE_MB} ميجابايت` };
+      return {
+        valid: false,
+        error: `حجم الصورة يجب أن لا يتجاوز ${MAX_SIZE_MB} ميجابايت`,
+      };
     }
     return { valid: true };
   };
@@ -131,7 +136,55 @@ const AnnouncementImageUploader = ({
     const [item] = updated.splice(index, 1);
     updated.unshift(item);
     onChange(updated);
-    toast.success('تم تعيينها كصورة رئيسية للإعلان');
+    toast.success('تم تعيينها كصورة رئيسية للخدمة');
+  };
+
+  // ============================================
+  // DRAG & DROP HANDLERS
+  // ============================================
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
+    setIsDragging(true);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
+    // Required to allow drop
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled) return;
+
+    // Only clear the dragging state when the pointer actually leaves
+    // the container (not just moving between children).
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    const isInside =
+      x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+
+    if (!isInside) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (disabled) return;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleAddFiles(files);
+    }
   };
 
   const canAddMore = images.length < MAX_IMAGES && !disabled;
@@ -161,7 +214,13 @@ const AnnouncementImageUploader = ({
         >
           <FaImage size={13} color="var(--primary-orange)" />
           صور الإعلان
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 500 }}>
+          <span
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.72rem',
+              fontWeight: 500,
+            }}
+          >
             (1-{MAX_IMAGES} صور)
           </span>
         </label>
@@ -173,14 +232,28 @@ const AnnouncementImageUploader = ({
             gap: '6px',
             padding: '4px 10px',
             borderRadius: '8px',
-            backgroundColor: images.length === MAX_IMAGES ? 'rgba(255,193,7,0.12)' : 'var(--bg-input)',
-            border: `1px solid ${images.length === MAX_IMAGES ? 'rgba(255,193,7,0.3)' : 'var(--border-color)'}`,
+            backgroundColor:
+              images.length === MAX_IMAGES
+                ? 'rgba(255,193,7,0.12)'
+                : 'var(--bg-input)',
+            border: `1px solid ${
+              images.length === MAX_IMAGES
+                ? 'rgba(255,193,7,0.3)'
+                : 'var(--border-color)'
+            }`,
             fontSize: '0.7rem',
             fontWeight: 700,
-            color: images.length === MAX_IMAGES ? '#856404' : 'var(--text-muted)',
+            color:
+              images.length === MAX_IMAGES ? '#856404' : 'var(--text-muted)',
           }}
         >
-          <span style={{ fontFamily: 'system-ui, sans-serif', direction: 'ltr', fontWeight: 800 }}>
+          <span
+            style={{
+              fontFamily: 'system-ui, sans-serif',
+              direction: 'ltr',
+              fontWeight: 800,
+            }}
+          >
             {images.length}/{MAX_IMAGES}
           </span>
           {images.length === MAX_IMAGES && <FaExclamationTriangle size={9} />}
@@ -193,15 +266,29 @@ const AnnouncementImageUploader = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={() => !disabled && fileInputRef.current?.click()}
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
           style={{
             position: 'relative',
             padding: '2.5rem 1.5rem',
             borderRadius: '16px',
-            border: `2px dashed ${error ? 'var(--error)' : 'var(--border-color)'}`,
-            backgroundColor: 'var(--bg-input)',
+            border: `2px dashed ${
+              isDragging
+                ? 'var(--primary-orange)'
+                : error
+                  ? 'var(--error)'
+                  : 'var(--border-color)'
+            }`,
+            backgroundColor: isDragging
+              ? 'rgba(232,122,32,0.08)'
+              : 'var(--bg-input)',
             cursor: disabled ? 'not-allowed' : 'pointer',
             textAlign: 'center',
             opacity: disabled ? 0.6 : 1,
+            transition: 'all 0.2s ease',
+            transform: isDragging ? 'scale(1.01)' : 'scale(1)',
           }}
           whileHover={!disabled ? { scale: 1.005 } : {}}
         >
@@ -211,24 +298,95 @@ const AnnouncementImageUploader = ({
               height: '64px',
               margin: '0 auto 12px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(232,122,32,0.15), rgba(232,122,32,0.06))',
+              background:
+                'linear-gradient(135deg, rgba(232,122,32,0.15), rgba(232,122,32,0.06))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: 'var(--primary-orange)',
+              transform: isDragging ? 'scale(1.1)' : 'scale(1)',
+              transition: 'transform 0.2s ease',
             }}
           >
             <FaCloudUploadAlt size={28} />
           </div>
-          <h4 style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 800, margin: '0 0 6px' }}>
-            اسحب الصور هنا أو اضغط للاختيار
+          <h4
+            style={{
+              color: isDragging
+                ? 'var(--primary-orange)'
+                : 'var(--text-secondary)',
+              fontSize: '0.95rem',
+              fontWeight: 800,
+              margin: '0 0 6px',
+              transition: 'color 0.2s ease',
+            }}
+          >
+            {isDragging
+              ? 'أفلت الصور هنا'
+              : 'اسحب الصور هنا أو اضغط للاختيار'}
           </h4>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', margin: 0 }}>
-            JPG أو PNG • الحد الأقصى {MAX_SIZE_MB} ميجابايت • حتى {MAX_IMAGES} صور
+          <p
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.75rem',
+              margin: 0,
+            }}
+          >
+            JPG أو PNG • الحد الأقصى {MAX_SIZE_MB} ميجابايت • حتى {MAX_IMAGES}{' '}
+            صور
           </p>
         </motion.div>
       ) : (
-        <div ref={containerRef} style={{ position: 'relative', padding: '4px' }}>
+        <div
+          ref={containerRef}
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          style={{
+            position: 'relative',
+            padding: '4px',
+            borderRadius: '16px',
+            border: isDragging
+              ? '2px dashed var(--primary-orange)'
+              : '2px solid transparent',
+            backgroundColor: isDragging
+              ? 'rgba(232,122,32,0.04)'
+              : 'transparent',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          {/* Dragging overlay hint */}
+          <AnimatePresence>
+            {isDragging && canAddMore && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(232,122,32,0.92)',
+                  color: '#FFFFFF',
+                  borderRadius: '14px',
+                  zIndex: 50,
+                  pointerEvents: 'none',
+                  fontFamily: 'Cairo, sans-serif',
+                  fontSize: '0.95rem',
+                  fontWeight: 800,
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <FaCloudUploadAlt size={34} />
+                أفلت الصور لإضافتها
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <style>{`
             .announcement-images-grid {
               display: grid;
@@ -241,12 +399,14 @@ const AnnouncementImageUploader = ({
             }
             @media (min-width: 640px) {
               .announcement-images-grid {
-                grid-template-columns: repeat(${Math.min(images.length + (canAddMore ? 1 : 0), 4)}, 1fr);
+                grid-template-columns: repeat(${Math.min(
+                  images.length + (canAddMore ? 1 : 0),
+                  4
+                )}, 1fr);
               }
             }
           `}</style>
 
-          {/* إزالة تحديد المحور الثابت (axis) لتمكين الانتقال السلس بين الصفوف والأعمدة دون تداخل */}
           <Reorder.Group
             values={images}
             onReorder={onChange}
@@ -268,8 +428,15 @@ const AnnouncementImageUploader = ({
                     borderRadius: '14px',
                     overflow: 'hidden',
                     backgroundColor: 'var(--bg-input)',
-                    border: `2px solid ${index === 0 ? 'var(--primary-orange)' : 'var(--border-color)'}`,
-                    boxShadow: index === 0 ? '0 6px 20px rgba(232,122,32,0.3)' : '0 2px 8px rgba(0,0,0,0.08)',
+                    border: `2px solid ${
+                      index === 0
+                        ? 'var(--primary-orange)'
+                        : 'var(--border-color)'
+                    }`,
+                    boxShadow:
+                      index === 0
+                        ? '0 6px 20px rgba(232,122,32,0.3)'
+                        : '0 2px 8px rgba(0,0,0,0.08)',
                     touchAction: 'none',
                     userSelect: 'none',
                     listStyle: 'none',
@@ -293,17 +460,18 @@ const AnnouncementImageUploader = ({
                     }}
                   />
 
-                  {/* Gradient Background */}
+                  {/* Gradient Overlay */}
                   <div
                     style={{
                       position: 'absolute',
                       inset: 0,
-                      background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 45%, rgba(0,0,0,0.7) 100%)',
+                      background:
+                        'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, transparent 45%, rgba(0,0,0,0.7) 100%)',
                       pointerEvents: 'none',
                     }}
                   />
 
-                  {/* Cover Badge / Button */}
+                  {/* Cover Badge */}
                   {index === 0 ? (
                     <div
                       style={{
@@ -315,7 +483,8 @@ const AnnouncementImageUploader = ({
                         gap: '4px',
                         padding: '4px 9px',
                         borderRadius: '6px',
-                        background: 'linear-gradient(135deg, #E87A20, #F5A623)',
+                        background:
+                          'linear-gradient(135deg, #E87A20, #F5A623)',
                         color: '#FFFFFF',
                         fontSize: '0.65rem',
                         fontWeight: 800,
@@ -356,7 +525,7 @@ const AnnouncementImageUploader = ({
                     )
                   )}
 
-                  {/* Drag Grip Icon */}
+                  {/* Drag Grip */}
                   {!disabled && (
                     <div
                       style={{
@@ -395,7 +564,6 @@ const AnnouncementImageUploader = ({
                         zIndex: 3,
                       }}
                     >
-                      {/* زر الخلف (<) */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -422,7 +590,6 @@ const AnnouncementImageUploader = ({
                         <FaChevronLeft size={12} />
                       </button>
 
-                      {/* زر الأمام (>) */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -437,7 +604,8 @@ const AnnouncementImageUploader = ({
                           background: 'rgba(0,0,0,0.75)',
                           color: '#FFF',
                           border: 'none',
-                          display: index === images.length - 1 ? 'none' : 'flex',
+                          display:
+                            index === images.length - 1 ? 'none' : 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           cursor: 'pointer',
@@ -451,7 +619,7 @@ const AnnouncementImageUploader = ({
                     </div>
                   )}
 
-                  {/* Delete Button & Index Footer */}
+                  {/* Delete + Index */}
                   <div
                     style={{
                       position: 'absolute',
@@ -488,7 +656,9 @@ const AnnouncementImageUploader = ({
                       >
                         <FaTrash size={12} />
                       </button>
-                    ) : <div />}
+                    ) : (
+                      <div />
+                    )}
 
                     <div
                       style={{
@@ -553,7 +723,9 @@ const AnnouncementImageUploader = ({
                 >
                   <FaCloudUploadAlt size={18} />
                 </span>
-                <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>إضافة صورة</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700 }}>
+                  إضافة صورة
+                </span>
               </motion.button>
             )}
           </Reorder.Group>
@@ -571,9 +743,18 @@ const AnnouncementImageUploader = ({
         style={{ display: 'none' }}
       />
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', color: 'var(--error)', fontSize: '0.75rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginTop: '8px',
+            color: 'var(--error)',
+            fontSize: '0.75rem',
+          }}
+        >
           <FaExclamationTriangle size={11} />
           {error}
         </div>

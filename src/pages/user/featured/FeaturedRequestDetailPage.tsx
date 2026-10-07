@@ -176,7 +176,7 @@ const FeaturedRequestDetailPage = () => {
     <>
       <SEO
         title={`تفاصيل طلب التمييز #${detail.id}`}
-        description="تفاصيل طلب تمييز الإعلان"
+        description="تفاصيل طلب تمييز الخدمة"
       />
 
       <div

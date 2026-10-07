@@ -1,5 +1,8 @@
 import api from './api';
 
+// ============================================
+// Public Statistics Response
+// ============================================
 export interface PublicStats {
   users: {
     total: number;
@@ -20,6 +23,13 @@ export interface PublicStats {
     average: number;
     total_ratings: number;
     display_format: string;
+  };
+  donations: {
+    help_requests_published: number;
+    achievements_count: number;
+  };
+  community: {
+    posts_published: number;
   };
 }
 

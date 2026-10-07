@@ -115,7 +115,7 @@ const AuthLayout = () => {
                   e.currentTarget.style.color = 'var(--text-muted)';
                 }}
               >
-                الإعلانات
+                تبادل الخدمات
               </Link>
 
               {/* ✅ Dark Mode Toggle Button */}

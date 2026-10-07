@@ -25,7 +25,7 @@ export const useUserAnnouncements = () => {
    */
   const fetchMyAnnouncements = useCallback(
     async (params?: {
-      status?: 'all' | 'active' | 'disabled' | 'featured';
+      status?: 'all' | 'active' | 'disabled' | 'completed' | 'featured';
       search?: string;
       sort?: 'newest' | 'oldest' | 'most_viewed';
       page?: number;
@@ -42,7 +42,7 @@ export const useUserAnnouncements = () => {
         return response;
       } catch (error: any) {
         const message =
-          error.response?.data?.message || 'حدث خطأ في تحميل الإعلانات';
+          error.response?.data?.message || 'حدث خطأ في تحميل الخدمات';
         toast.error(message);
         throw error;
       } finally {
@@ -93,16 +93,48 @@ export const useUserAnnouncements = () => {
   /**
    * Enable announcement
    * POST /api/v1/user/announcements/{id}/enable
-   * Note: Returns UserAnnouncementDetailResponse (no message field)
    */
   const enableAnnouncement = useCallback(async (id: number) => {
     try {
       const response = await userAnnouncementService.enableAnnouncement(id);
-      // ✅ Fixed: use hardcoded success message (API response has no `message`)
-      toast.success('تم تفعيل الإعلان بنجاح');
+      toast.success('تم التفعيل بنجاح');
       return response;
     } catch (error: any) {
       const message = error.response?.data?.message || 'حدث خطأ في التفعيل';
+      toast.error(message);
+      throw error;
+    }
+  }, []);
+
+  /**
+   * 🆕 Complete announcement (mark as done)
+   * POST /api/v1/user/announcements/{id}/complete
+   */
+  const completeAnnouncement = useCallback(async (id: number) => {
+    try {
+      const response = await userAnnouncementService.completeAnnouncement(id);
+      toast.success('🎉 تم الإكمال بنجاح');
+      return response;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || 'حدث خطأ أثناء الإكمال';
+      toast.error(message);
+      throw error;
+    }
+  }, []);
+
+  /**
+   * 🆕 Reopen completed announcement
+   * POST /api/v1/user/announcements/{id}/reopen
+   */
+  const reopenAnnouncement = useCallback(async (id: number) => {
+    try {
+      const response = await userAnnouncementService.reopenAnnouncement(id);
+      toast.success('تم إعادة الفتح بنجاح');
+      return response;
+    } catch (error: any) {
+      const message =
+        error.response?.data?.message || 'حدث خطأ أثناء إعادة الفتح';
       toast.error(message);
       throw error;
     }
@@ -117,6 +149,8 @@ export const useUserAnnouncements = () => {
     deleteAnnouncement,
     disableAnnouncement,
     enableAnnouncement,
+    completeAnnouncement,
+    reopenAnnouncement,
   };
 };
 

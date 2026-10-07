@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { FaStar } from 'react-icons/fa';
+import { FaStar, FaGift, FaHandsHelping } from 'react-icons/fa';
 import { Card } from 'react-bootstrap';
 import { motion } from 'framer-motion';
 import FeaturedCard from './FeaturedCard';
@@ -8,18 +8,37 @@ import type { Announcement } from '../../types';
 interface FeaturedCarouselProps {
   announcements: Announcement[];
   loading?: boolean;
+  /** Title shown in the header */
+  title?: string;
+  /** Icon variant to color the header */
+  variant?: 'offer' | 'request' | 'default';
 }
 
-const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselProps) => {
+/**
+ * Featured Carousel — Horizontal infinite marquee
+ * - Supports 2 variants: 'offer' (🎁) + 'request' (🙋)
+ * - Slides right → left (RTL friendly)
+ * - Pauses on hover
+ */
+const FeaturedCarousel = ({
+  announcements,
+  loading = false,
+  title = 'الخدمات المميزة',
+  variant = 'default',
+}: FeaturedCarouselProps) => {
   const [isPaused, setIsPaused] = useState(false);
-  
-  // Ref for the scrollable container
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // ============================================
+  // Empty state — hide carousel completely
+  // ============================================
   if (!loading && (!announcements || announcements.length === 0)) {
     return null;
   }
 
+  // ============================================
+  // Duplicate items for seamless loop
+  // ============================================
   const multipliedAnnouncements =
     announcements && announcements.length < 5
       ? [...announcements, ...announcements, ...announcements]
@@ -28,28 +47,35 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
   const itemCount = multipliedAnnouncements.length;
   const dynamicDuration = Math.max(25, itemCount * 3.5);
 
-  // Set initial scroll position to the middle group so users can swipe both ways infinitely
+  // ============================================
+  // Set initial scroll position to middle group
+  // ============================================
   useEffect(() => {
     if (!loading && scrollRef.current) {
       const container = scrollRef.current;
-      const trackGroup = container.querySelector('.featured-marquee-group') as HTMLElement;
+      const trackGroup = container.querySelector(
+        '.featured-marquee-group'
+      ) as HTMLElement;
       if (trackGroup) {
         container.scrollLeft = trackGroup.offsetWidth;
       }
     }
   }, [loading, multipliedAnnouncements]);
 
-  // Seamless infinite loop handler using native scroll position checking
+  // ============================================
+  // Seamless loop on scroll
+  // ============================================
   const handleScroll = () => {
     const container = scrollRef.current;
     if (!container) return;
 
-    const trackGroup = container.querySelector('.featured-marquee-group') as HTMLElement;
+    const trackGroup = container.querySelector(
+      '.featured-marquee-group'
+    ) as HTMLElement;
     if (!trackGroup) return;
 
     const groupWidth = trackGroup.offsetWidth;
 
-    // If scrolled too far left/right into the outer duplicate sets, instantly snap back to the middle
     if (container.scrollLeft <= 10) {
       container.scrollLeft += groupWidth;
     } else if (container.scrollLeft >= groupWidth * 2 - 10) {
@@ -57,8 +83,35 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
     }
   };
 
+  // ============================================
+  // Variant config
+  // ============================================
+  const variantConfig = {
+    offer: {
+      Icon: FaGift,
+      gradient: 'linear-gradient(135deg, #28A745, #4FCB6E)',
+      glowColor: 'rgba(40,167,69,0.35)',
+      subtitle: 'أحدث العروض المميزة من المجتمع',
+    },
+    request: {
+      Icon: FaHandsHelping,
+      gradient: 'linear-gradient(135deg, #17A2B8, #20C9E0)',
+      glowColor: 'rgba(23,162,184,0.35)',
+      subtitle: 'طلبات يحتاجها المجتمع — ساعد من تستطيع',
+    },
+    default: {
+      Icon: FaStar,
+      gradient: 'linear-gradient(135deg, #FFD700 0%, #E87A20 100%)',
+      glowColor: 'rgba(232,122,32,0.4)',
+      subtitle: 'خدمات بارزة مختارة لك في المقدمة',
+    },
+  }[variant];
+
+  const HeaderIcon = variantConfig.Icon;
+
   return (
     <div
+      className="featured-carousel-wrapper"
       style={{
         width: '100vw',
         position: 'relative',
@@ -66,22 +119,25 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
         right: '50%',
         marginLeft: '-50vw',
         marginRight: '-50vw',
-        marginBottom: '3rem',
+        marginBottom: '2rem',
         overflow: 'hidden',
-        background: 'linear-gradient(135deg, rgba(232, 122, 32, 0.05) 0%, rgba(139, 90, 43, 0.1) 100%)',
+        background:
+          'linear-gradient(135deg, rgba(232, 122, 32, 0.04) 0%, rgba(139, 90, 43, 0.08) 100%)',
         borderTop: '1px solid var(--border-color)',
         borderBottom: '1px solid var(--border-color)',
-        padding: '28px 0 32px',
+        padding: '22px 0 26px',
       }}
     >
+      {/* ============================================ */}
       {/* Header */}
+      {/* ============================================ */}
       <motion.div
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.5 }}
         style={{
           maxWidth: '800px',
-          margin: '0 auto 24px',
+          margin: '0 auto 20px',
           textAlign: 'center',
           padding: '0 20px',
           position: 'relative',
@@ -89,49 +145,51 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
         }}
       >
         <motion.div
-          animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+          animate={{ scale: [1, 1.08, 1], rotate: [0, 4, -4, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           style={{
-            width: '52px',
-            height: '52px',
-            borderRadius: '16px',
-            background: 'linear-gradient(135deg, #FFD700 0%, #E87A20 100%)',
+            width: '48px',
+            height: '48px',
+            borderRadius: '14px',
+            background: variantConfig.gradient,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 12px',
-            boxShadow: '0 6px 20px rgba(232, 122, 32, 0.4)',
+            margin: '0 auto 10px',
+            boxShadow: `0 6px 20px ${variantConfig.glowColor}`,
           }}
         >
-          <FaStar size={24} color="#FFFFFF" />
+          <HeaderIcon size={22} color="#FFFFFF" />
         </motion.div>
 
         <h3
           style={{
             color: 'var(--text-secondary)',
-            fontSize: 'clamp(1.4rem, 2.2vw, 1.8rem)',
+            fontSize: 'clamp(1.3rem, 2vw, 1.7rem)',
             fontWeight: 900,
             fontFamily: 'Cairo, sans-serif',
-            marginBottom: '6px',
+            marginBottom: '4px',
             lineHeight: 1.2,
           }}
         >
-          الإعلانات المميزة
+          {title}
         </h3>
 
         <p
           style={{
             color: 'var(--text-muted)',
-            fontSize: 'clamp(0.85rem, 1.1vw, 1rem)',
+            fontSize: 'clamp(0.8rem, 1vw, 0.92rem)',
             fontFamily: 'Cairo, sans-serif',
             margin: 0,
           }}
         >
-          إعلانات بارزة مختارة لك في المقدمة
+          {variantConfig.subtitle}
         </p>
       </motion.div>
 
+      {/* ============================================ */}
       {/* Loading Skeleton */}
+      {/* ============================================ */}
       {loading && (
         <div
           style={{
@@ -144,143 +202,51 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
           }}
         >
           {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              style={{
-                width: '280px',
-                flexShrink: 0,
-              }}
-            >
+            <div key={i} style={{ width: '280px', flexShrink: 0 }}>
               <Card
-                className="announcement-card-skeleton"
                 style={{
                   backgroundColor: 'var(--bg-card)',
                   border: '1px solid var(--border-color)',
                   borderRadius: '16px',
                   overflow: 'hidden',
-                  boxShadow: '0 2px 8px var(--shadow-sm)',
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
                 }}
               >
                 <div
-                  className="skeleton shimmer"
-                  style={{
-                    width: '100%',
-                    height: '160px',
-                    flexShrink: 0,
-                    position: 'relative',
-                    padding: '10px',
-                  }}
-                >
-                  <div
-                    className="skeleton shimmer"
-                    style={{
-                      width: '65px',
-                      height: '22px',
-                      borderRadius: '12px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                    }}
-                  />
-                </div>
-
+                  className="featured-skel"
+                  style={{ width: '100%', height: '160px' }}
+                />
                 <Card.Body
                   style={{
                     padding: '0.8rem 0.9rem 0.9rem',
                     display: 'flex',
                     flexDirection: 'column',
-                    flex: 1,
                     gap: '8px',
                   }}
                 >
                   <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      backgroundColor: 'var(--bg-input)',
-                      borderRadius: '8px',
-                      padding: '4px 10px',
-                      border: '1px solid var(--border-color)',
-                    }}
-                  >
-                    <div
-                      className="skeleton shimmer"
-                      style={{
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '50%',
-                        flexShrink: 0,
-                      }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div
-                        className="skeleton shimmer"
-                        style={{
-                          width: '50%',
-                          height: '8px',
-                          borderRadius: '3px',
-                          marginBottom: '3px',
-                        }}
-                      />
-                      <div
-                        className="skeleton shimmer"
-                        style={{
-                          width: '30%',
-                          height: '6px',
-                          borderRadius: '3px',
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div
-                    className="skeleton shimmer"
-                    style={{
-                      width: '90%',
-                      height: '14px',
-                      borderRadius: '3px',
-                      marginTop: '2px',
-                    }}
+                    className="featured-skel"
+                    style={{ height: '14px', width: '90%', borderRadius: '4px' }}
                   />
-
                   <div
-                    className="skeleton shimmer"
+                    className="featured-skel"
                     style={{
-                      width: '65%',
                       height: '10px',
-                      borderRadius: '3px',
+                      width: '65%',
+                      borderRadius: '4px',
                     }}
                   />
-
                   <div
+                    className="featured-skel"
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      paddingTop: '0.5rem',
+                      height: '16px',
+                      width: '40%',
+                      borderRadius: '6px',
                       marginTop: 'auto',
-                      borderTop: '1px solid var(--border-color)',
                     }}
-                  >
-                    <div
-                      className="skeleton shimmer"
-                      style={{
-                        width: '40%',
-                        height: '16px',
-                        borderRadius: '4px',
-                      }}
-                    />
-                    <div
-                      className="skeleton shimmer"
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                      }}
-                    />
-                  </div>
+                  />
                 </Card.Body>
               </Card>
             </div>
@@ -288,7 +254,9 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
         </div>
       )}
 
-      {/* Interactive Track Container with Native Scroll Loop Support */}
+      {/* ============================================ */}
+      {/* Marquee Track */}
+      {/* ============================================ */}
       {!loading && (
         <div
           ref={scrollRef}
@@ -297,34 +265,35 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
           onScroll={handleScroll}
           className="featured-marquee-wrapper"
         >
-          {/* Dynamically pass speed via inline CSS variable --scroll-duration */}
-          <div 
+          <div
             className={`featured-marquee-track ${isPaused ? 'paused' : ''}`}
-            style={{ '--scroll-duration': `${dynamicDuration}s` } as React.CSSProperties}
+            style={
+              { '--scroll-duration': `${dynamicDuration}s` } as React.CSSProperties
+            }
           >
-            {/* First Set (Duplicate for left buffer) */}
+            {/* First Set (buffer) */}
             <div className="featured-marquee-group" aria-hidden="true">
-              {multipliedAnnouncements.map((announcement, index) => (
-                <div key={`a-${announcement.id}-${index}`} className="featured-card-item">
-                  <FeaturedCard announcement={announcement} />
+              {multipliedAnnouncements.map((a, i) => (
+                <div key={`a-${a.id}-${i}`} className="featured-card-item">
+                  <FeaturedCard announcement={a} />
                 </div>
               ))}
             </div>
 
-            {/* Second Set (Primary view) */}
+            {/* Second Set (primary) */}
             <div className="featured-marquee-group">
-              {multipliedAnnouncements.map((announcement, index) => (
-                <div key={`b-${announcement.id}-${index}`} className="featured-card-item">
-                  <FeaturedCard announcement={announcement} />
+              {multipliedAnnouncements.map((a, i) => (
+                <div key={`b-${a.id}-${i}`} className="featured-card-item">
+                  <FeaturedCard announcement={a} />
                 </div>
               ))}
             </div>
 
-            {/* Third Set (Duplicate for right buffer) */}
+            {/* Third Set (buffer) */}
             <div className="featured-marquee-group" aria-hidden="true">
-              {multipliedAnnouncements.map((announcement, index) => (
-                <div key={`c-${announcement.id}-${index}`} className="featured-card-item">
-                  <FeaturedCard announcement={announcement} />
+              {multipliedAnnouncements.map((a, i) => (
+                <div key={`c-${a.id}-${i}`} className="featured-card-item">
+                  <FeaturedCard announcement={a} />
                 </div>
               ))}
             </div>
@@ -359,35 +328,44 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
       />
 
       <style>{`
+        .featured-skel {
+          background-color: #e8e0d8;
+          animation: featured-skel-pulse 1.4s ease-in-out infinite;
+        }
+        [data-theme='dark'] .featured-skel {
+          background-color: #5a4432;
+        }
+        @keyframes featured-skel-pulse {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 0.9; }
+        }
+
         .featured-marquee-wrapper {
           display: flex;
           overflow-x: auto;
-          scrollbar-width: none; /* Firefox */
-          -ms-overflow-style: none; /* IE/Edge */
+          scrollbar-width: none;
+          -ms-overflow-style: none;
           width: 100%;
           user-select: none;
           direction: ltr;
           padding: 16px 0;
           margin: -16px 0;
           cursor: grab;
-          scroll-behavior: auto; /* Instant jump without smooth smooth-scrolling lag during resets */
+          scroll-behavior: auto;
         }
-
         .featured-marquee-wrapper:active {
           cursor: grabbing;
         }
-
         .featured-marquee-wrapper::-webkit-scrollbar {
-          display: none; /* Chrome/Safari/Opera */
+          display: none;
         }
 
         .featured-marquee-track {
           display: flex;
           flex-shrink: 0;
           gap: 20px;
-          animation: marquee-scroll var(--scroll-duration, 30s) linear infinite;
+          animation: featured-marquee-scroll var(--scroll-duration, 30s) linear infinite;
         }
-
         .featured-marquee-track.paused {
           animation-play-state: paused;
         }
@@ -414,48 +392,7 @@ const FeaturedCarousel = ({ announcements, loading = false }: FeaturedCarouselPr
           }
         }
 
-        /* Skeleton Animations */
-        .skeleton {
-          position: relative;
-          overflow: hidden;
-          background-color: #e8e0d8;
-        }
-        
-        .shimmer::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.5) 50%,
-            transparent 100%
-          );
-          animation: shimmer 1.8s infinite;
-        }
-        
-        [data-theme="dark"] .skeleton {
-          background-color: #5a4432 !important;
-        }
-        
-        [data-theme="dark"] .shimmer::after {
-          background: linear-gradient(
-            90deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.08) 50%,
-            transparent 100%
-          );
-        }
-        
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-
-        @keyframes marquee-scroll {
+        @keyframes featured-marquee-scroll {
           0% {
             transform: translateX(0%);
           }

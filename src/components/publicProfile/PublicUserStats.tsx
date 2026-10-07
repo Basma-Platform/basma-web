@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { FaWhatsapp, FaStar, FaCommentAlt } from 'react-icons/fa';
+import { useCardBorderAnimation } from '../../hooks/useCardBorderAnimation';
+import AnimatedCardBorder from '../ui/AnimatedCardBorder';
 
 interface PublicUserStatsProps {
   averageRating: number;
@@ -65,102 +67,7 @@ const PublicUserStats = ({
         }}
       >
         {stats.map((stat, idx) => (
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: idx * 0.06 }}
-            style={{
-              position: 'relative',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '14px',
-              padding: '1rem',
-              boxShadow: '0 2px 8px var(--shadow-sm)',
-              overflow: 'hidden',
-              fontFamily: 'Cairo, sans-serif',
-            }}
-          >
-            {/* Top accent bar */}
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                right: 0,
-                left: 0,
-                height: '3px',
-                background: stat.gradient,
-              }}
-            />
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '10px',
-              }}
-            >
-              <span
-                style={{
-                  color: 'var(--text-muted)',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                }}
-              >
-                {stat.label}
-              </span>
-              <div
-                style={{
-                  width: '30px',
-                  height: '30px',
-                  borderRadius: '9px',
-                  background: stat.gradient,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFFFFF',
-                  flexShrink: 0,
-                  boxShadow: `0 4px 10px ${stat.color}30`,
-                }}
-              >
-                {stat.icon}
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: '4px',
-              }}
-            >
-              <span
-                style={{
-                  color: 'var(--text-primary)',
-                  fontSize: '1.5rem',
-                  fontWeight: 900,
-                  lineHeight: 1,
-                  fontFamily:
-                    "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-                  fontVariantNumeric: 'lining-nums tabular-nums',
-                }}
-              >
-                {stat.value}
-              </span>
-              {stat.suffix && (
-                <span
-                  style={{
-                    color: 'var(--text-muted)',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  {stat.suffix}
-                </span>
-              )}
-            </div>
-          </motion.div>
+          <StatCard key={idx} stat={stat} index={idx} />
         ))}
       </div>
 
@@ -206,6 +113,149 @@ const PublicUserStats = ({
           تواصل عبر واتساب
         </motion.a>
       )}
+    </div>
+  );
+};
+
+// ============================================
+// Individual StatCard — with animated top border
+// ============================================
+interface Stat {
+  label: string;
+  value: string;
+  suffix: string;
+  icon: React.ReactNode;
+  gradient: string;
+  bg: string;
+  color: string;
+}
+
+interface StatCardProps {
+  stat: Stat;
+  index: number;
+}
+
+const StatCard = ({ stat, index }: StatCardProps) => {
+  // ✅ Shared hook — stable ref, hover detection, and in-view fallback
+  const { attachRef, isDrawn, hoverHandlers } = useCardBorderAnimation({
+    threshold: 0.3,
+    rootMargin: '-40px 0px',
+    triggerOnce: true,
+  });
+
+  return (
+    // ✅ OUTER: owns ref + hover detection. NO motion.
+    <div
+      ref={attachRef}
+      {...hoverHandlers}
+      style={{ height: '100%', minWidth: 0 }}
+    >
+      {/* ✅ INNER: motion only. NO ref, NO hover handlers. */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: index * 0.06 }}
+        whileHover={{ y: -3 }}
+        style={{
+          position: 'relative',
+          backgroundColor: 'var(--bg-card)',
+          border: `1px solid ${
+            isDrawn ? `${stat.color}40` : 'var(--border-color)'
+          }`,
+          borderRadius: '14px',
+          padding: '1rem',
+          boxShadow: isDrawn
+            ? `0 6px 20px ${stat.color}20`
+            : '0 2px 8px var(--shadow-sm)',
+          overflow: 'hidden',
+          fontFamily: 'Cairo, sans-serif',
+          transition:
+            'border-color 0.3s ease, box-shadow 0.3s ease, transform 0.25s ease',
+          height: '100%',
+          boxSizing: 'border-box',
+        }}
+      >
+        {/* ✅ Animated Top Accent Bar */}
+        <AnimatedCardBorder
+          isDrawn={isDrawn}
+          side="top"
+          background={stat.gradient}
+          drawFrom="start"
+          height={3}
+          duration={0.55}
+          idleOpacity={0}
+          rounded
+          cardRadius={14}
+        />
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '10px',
+          }}
+        >
+          <span
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+            }}
+          >
+            {stat.label}
+          </span>
+          <div
+            style={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '9px',
+              background: stat.gradient,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              flexShrink: 0,
+              boxShadow: `0 4px 10px ${stat.color}30`,
+            }}
+          >
+            {stat.icon}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '4px',
+          }}
+        >
+          <span
+            style={{
+              color: 'var(--text-primary)',
+              fontSize: '1.5rem',
+              fontWeight: 900,
+              lineHeight: 1,
+              fontFamily:
+                "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
+              fontVariantNumeric: 'lining-nums tabular-nums',
+            }}
+          >
+            {stat.value}
+          </span>
+          {stat.suffix && (
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+              }}
+            >
+              {stat.suffix}
+            </span>
+          )}
+        </div>
+      </motion.div>
     </div>
   );
 };

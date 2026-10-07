@@ -88,7 +88,7 @@ const MonthlyLimitIndicator = ({
               marginBottom: '2px',
             }}
           >
-            إعلانات غير محدودة
+            خدمات غير محدودة
           </div>
           <div
             style={{
@@ -97,7 +97,7 @@ const MonthlyLimitIndicator = ({
               lineHeight: 1.5,
             }}
           >
-            بصفتك مستخدماً موثقاً، يمكنك نشر عدد غير محدود من الإعلانات
+            بصفتك مستخدماً موثقاً، يمكنك نشر عدد غير محدود من العروض والطلبات
           </div>
         </div>
 
@@ -126,7 +126,7 @@ const MonthlyLimitIndicator = ({
             }}
           >
             <FaPlusCircle size={12} />
-            انشر إعلاناً
+            انشر عرضاً أو طلباً
           </motion.button>
         </Link>
       </motion.div>
@@ -247,12 +247,12 @@ const MonthlyLimitIndicator = ({
               <>
                 <FaExclamationTriangle size={10} color="#856404" />
                 <span style={{ color: '#856404' }}>
-                  متبقي {remaining} {remaining === 1 ? 'إعلان' : 'إعلانات'}
+                  متبقي {remaining} {remaining === 1 ? 'عرض/طلب' : 'عروض أو طلبات'}
                 </span>
               </>
             ) : (
               <span>
-                متبقي {remaining} {remaining === 1 ? 'إعلان' : 'إعلانات'} هذا الشهر
+                متبقي {remaining} {remaining === 1 ? 'عرض/طلب' : 'عروض أو طلبات'} هذا الشهر
               </span>
             )}
           </div>
@@ -311,7 +311,7 @@ const MonthlyLimitIndicator = ({
               fontWeight: 700,
             }}
           >
-            الحد الشهري للإعلانات
+            الحد الشهري للخدمات
           </span>
           <span
             style={{
@@ -372,7 +372,7 @@ const MonthlyLimitIndicator = ({
               marginTop: '6px',
             }}
           >
-            {used} إعلان من أصل {limit} هذا الشهر
+            {used} عرض/طلب من أصل {limit} هذا الشهر
           </div>
         </div>
 
@@ -442,10 +442,10 @@ const MonthlyLimitIndicator = ({
               ? 'لقد وصلت للحد الأقصى. جدد الشهر القادم أو وثق حسابك.'
               : isNearLimit
                 ? `متبقي لك ${remaining} ${
-                    remaining === 1 ? 'إعلان' : 'إعلانات'
+                    remaining === 1 ? 'عرض/طلب' : 'عروض/طلبات'
                   } فقط`
                 : `يمكنك نشر ${remaining} ${
-                    remaining === 1 ? 'إعلان' : 'إعلانات'
+                    remaining === 1 ? 'عرض/طلب' : 'عروض/طلبات'
                   } إضافية`}
           </span>
         </div>
@@ -479,7 +479,7 @@ const MonthlyLimitIndicator = ({
               }}
             >
               <FaPlusCircle size={14} />
-              انشر إعلاناً جديداً
+              انشر عرضاً أو طلباً جديداً
             </motion.button>
           </Link>
         ) : (
@@ -499,7 +499,7 @@ const MonthlyLimitIndicator = ({
                 marginBottom: '8px',
               }}
             >
-              هل تريد إعلانات غير محدودة؟
+              هل تريد خدمات غير محدودة؟
             </div>
             <Link
               to="/user/verify-identity"

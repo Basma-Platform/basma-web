@@ -2,10 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaChevronLeft, FaFlag, FaInbox } from 'react-icons/fa';
+import { FaChevronLeft, FaFlag, FaInbox, FaTimes } from 'react-icons/fa';
 import SEO from '../../../components/SEO';
 import { useAdminReports } from '../../../hooks/useAdminReports';
-import { useUrlFilters } from '../../../hooks/useUrlFilters';
 import Pagination from '../../../components/shared/Pagination';
 import {
   AdminReportsStatsCards,
@@ -24,89 +23,129 @@ import {
   REPORT_DEFAULT_PER_PAGE,
 } from '../../../utils/reportHelpers';
 
+// ============================================
+// URL helpers
+// ============================================
+const readUrlParam = (key: string, fallback: string): string => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  return params.get(key) ?? fallback;
+};
+
+const readUrlNumber = (key: string, fallback: number): number => {
+  if (typeof window === 'undefined') return fallback;
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get(key);
+  if (raw === null) return fallback;
+  const num = Number(raw);
+  return isNaN(num) ? fallback : num;
+};
+
+const writeUrlParams = (params: Record<string, string | number | null>) => {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === '' || value === 'all') {
+      url.searchParams.delete(key);
+    } else {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  window.history.replaceState({}, '', url.toString());
+};
+
+// ============================================
+// Page
+// ============================================
 const AdminReportsListPage = () => {
-  const {
-    reports,
-    meta,
-    stats,
-    loading,
-    fetchReports,
-    fetchStats,
-  } = useAdminReports();
+  const { reports, meta, stats, loading, fetchReports, fetchStats } =
+    useAdminReports();
 
-  // ============================================
-  // URL-driven filters ✅
-  // Reads from ?status=pending&priority=high&...
-  // ============================================
-  const { filters, setFilter, clearFilters, hasActiveFilters } = useUrlFilters({
-    status: 'all' as AdminReportsStatusFilter,
-    target_type: 'all' as AdminReportsTargetFilter,
-    priority: 'all' as AdminReportsPriorityFilter,
-    sort: 'newest' as AdminReportsSort,
-    search: '' as string,
-    page: 1 as number,
-    per_page: REPORT_DEFAULT_PER_PAGE as number,
-  });
+  // Filter state
+  const [status, setStatus] = useState<AdminReportsStatusFilter>(
+    () => readUrlParam('status', 'all') as AdminReportsStatusFilter
+  );
+  const [targetType, setTargetType] = useState<AdminReportsTargetFilter>(
+    () => readUrlParam('target_type', 'all') as AdminReportsTargetFilter
+  );
+  const [priority, setPriority] = useState<AdminReportsPriorityFilter>(
+    () => readUrlParam('priority', 'all') as AdminReportsPriorityFilter
+  );
+  const [sort, setSort] = useState<AdminReportsSort>(
+    () => readUrlParam('sort', 'newest') as AdminReportsSort
+  );
+  const [search, setSearch] = useState(() => readUrlParam('search', ''));
+  const [page, setPage] = useState(() => readUrlNumber('page', 1));
+  const [perPage, setPerPage] = useState(() =>
+    readUrlNumber('per_page', REPORT_DEFAULT_PER_PAGE)
+  );
 
-  // Local search state (debounced)
-  const [localSearch, setLocalSearch] = useState(filters.search);
+  const [localSearch, setLocalSearch] = useState(search);
   const [isSearching, setIsSearching] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   const isFirstFetch = useRef(true);
+  const isMountedRef = useRef(true);
 
-  // ============================================
-  // Fetch stats once on mount
-  // ============================================
   useEffect(() => {
-    fetchStats().catch(() => {
-      // toast handled in hook
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Sync URL
+  useEffect(() => {
+    writeUrlParams({
+      status: status === 'all' ? null : status,
+      target_type: targetType === 'all' ? null : targetType,
+      priority: priority === 'all' ? null : priority,
+      sort: sort === 'newest' ? null : sort,
+      search: search || null,
+      page: page > 1 ? page : null,
+      per_page: perPage !== REPORT_DEFAULT_PER_PAGE ? perPage : null,
     });
+  }, [status, targetType, priority, sort, search, page, perPage]);
+
+  // Fetch stats (once)
+  useEffect(() => {
+    fetchStats().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ============================================
-  // Debounce search → push to URL
-  // ============================================
+  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (localSearch !== filters.search) {
-        setFilter('search', localSearch);
-        setFilter('page', 1);
+      if (localSearch !== search) {
+        setSearch(localSearch);
+        setPage(1);
       }
     }, 450);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localSearch]);
 
-  // Sync local search when URL changes externally
-  useEffect(() => {
-    setLocalSearch(filters.search);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.search]);
-
-  // ============================================
-  // Fetch reports whenever URL filters change ✅
-  // ============================================
+  // Fetch reports
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
+      if (!isMountedRef.current) return;
       try {
         setIsSearching(true);
         await fetchReports({
-          status: filters.status,
-          target_type: filters.target_type,
-          priority: filters.priority,
-          search: filters.search || undefined,
-          sort: filters.sort,
-          page: filters.page,
-          per_page: filters.per_page,
+          status,
+          target_type: targetType,
+          priority,
+          search: search || undefined,
+          sort,
+          page,
+          per_page: perPage,
         });
       } catch {
         // toast handled in hook
       } finally {
-        if (!cancelled) {
+        if (!cancelled && isMountedRef.current) {
           setIsSearching(false);
           if (isFirstFetch.current) {
             setInitialLoading(false);
@@ -122,69 +161,63 @@ const AdminReportsListPage = () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    filters.status,
-    filters.target_type,
-    filters.priority,
-    filters.search,
-    filters.sort,
-    filters.page,
-    filters.per_page,
-  ]);
+  }, [status, targetType, priority, sort, search, page, perPage]);
 
-  // ============================================
-  // Handlers — all update URL ✅
-  // ============================================
+  // Handlers
   const handleClearFilters = useCallback(() => {
-    clearFilters();
+    setStatus('all');
+    setTargetType('all');
+    setPriority('all');
+    setSort('newest');
+    setSearch('');
     setLocalSearch('');
-  }, [clearFilters]);
+    setPage(1);
+  }, []);
 
-  const handleStatusChange = useCallback(
-    (v: AdminReportsStatusFilter) => {
-      setFilter('status', v);
-      setFilter('page', 1);
-    },
-    [setFilter]
-  );
+  const handleStatusChange = useCallback((v: AdminReportsStatusFilter) => {
+    setStatus(v);
+    setPage(1);
+  }, []);
 
   const handleTargetTypeChange = useCallback(
     (v: AdminReportsTargetFilter) => {
-      setFilter('target_type', v);
-      setFilter('page', 1);
+      setTargetType(v);
+      setPage(1);
     },
-    [setFilter]
+    []
   );
 
   const handlePriorityChange = useCallback(
     (v: AdminReportsPriorityFilter) => {
-      setFilter('priority', v);
-      setFilter('page', 1);
+      setPriority(v);
+      setPage(1);
     },
-    [setFilter]
+    []
   );
 
-  const handleSortChange = useCallback(
-    (v: AdminReportsSort) => {
-      setFilter('sort', v);
-      setFilter('page', 1);
-    },
-    [setFilter]
-  );
+  const handleSortChange = useCallback((v: AdminReportsSort) => {
+    setSort(v);
+    setPage(1);
+  }, []);
 
-  const handlePageChange = (p: number) => {
-    setFilter('page', p);
+  const handlePageChange = useCallback((p: number) => {
+    setPage(p);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handlePerPageChange = (pp: number) => {
-    setFilter('per_page', pp);
-    setFilter('page', 1);
-  };
+  const handlePerPageChange = useCallback((pp: number) => {
+    setPerPage(pp);
+    setPage(1);
+  }, []);
 
-  // ============================================
+  const hasActiveFilters =
+    status !== 'all' ||
+    targetType !== 'all' ||
+    priority !== 'all' ||
+    sort !== 'newest' ||
+    search.trim() !== '';
+
   // Initial loading
-  // ============================================
   if (initialLoading && !stats && reports.length === 0) {
     return (
       <>
@@ -208,9 +241,6 @@ const AdminReportsListPage = () => {
     );
   }
 
-  // ============================================
-  // Render
-  // ============================================
   return (
     <>
       <SEO
@@ -303,12 +333,12 @@ const AdminReportsListPage = () => {
             </div>
           </motion.div>
 
-          {/* Stats Cards */}
+          {/* Stats */}
           {stats && (
             <div style={{ marginBottom: '1.25rem' }}>
               <AdminReportsStatsCards
                 stats={stats}
-                activeStatus={filters.status}
+                activeStatus={status}
                 onStatusClick={handleStatusChange}
               />
             </div>
@@ -318,18 +348,65 @@ const AdminReportsListPage = () => {
           <AdminReportsFilters
             search={localSearch}
             onSearchChange={setLocalSearch}
-            status={filters.status}
+            status={status}
             onStatusChange={handleStatusChange}
-            targetType={filters.target_type}
+            targetType={targetType}
             onTargetTypeChange={handleTargetTypeChange}
-            priority={filters.priority}
+            priority={priority}
             onPriorityChange={handlePriorityChange}
-            sort={filters.sort}
+            sort={sort}
             onSortChange={handleSortChange}
-            onClear={handleClearFilters}
             isSearching={isSearching}
-            resultsCount={meta?.total}
           />
+
+          {/* ============================================ */}
+          {/* Results Count + Clear — Below Filters */}
+          {/* ============================================ */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              marginBottom: '1rem',
+              padding: '0 4px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.8rem',
+                fontFamily: 'Cairo, sans-serif',
+              }}
+            >
+              {!loading && meta && (
+                <>
+                  عرض {reports.length} من {meta.total} بلاغ
+                </>
+              )}
+            </span>
+
+            {hasActiveFilters && (
+              <Button
+                variant="link"
+                onClick={handleClearFilters}
+                style={{
+                  color: 'var(--text-muted)',
+                  textDecoration: 'none',
+                  fontFamily: 'Cairo, sans-serif',
+                  fontSize: '0.78rem',
+                  padding: '4px 10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <FaTimes size={11} />
+                مسح الفلاتر
+              </Button>
+            )}
+          </div>
 
           {/* Grid */}
           {loading && reports.length === 0 ? (
@@ -443,10 +520,10 @@ const AdminReportsListPage = () => {
           {/* Pagination */}
           {meta && meta.last_page > 1 && (
             <Pagination
-              currentPage={filters.page}
+              currentPage={page}
               lastPage={meta.last_page}
               total={meta.total}
-              perPage={filters.per_page}
+              perPage={perPage}
               onPageChange={handlePageChange}
               onPerPageChange={handlePerPageChange}
               perPageOptions={[...REPORT_PER_PAGE_OPTIONS]}

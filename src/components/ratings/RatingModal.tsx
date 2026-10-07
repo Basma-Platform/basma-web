@@ -242,7 +242,7 @@ const RatingModal = ({
                     style={{ flexShrink: 0, marginTop: '2px' }}
                   />
                   <span>
-                    الإعلان:{' '}
+                    الخدمة:{' '}
                     <strong style={{ color: 'var(--text-secondary)' }}>
                       {announcementTitle}
                     </strong>

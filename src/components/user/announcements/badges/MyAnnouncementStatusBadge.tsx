@@ -5,21 +5,31 @@ import {
   FaStar,
   FaClock,
   FaTimesCircle,
+  FaFlagCheckered,
 } from 'react-icons/fa';
 import type { IconType } from 'react-icons';
+import { useTheme } from '../../../../context/ThemeContext';
+import { getStatusBadgeStyle } from '../../../../utils/announcementHelpers';
 
 interface MyAnnouncementStatusBadgeProps {
-  status: 'active' | 'disabled' | 'deleted';
+  status: 'active' | 'disabled' | 'completed' | 'deleted';
   isFeatured?: boolean;
   featuredRequestStatus?: 'pending' | 'approved' | 'rejected' | null;
   size?: 'sm' | 'md' | 'lg';
 }
 
+type BadgeVariant =
+  | 'active'
+  | 'disabled'
+  | 'completed'
+  | 'deleted'
+  | 'featured'
+  | 'pending'
+  | 'rejected';
+
 interface BadgeConfig {
   label: string;
-  color: string;
-  bg: string;
-  border: string;
+  variant: BadgeVariant;
   Icon: IconType;
 }
 
@@ -29,66 +39,67 @@ const MyAnnouncementStatusBadge = ({
   featuredRequestStatus = null,
   size = 'md',
 }: MyAnnouncementStatusBadgeProps) => {
-  // ✅ Determine which badge to show (priority-based)
+  const { isDark } = useTheme();
+
+  // ============================================
+  // Priority-based badge selection
+  // ============================================
   const getBadgeConfig = (): BadgeConfig => {
-    // 1. Featured (highest priority)
+    // 1. Completed (highest priority)
+    if (status === 'completed') {
+      return {
+        label: 'مكتمل',
+        variant: 'completed',
+        Icon: FaFlagCheckered,
+      };
+    }
+
+    // 2. Featured
     if (isFeatured) {
       return {
         label: 'مميز',
-        color: '#F5A623',
-        bg: 'rgba(245, 166, 35, 0.18)',
-        border: 'rgba(245, 166, 35, 0.4)',
+        variant: 'featured',
         Icon: FaStar,
       };
     }
 
-    // 2. Pending featured request
+    // 3. Pending featured request
     if (featuredRequestStatus === 'pending') {
       return {
         label: 'قيد المراجعة',
-        color: '#FFA726',
-        bg: 'rgba(255, 167, 38, 0.18)',
-        border: 'rgba(255, 167, 38, 0.4)',
+        variant: 'pending',
         Icon: FaClock,
       };
     }
 
-    // 3. Rejected featured request
+    // 4. Rejected featured request
     if (featuredRequestStatus === 'rejected') {
       return {
         label: 'تمييز مرفوض',
-        color: '#DC3545',
-        bg: 'rgba(220, 53, 69, 0.18)',
-        border: 'rgba(220, 53, 69, 0.4)',
+        variant: 'rejected',
         Icon: FaTimesCircle,
       };
     }
 
-    // 4. Regular status
+    // 5. Standard statuses
     switch (status) {
       case 'active':
         return {
           label: 'نشط',
-          color: '#28A745',
-          bg: 'rgba(40, 167, 69, 0.18)',
-          border: 'rgba(40, 167, 69, 0.4)',
+          variant: 'active',
           Icon: FaCheckCircle,
         };
       case 'disabled':
         return {
           label: 'معطل',
-          color: '#FFC107',
-          bg: 'rgba(255, 193, 7, 0.2)',
-          border: 'rgba(255, 193, 7, 0.45)',
+          variant: 'disabled',
           Icon: FaPauseCircle,
         };
       case 'deleted':
       default:
         return {
           label: 'محذوف',
-          color: '#DC3545',
-          bg: 'rgba(220, 53, 69, 0.18)',
-          border: 'rgba(220, 53, 69, 0.4)',
+          variant: 'deleted',
           Icon: FaTimesCircle,
         };
     }
@@ -97,7 +108,6 @@ const MyAnnouncementStatusBadge = ({
   const config = getBadgeConfig();
   const { Icon } = config;
 
-  // Size configurations
   const sizes = {
     sm: {
       padding: '3px 10px',
@@ -124,29 +134,29 @@ const MyAnnouncementStatusBadge = ({
 
   const sizeConfig = sizes[size];
 
+  // ✅ Glassy style from shared helper
+  const glassyStyle = getStatusBadgeStyle({
+    variant: config.variant,
+    isDark,
+  });
+
   return (
     <motion.span
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.2 }}
       style={{
+        ...glassyStyle,
         display: 'inline-flex',
         alignItems: 'center',
         gap: sizeConfig.gap,
         padding: sizeConfig.padding,
-        backgroundColor: config.bg,
-        color: config.color,
-        border: `1px solid ${config.border}`,
         borderRadius: sizeConfig.borderRadius,
         fontSize: sizeConfig.fontSize,
         fontWeight: 700,
         fontFamily: 'Cairo, sans-serif',
         lineHeight: 1,
         whiteSpace: 'nowrap',
-        // ✅ Featured gets special glow
-        boxShadow: isFeatured
-          ? `0 2px 8px ${config.color}30`
-          : 'none',
       }}
     >
       <Icon size={sizeConfig.iconSize} />
