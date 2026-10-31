@@ -145,7 +145,7 @@ const HeroSection = () => {
 
                 <Button
                   as={Link as any}
-                  to="/announcements"
+                  to="/community-explore"
                   className="rounded-pill fw-bold hero-btn-outline"
                   style={{
                     padding: '12px 28px',
@@ -168,7 +168,7 @@ const HeroSection = () => {
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
-                  تصفّح الخدمات
+                  اكتشف المجتمع
                 </Button>
               </div>
 

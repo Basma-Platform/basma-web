@@ -1,8 +1,8 @@
 /**
  * Central map of backend response codes → Arabic messages.
  *
- * Used across Basma Fund (public, user, admin) to translate
- * backend `message` codes into user-facing Arabic strings.
+ * Used across Basma Fund, Community Posts, and other modules
+ * to translate backend `message` codes into user-facing Arabic.
  *
  * Priority chain:
  *   1. Exact code lookup
@@ -97,7 +97,6 @@ export const BACKEND_MESSAGES: Record<string, string> = {
   already_revoked: 'الرابط ملغى مسبقاً',
   token_not_found: 'الرابط غير موجود',
 
-  // Token error codes (from public streaming flow)
   TOKEN_NOT_FOUND: 'الرابط غير موجود',
   TOKEN_REVOKED: 'تم إلغاء هذا الرابط',
   TOKEN_EXPIRED: 'انتهت صلاحية هذا الرابط',
@@ -106,7 +105,6 @@ export const BACKEND_MESSAGES: Record<string, string> = {
   STREAM_WITHOUT_START: 'يجب البدء بالمشاهدة أولاً',
   STREAM_WINDOW_EXPIRED: 'انتهت صلاحية جلسة المشاهدة',
 
-  // Video file errors
   video_not_available: 'الفيديو غير متوفر',
   video_file_not_found: 'ملف الفيديو غير موجود',
 
@@ -122,7 +120,6 @@ export const BACKEND_MESSAGES: Record<string, string> = {
   achivment_updated: 'تم تحديث الإنجاز بنجاح',
   achivment_deleted: 'تم حذف الإنجاز بنجاح',
 
-  // Achievements — toggle
   featured_toggled: 'تم تحديث حالة التمييز',
   active_toggled: 'تم تحديث حالة الإنجاز',
 
@@ -137,29 +134,6 @@ export const BACKEND_MESSAGES: Record<string, string> = {
     'قيمة "مميّز" يجب أن تكون صحيحة أو خاطئة.',
   'The is_featured field must be true or false.':
     'قيمة "مميّز" يجب أن تكون صحيحة أو خاطئة.',
-
-  // ============================================
-  // COMMUNITY POSTS  🆕
-  // ============================================
-  post_created: 'تم إنشاء المنشور بنجاح',
-  post_updated: 'تم تحديث المنشور بنجاح',
-  post_deleted: 'تم حذف المنشور بنجاح',
-  post_not_found: 'المنشور غير موجود',
-  post_approved: 'تمت الموافقة على المنشور',
-  post_rejected: 'تم رفض المنشور',
-  post_resolved: 'تم وضع علامة "تم الحل" على المنشور',
-  post_already_processed: 'تمت معالجة المنشور مسبقاً',
-  already_approved: 'تمت الموافقة على المنشور مسبقاً',
-  already_rejected: 'تم رفض المنشور مسبقاً',
-  only_pending_can_be_approved: 'فقط المنشورات المعلقة يمكن الموافقة عليها',
-  only_pending_can_be_rejected: 'فقط المنشورات المعلقة يمكن رفضها',
-  only_lost_found_can_be_resolved:
-    'فقط منشورات المفقود/الموجود يمكن وضع علامة "تم الحل" عليها',
-  community_post_limits_reached: 'لقد وصلت إلى الحد الأقصى من المنشورات',
-  community_posts_limit_monthly:
-    'لقد وصلت إلى الحد الشهري للمنشورات',
-  community_posts_limit_active:
-    'لقد وصلت إلى الحد الأقصى من المنشورات النشطة',
 
   // ============================================
   // VERIFICATION (KYC)
@@ -270,6 +244,52 @@ export const BACKEND_MESSAGES: Record<string, string> = {
     'هذه الفئة تتطلب توثيق الهوية',
 
   // ============================================
+  // COMMUNITY POSTS
+  // ============================================
+  // User — limits (note: verification_required already above)
+  max_active_posts_reached:
+    'لقد وصلت إلى الحد الأقصى من المنشورات النشطة.',
+  max_monthly_posts_reached:
+    'لقد وصلت إلى الحد الأقصى من المنشورات لهذا الشهر.',
+
+  // User — resolve
+  not_resolvable_type:
+    'يمكن وضع "تم الحل" فقط لمنشورات المفقودات/الموجودات',
+  already_resolved: 'المنشور محلول بالفعل',
+  not_approved_yet: 'يمكن وضع "تم الحل" فقط للمنشورات المنشورة',
+  only_approved_can_be_resolved:
+    'يمكن وضع "تم الحل" فقط للمنشورات المنشورة',
+  post_resolved: 'تم وسم المنشور كمحلول',
+
+  // User — CRUD (note: post_created/updated/deleted/not_found already above)
+  post_store_failed: 'حدث خطأ أثناء إنشاء المنشور. حاول مرة أخرى.',
+  post_update_failed: 'حدث خطأ أثناء التحديث',
+  post_delete_failed: 'حدث خطأ أثناء الحذف',
+  cannot_edit_after_review: 'لا يمكن تعديل المنشور بعد المراجعة',
+
+  // Admin — approve / reject
+  post_approved: 'تمت الموافقة على المنشور ونشره',
+  post_rejected: 'تم رفض المنشور',
+  post_processed: 'تمت معالجة المنشور بنجاح',
+  post_already_processed: 'تمت معالجة هذا المنشور مسبقاً',
+  already_approved: 'تمت الموافقة على المنشور مسبقاً',
+  already_rejected: 'تم رفض المنشور مسبقاً',
+  only_pending_can_be_approved: 'فقط المنشورات المعلقة يمكن الموافقة عليها',
+  only_pending_can_be_rejected: 'فقط المنشورات المعلقة يمكن رفضها',
+
+  // Admin — pin / unpin
+  post_pinned: 'تم تثبيت المنشور في الأعلى',
+  post_unpinned: 'تم إلغاء تثبيت المنشور',
+  max_pinned_posts_reached: 'الحد الأقصى للمنشورات المثبتة هو 3',
+  already_pinned: 'المنشور مثبّت مسبقاً',
+  not_pinned: 'المنشور غير مثبّت',
+  only_approved_posts_can_be_pinned:
+    'فقط المنشورات المنشورة يمكن تثبيتها',
+
+  // Public
+  track_success: 'تم تسجيل النقرة',
+
+  // ============================================
   // GENERIC
   // ============================================
   successfully_updated: 'تم التحديث بنجاح',
@@ -298,22 +318,18 @@ export const translateBackendMessage = (
   rawMessage: string | undefined,
   code?: string | undefined
 ): string => {
-  // 1. Code lookup
   if (code && BACKEND_MESSAGES[code]) {
     return BACKEND_MESSAGES[code];
   }
 
-  // 2. Raw message lookup
   if (rawMessage && BACKEND_MESSAGES[rawMessage]) {
     return BACKEND_MESSAGES[rawMessage];
   }
 
-  // 3. Already Arabic → keep it
   if (rawMessage && /[\u0600-\u06FF]/.test(rawMessage)) {
     return rawMessage;
   }
 
-  // 4. Fallback
   return BACKEND_MESSAGES.unknown;
 };
 
