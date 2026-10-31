@@ -927,6 +927,11 @@ export type NotificationType =
   | 'donation_inquiry_status_changed'
   | 'video_access_granted'
   | 'suspicious_video_access'
+  // Sprint 06 — Community Posts (منشورات المجتمع)
+  | 'community_post_submitted_user'
+  | 'community_post_submitted_admin'
+  | 'community_post_approved'
+  | 'community_post_rejected'
   // Fallback
   | 'general';
 
@@ -963,6 +968,8 @@ export interface NotificationMetadata {
   token_id?: number;
   bound_ip?: string;
   current_ip?: string;
+  // Community Posts
+  post_id?: number;
   // Generic
   announcement_id?: number;
   announcement_title?: string;
@@ -2580,4 +2587,292 @@ export interface BasmaFundPublicStats {
 
 export interface BasmaFundPublicStatsResponse {
   data: BasmaFundPublicStats;
+}
+
+// ============================================
+// SPRINT 06 — COMMUNITY POSTS
+// ============================================
+
+export type CommunityPostType = 'warning' | 'lost' | 'found' | 'general';
+
+export type CommunityPostStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'resolved'
+  | 'expired';
+
+export type CommunityDisplayNameType = 'full' | 'anonymous' | 'custom';
+
+export type CommunityExpiryChoice = '1_month' | '2_months';
+
+export interface CommunityCategoryRef {
+  id: number;
+  name: string;
+  slug?: string;
+}
+
+export interface CommunityLocationRef {
+  id: number;
+  name: string;
+}
+
+export interface CommunityPostUser {
+  id: number;
+  name: string;
+  email?: string;
+  whatsapp?: string;
+  is_verified: boolean;
+  profile_image: string | null;
+}
+
+export interface CommunityPost {
+  id: number;
+  type: CommunityPostType;
+  type_label: string;
+
+  title: string;
+  description: string;
+  images: string[];
+
+  category?: CommunityCategoryRef | null;
+  governorate?: CommunityLocationRef | null;
+  city?: CommunityLocationRef | null;
+
+  display_name: string;
+  whatsapp_number: string | null;
+
+  status: CommunityPostStatus;
+  status_label: string;
+
+  views: number;
+  whatsapp_clicks: number;
+
+  is_pinned: boolean;
+  pinned_at?: string | null;
+
+  published_at: string | null;
+  expires_at: string | null;
+  resolved_at: string | null;
+
+  time_ago?: string;
+
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface UserCommunityPost extends CommunityPost {
+  display_name_type: CommunityDisplayNameType;
+  admin_notes: string | null;
+  reviewed_at: string | null;
+
+  can_edit: boolean;
+  can_delete: boolean;
+  can_resolve: boolean;
+}
+
+export interface AdminCommunityPostListItem {
+  id: number;
+  type: CommunityPostType;
+  type_label: string;
+
+  title: string;
+  description: string;
+
+  user: CommunityPostUser | null;
+
+  category: CommunityCategoryRef | null;
+  city: CommunityLocationRef | null;
+
+  status: CommunityPostStatus;
+  status_label: string;
+
+  views: number;
+  whatsapp_clicks: number;
+
+  published_at: string | null;
+  expires_at: string | null;
+  resolved_at: string | null;
+
+  is_pinned: boolean;
+  pinned_at: string | null;
+
+  created_at: string;
+}
+
+export interface AdminCommunityPostDetail extends AdminCommunityPostListItem {
+  images: string[];
+
+  governorate: CommunityLocationRef | null;
+
+  display_name_type: CommunityDisplayNameType;
+  display_name: string;
+  whatsapp_number: string | null;
+
+  admin_notes: string | null;
+  reviewed_at: string | null;
+
+  reviewed_by: { id: number; name: string } | null;
+  resolved_by: { id: number; name: string } | null;
+  pinned_by: { id: number; name: string } | null;
+
+  updated_at: string;
+}
+
+export interface CommunityPostTypeBreakdown {
+  warning: number;
+  lost: number;
+  found: number;
+  general: number;
+}
+
+export interface CommunityPublicStats {
+  community_posts: {
+    total_published: number;
+    by_type: CommunityPostTypeBreakdown;
+    total_views: number;
+    total_clicks: number;
+  };
+}
+
+export interface AdminCommunityStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  resolved: number;
+  expired: number;
+  by_type: CommunityPostTypeBreakdown;
+  today_new: number;
+}
+
+export interface CommunityTypeOption {
+  value: CommunityPostType;
+  label: string;
+  auto_expiring: boolean;
+  resolvable: boolean;
+}
+
+export interface CommunityDisplayOption {
+  value: CommunityDisplayNameType;
+  label: string;
+}
+
+export interface CommunityExpiryOption {
+  value: CommunityExpiryChoice;
+  label: string;
+}
+
+export interface CommunityLimits {
+  max_active: number;
+  active_used: number;
+  active_remaining: number;
+  max_monthly: number;
+  monthly_used: number;
+  monthly_remaining: number;
+  can_post: boolean;
+}
+
+export interface CommunityLimitsResponse {
+  types: CommunityTypeOption[];
+  display_name_options: CommunityDisplayOption[];
+  expiry_options: CommunityExpiryOption[];
+  limits: CommunityLimits;
+}
+
+export interface CommunityPostsPublicResponse {
+  data: CommunityPost[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+}
+
+export interface CommunityPostsUserResponse {
+  data: UserCommunityPost[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+}
+
+export interface CommunityPostsAdminResponse {
+  data: AdminCommunityPostListItem[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+  };
+  stats: AdminCommunityStats;
+}
+
+export interface CommunityPostTrackResponse {
+  message: string;
+  whatsapp_clicks: number;
+}
+
+export interface CommunityPostCreateResponse {
+  message: string;
+  data: UserCommunityPost;
+}
+
+export interface CommunityPostUpdateResponse {
+  message: string;
+  data: UserCommunityPost;
+}
+
+export interface CommunityPostResolveResponse {
+  message: string;
+  data: UserCommunityPost;
+}
+
+export interface CommunityPublicFilters {
+  type?: CommunityPostType;
+  category_id?: number;
+  governorate_id?: number;
+  city_id?: number;
+  search?: string;
+  per_page?: number;
+  page?: number;
+}
+
+export interface CommunityUserFilters {
+  status?: CommunityPostStatus | 'all';
+  type?: CommunityPostType;
+  per_page?: number;
+  page?: number;
+}
+
+export interface CommunityAdminFilters {
+  status?: CommunityPostStatus | 'all';
+  type?: CommunityPostType | 'all';
+  search?: string;
+  sort?: 'newest' | 'oldest' | 'most_viewed';
+  per_page?: number;
+  page?: number;
+}
+
+export interface CommunityPostFormPayload {
+  type: CommunityPostType;
+  title: string;
+  description: string;
+
+  images?: File[];
+  keep_images?: string[];
+
+  category_id?: number | null;
+  governorate_id?: number | null;
+  city_id?: number | null;
+
+  display_name_type: CommunityDisplayNameType;
+  display_name_custom?: string;
+
+  whatsapp_number?: string;
+
+  expiry_choice?: CommunityExpiryChoice;
 }

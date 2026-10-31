@@ -1,44 +1,53 @@
+import type { IconType } from 'react-icons';
 import {
-  FaEnvelope,
   FaBell,
+  FaEnvelope,
   FaCheckCircle,
   FaTimesCircle,
   FaTrash,
   FaBan,
-  FaInfoCircle,
-  FaShieldAlt,
+  FaClock,
+  FaClipboardCheck,
   FaUserCheck,
   FaUserTimes,
+  FaShieldAlt,
   FaStar,
   FaStarHalfAlt,
   FaFlag,
-  FaClock,
-  FaClipboardCheck,
   FaCheck,
   FaGavel,
-  FaFlagCheckered,
-  FaUndo,
-  FaHandHoldingHeart,
   FaSyncAlt,
   FaVideo,
   FaExclamationTriangle,
+  FaInfoCircle,
+  FaHandHoldingHeart,
+  FaBullhorn,
 } from 'react-icons/fa';
-import type { IconType } from 'react-icons';
 import type { NotificationType } from '../../types';
 import { getNotificationColor } from '../../utils/notificationHelpers';
 
 interface NotificationIconProps {
   type: NotificationType;
   size?: number;
+  color?: string;
+  /** When true, wraps the icon in a tinted rounded square */
   withBackground?: boolean;
+  /** Size of the background square (only when withBackground = true) */
   bgSize?: number;
 }
 
+/**
+ * Icon renderer for notifications.
+ * - Default: bare icon
+ * - withBackground: icon inside a tinted, rounded square using the
+ *   notification type's color as the tint.
+ */
 const NotificationIcon = ({
   type,
-  size = 16,
+  size = 18,
+  color,
   withBackground = false,
-  bgSize = 36,
+  bgSize,
 }: NotificationIconProps) => {
   const iconMap: Record<NotificationType, IconType> = {
     // ============================================
@@ -76,11 +85,11 @@ const NotificationIcon = ({
     // ============================================
     // Sprint 05 — Announcements
     // ============================================
-    announcement_completed: FaFlagCheckered,
-    announcement_reopened: FaUndo,
+    announcement_completed: FaCheckCircle,
+    announcement_reopened: FaSyncAlt,
 
     // ============================================
-    // Sprint 06 — Basma Fund (صندوق بصمة)
+    // SPRINT 06 — Basma Fund
     // ============================================
     help_request_submitted_user: FaHandHoldingHeart,
     help_request_submitted_admin: FaHandHoldingHeart,
@@ -92,33 +101,52 @@ const NotificationIcon = ({
     suspicious_video_access: FaExclamationTriangle,
 
     // ============================================
+    // SPRINT 06 — Community Posts
+    // ============================================
+    community_post_submitted_user: FaClipboardCheck,
+    community_post_submitted_admin: FaBullhorn,
+    community_post_approved: FaCheckCircle,
+    community_post_rejected: FaTimesCircle,
+
+    // ============================================
     // Fallback
     // ============================================
     general: FaInfoCircle,
   };
 
   const Icon = iconMap[type] || FaInfoCircle;
-  const color = getNotificationColor(type);
 
+  // Resolve the icon color:
+  // - explicit `color` prop wins
+  // - otherwise, use the notification type's mapped color
+  const resolvedColor = color ?? getNotificationColor(type);
+
+  // ─── Bare icon ───
   if (!withBackground) {
-    return <Icon size={size} color={color} />;
+    return <Icon size={size} color={resolvedColor} />;
   }
 
+  // ─── Icon inside tinted rounded square ───
+  const squareSize = bgSize ?? size * 2;
+
   return (
-    <div
+    <span
       style={{
-        width: `${bgSize}px`,
-        height: `${bgSize}px`,
+        width: `${squareSize}px`,
+        height: `${squareSize}px`,
         borderRadius: '10px',
-        backgroundColor: `${color}15`,
+        backgroundColor: `${resolvedColor}15`,
+        border: `1px solid ${resolvedColor}25`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
+        color: resolvedColor,
       }}
+      aria-hidden="true"
     >
-      <Icon size={size} color={color} />
-    </div>
+      <Icon size={size} />
+    </span>
   );
 };
 

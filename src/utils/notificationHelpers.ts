@@ -57,6 +57,12 @@ export const getNotificationIconName = (type: NotificationType): string => {
     video_access_granted: 'video',
     suspicious_video_access: 'exclamation-triangle',
 
+    // Sprint 06 — Community Posts
+    community_post_submitted_user: 'clipboard-check',
+    community_post_submitted_admin: 'bullhorn',
+    community_post_approved: 'check-circle',
+    community_post_rejected: 'times-circle',
+
     // ============================================
     // Fallback
     // ============================================
@@ -108,6 +114,12 @@ export const getNotificationColor = (type: NotificationType): string => {
     donation_inquiry_status_changed: '#FFC107',
     video_access_granted: '#9C27B0',
     suspicious_video_access: '#FF9800',
+
+    // Sprint 06 — Community Posts
+    community_post_submitted_user: '#9C27B0',
+    community_post_submitted_admin: '#9C27B0',
+    community_post_approved: '#28A745',
+    community_post_rejected: '#DC3545',
 
     // Fallback
     general: '#6B4226',

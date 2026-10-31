@@ -7,6 +7,7 @@ import MainLayout from './components/layouts/MainLayout';
 import PrivateRoute from './routes/PrivateRoute';
 import NotificationsPage from './pages/NotificationsPage';
 import PublicUserProfilePage from './pages/PublicUserProfilePage';
+import CommunityExplorePage from './pages/CommunityExplorePage';
 import AccountStatusModal from './components/shared/AccountStatusModal';
 
 // Public Pages
@@ -18,6 +19,9 @@ import AnnouncementDetailsPage from './pages/AnnouncementDetailsPage';
 import FAQPage from './pages/FAQPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
+
+// Community (Public)
+import { CommunityPage } from './pages/community';
 
 // Auth Pages
 import RegisterPage from './pages/auth/RegisterPage';
@@ -60,6 +64,14 @@ import {
   FeaturedRequestDetailPage,
 } from './pages/user';
 
+// Community (User)
+import {
+  MyCommunityPostsPage,
+  MyCommunityPostDetailsPage,
+  CreateCommunityPostPage,
+  EditCommunityPostPage,
+} from './pages/user/community';
+
 // Admin pages
 import {
   AdminProfilePage,
@@ -72,7 +84,13 @@ import {
   AdminReportDetailPage,
 } from './pages/admin';
 
-// ✅ Basma Fund (Admin)
+// Community (Admin)
+import {
+  AdminCommunityPostsPage,
+  AdminCommunityPostDetailPage,
+} from './pages/admin/community';
+
+// Basma Fund (Admin)
 import {
   AdminHelpRequestsListPage,
   AdminHelpRequestDetailPage,
@@ -88,10 +106,8 @@ import NotFoundPage from './pages/NotFoundPage';
 function App() {
   return (
     <>
-      {/* Scrolls to top on route change */}
       <ScrollToTop />
 
-      {/* Global toast container */}
       <ToastContainer
         position="bottom-right"
         autoClose={3000}
@@ -104,7 +120,6 @@ function App() {
         pauseOnHover
       />
 
-      {/* Global modals */}
       <AccountStatusModal />
 
       <Routes>
@@ -124,6 +139,11 @@ function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
 
+          <Route path="/community-explore" element={<CommunityExplorePage />} />
+
+          {/* Community — Public */}
+          <Route path="/community" element={<CommunityPage />} />
+
           {/* Basma Fund — Public */}
           <Route path="/basma-fund" element={<BasmaFundPage />} />
           <Route
@@ -141,7 +161,7 @@ function App() {
         </Route>
 
         {/* ============================================ */}
-        {/* Auth Routes — no Navbar + Footer */}
+        {/* Auth Routes */}
         {/* ============================================ */}
         <Route element={<AuthLayout />}>
           <Route path="/register" element={<RegisterPage />} />
@@ -156,7 +176,7 @@ function App() {
         </Route>
 
         {/* ============================================ */}
-        {/* Public User Profile — logged-in users only */}
+        {/* Public User Profile — any authenticated user */}
         {/* ============================================ */}
         <Route element={<PrivateRoute roles={['user', 'admin']} />}>
           <Route element={<PublicLayout />}>
@@ -174,7 +194,7 @@ function App() {
         </Route>
 
         {/* ============================================ */}
-        {/* Protected Routes — User */}
+        {/* Protected — User */}
         {/* ============================================ */}
         <Route element={<PrivateRoute roles={['user']} />}>
           <Route element={<MainLayout />}>
@@ -239,18 +259,36 @@ function App() {
               path="/user/basma-fund/help-requests/:id"
               element={<MyHelpRequestDetailsPage />}
             />
+
+            {/* Community — User */}
+            <Route
+              path="/user/community-posts"
+              element={<MyCommunityPostsPage />}
+            />
+            <Route
+              path="/user/community-posts/create"
+              element={<CreateCommunityPostPage />}
+            />
+            <Route
+              path="/user/community-posts/:id"
+              element={<MyCommunityPostDetailsPage />}
+            />
+            <Route
+              path="/user/community-posts/:id/edit"
+              element={<EditCommunityPostPage />}
+            />
           </Route>
         </Route>
 
         {/* ============================================ */}
-        {/* Protected Routes — Admin */}
+        {/* Protected — Admin */}
         {/* ============================================ */}
         <Route element={<PrivateRoute roles={['admin']} />}>
           <Route element={<MainLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/profile" element={<AdminProfilePage />} />
 
-            {/* Verification Management (KYC) */}
+            {/* Verification Management */}
             <Route
               path="/admin/verification"
               element={<AdminVerificationListPage />}
@@ -286,11 +324,17 @@ function App() {
               element={<AdminReportDetailPage />}
             />
 
-            {/* ============================================ */}
-            {/* Basma Fund — Admin */}
-            {/* ============================================ */}
+            {/* Community — Admin */}
+            <Route
+              path="/admin/community-posts"
+              element={<AdminCommunityPostsPage />}
+            />
+            <Route
+              path="/admin/community-posts/:id"
+              element={<AdminCommunityPostDetailPage />}
+            />
 
-            {/* Help Requests */}
+            {/* Basma Fund — Admin */}
             <Route
               path="/admin/help-requests"
               element={<AdminHelpRequestsListPage />}
@@ -300,7 +344,6 @@ function App() {
               element={<AdminHelpRequestDetailPage />}
             />
 
-            {/* Donation Inquiries */}
             <Route
               path="/admin/donation-inquiries"
               element={<AdminInquiriesListPage />}
@@ -310,7 +353,6 @@ function App() {
               element={<AdminInquiryDetailPage />}
             />
 
-            {/* Achievements */}
             <Route
               path="/admin/donation-achievements"
               element={<AdminAchievementsListPage />}
