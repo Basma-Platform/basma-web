@@ -11,6 +11,10 @@
     {
       "source": "/storage/:path*",
       "destination": "https://basma-backend.onrender.com/storage/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
